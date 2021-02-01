@@ -1,0 +1,7 @@
+---
+source: crates/walrus-lexer/src/token_kind.rs
+expression: got
+---
+[
+    0..6@UnicodeChar "\'\\u0a\'",
+]
