@@ -1,0 +1,17 @@
+---
+source: crates/walrus-parser/src/grammar.rs
+expression: got
+---
+Ok(
+    (
+        [],
+        Int(
+            Hex(
+                HexInt {
+                    span: 0..11,
+                    text: "0x123abcdef",
+                },
+            ),
+        ),
+    ),
+)

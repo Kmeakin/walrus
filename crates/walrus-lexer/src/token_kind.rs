@@ -4,6 +4,12 @@ pub type Lexer<'a> = logos::Lexer<'a, TokenKind>;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Logos)]
 #[rustfmt::skip]
+#[logos(subpattern DecDigit  = r"[0-9]")]
+#[logos(subpattern DecDigit_ = r"[0-9_]")]
+#[logos(subpattern BinDigit  = r"[0-1]")]
+#[logos(subpattern BinDigit_ = r"[0-1_]")]
+#[logos(subpattern HexDigit  = r"[0-9a-fA-F]")]
+#[logos(subpattern HexDigit_ = r"[0-9a-fA-F_]")]
 pub enum TokenKind {
     #[error] Error,
     #[regex(r"\s+")] Whitespace,
@@ -22,9 +28,14 @@ pub enum TokenKind {
     #[token("return")] KwReturn,
     #[token("true")] KwTrue,
 
-    #[regex(r"[0-9_]+", priority = 0)] Int,
-    #[regex(r"(\p{XID_Start}|_)\p{XID_Continue}*", priority = 1)] Ident,
-    #[token("_", priority = 2)] Underscore,
+    #[regex(r"(\p{XID_Start}|_)\p{XID_Continue}*")] Ident,
+    #[regex(r"(?&DecDigit)(?&DecDigit_)*")]         DecInt,
+    #[regex(r"(0b|0B)(?&BinDigit)(?&BinDigit_)*")]  BinInt,
+    #[regex(r"(0x|0X)(?&HexDigit)(?&HexDigit_)*")]  HexInt,
+    #[regex(r"(?&DecDigit)(?&DecDigit_)*\.(?&DecDigit)(?&DecDigit_)*")] Float,
+    #[regex(r"'[^']'")]                              SimpleChar,
+    #[regex(r"'\\.'")]                               EscapedChar,
+    #[regex(r"'\\(u|U)(?&HexDigit)(?&HexDigit_)*'")] UnicodeChar,
 
     #[token("(")] LParen,
     #[token(")")] RParen,
@@ -37,6 +48,7 @@ pub enum TokenKind {
     #[token(":")] Colon,
     #[token("->")] ThinArrow,
     #[token("=>")] FatArrow,
+    #[token("_")] Underscore,
 
     #[token("+")] Plus,
     #[token("-")] Minus,
@@ -113,7 +125,13 @@ mod tests {
         r"break continue else false fn if import let loop return true"
     );
     test_lex!(idents, "abc_DEF_123");
-    test_lex!(int, "123_456_7890");
-    test_lex!(symbols, "() {} . , ; -> =>");
+    test_lex!(dec_int, "123_456_7890");
+    test_lex!(bin_int, "0b101");
+    test_lex!(hex_int, "0x1234_56789_abc_def");
+    test_lex!(float, "123.456");
+    test_lex!(simple_char, "'a'");
+    test_lex!(escaped_char, r"'\n'");
+    test_lex!(unicode_char, r"'\u0a'");
+    test_lex!(symbols, "() {} . , ; : -> => _");
     test_lex!(operators, "+ - * / = == != < <= > >=");
 }

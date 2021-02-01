@@ -1,0 +1,17 @@
+---
+source: crates/walrus-parser/src/grammar.rs
+expression: got
+---
+Ok(
+    (
+        [],
+        Int(
+            Bin(
+                BinInt {
+                    span: 0..6,
+                    text: "0b1010",
+                },
+            ),
+        ),
+    ),
+)

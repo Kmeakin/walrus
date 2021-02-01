@@ -1,0 +1,17 @@
+---
+source: crates/walrus-parser/src/grammar.rs
+expression: got
+---
+Ok(
+    (
+        [],
+        Char(
+            Simple(
+                SimpleChar {
+                    span: 0..3,
+                    text: "\'a\'",
+                },
+            ),
+        ),
+    ),
+)

@@ -1,0 +1,17 @@
+---
+source: crates/walrus-parser/src/grammar.rs
+expression: got
+---
+Ok(
+    (
+        [],
+        Char(
+            Escaped(
+                EscapedChar {
+                    span: 0..4,
+                    text: "\'\\a\'",
+                },
+            ),
+        ),
+    ),
+)

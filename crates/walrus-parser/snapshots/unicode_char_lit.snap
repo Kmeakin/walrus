@@ -1,0 +1,17 @@
+---
+source: crates/walrus-parser/src/grammar.rs
+expression: got
+---
+Ok(
+    (
+        [],
+        Char(
+            Unicode(
+                UnicodeChar {
+                    span: 0..6,
+                    text: "\'\\u0a\'",
+                },
+            ),
+        ),
+    ),
+)

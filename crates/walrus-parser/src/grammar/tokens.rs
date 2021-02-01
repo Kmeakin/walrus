@@ -1,0 +1,39 @@
+use super::*;
+use walrus_lexer::TokenKind;
+
+fn token<'a, T>(kind: TokenKind, input: Input<'a>) -> IResult<T>
+where
+    T: From<Token<'a>>,
+{
+    match input.first() {
+        Some(token) if token.kind == kind => Ok((&input[1..], T::from(*token))),
+        _ => Err(nom::Err::Error(())),
+    }
+}
+pub fn kw_else(input: Input) -> IResult<KwElse> { token(TokenKind::KwElse, input) }
+pub fn kw_false(input: Input) -> IResult<KwFalse> { token(TokenKind::KwFalse, input) }
+pub fn kw_if(input: Input) -> IResult<KwIf> { token(TokenKind::KwIf, input) }
+pub fn kw_let(input: Input) -> IResult<KwLet> { token(TokenKind::KwLet, input) }
+pub fn kw_true(input: Input) -> IResult<KwTrue> { token(TokenKind::KwTrue, input) }
+
+pub fn ident(input: Input) -> IResult<Ident> { token(TokenKind::Ident, input) }
+pub fn dec_int(input: Input) -> IResult<DecInt> { token(TokenKind::DecInt, input) }
+pub fn bin_int(input: Input) -> IResult<BinInt> { token(TokenKind::BinInt, input) }
+pub fn hex_int(input: Input) -> IResult<HexInt> { token(TokenKind::HexInt, input) }
+pub fn float(input: Input) -> IResult<Float> { token(TokenKind::Float, input) }
+pub fn simple_char(input: Input) -> IResult<SimpleChar> { token(TokenKind::SimpleChar, input) }
+pub fn escaped_char(input: Input) -> IResult<EscapedChar> { token(TokenKind::EscapedChar, input) }
+pub fn unicode_char(input: Input) -> IResult<UnicodeChar> { token(TokenKind::UnicodeChar, input) }
+
+pub fn lparen(input: Input) -> IResult<LParen> { token(TokenKind::LParen, input) }
+pub fn rparen(input: Input) -> IResult<RParen> { token(TokenKind::RParen, input) }
+pub fn lcurly(input: Input) -> IResult<LCurly> { token(TokenKind::LCurly, input) }
+pub fn rcurly(input: Input) -> IResult<RCurly> { token(TokenKind::RCurly, input) }
+pub fn colon(input: Input) -> IResult<Colon> { token(TokenKind::Colon, input) }
+pub fn comma(input: Input) -> IResult<Comma> { token(TokenKind::Comma, input) }
+pub fn dot(input: Input) -> IResult<Dot> { token(TokenKind::Dot, input) }
+pub fn eq(input: Input) -> IResult<Eq> { token(TokenKind::Eq, input) }
+pub fn fat_arrow(input: Input) -> IResult<FatArrow> { token(TokenKind::FatArrow, input) }
+pub fn semicolon(input: Input) -> IResult<Semicolon> { token(TokenKind::Semicolon, input) }
+pub fn thin_arrow(input: Input) -> IResult<ThinArrow> { token(TokenKind::ThinArrow, input) }
+pub fn underscore(input: Input) -> IResult<Underscore> { token(TokenKind::Underscore, input) }

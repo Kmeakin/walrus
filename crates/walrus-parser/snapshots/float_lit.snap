@@ -1,0 +1,17 @@
+---
+source: crates/walrus-parser/src/grammar.rs
+expression: got
+---
+Ok(
+    (
+        [],
+        Float(
+            FloatLit(
+                Float {
+                    span: 0..10,
+                    text: "1234.56789",
+                },
+            ),
+        ),
+    ),
+)
