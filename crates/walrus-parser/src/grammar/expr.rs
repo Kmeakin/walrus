@@ -216,9 +216,18 @@ pub fn block(input: Input) -> IResult<Block> {
 }
 fn stmt(input: Input) -> IResult<Stmt> { expr_stmt.or(let_stmt).or(semicolon_stmt).parse(input) }
 fn expr_stmt(input: Input) -> IResult<Stmt> {
-    let (input, expr) = expr.parse(input)?;
-    let (input, semicolon) = semicolon.parse(input)?;
-    Ok((input, (Stmt::Expr { expr, semicolon })))
+    (if_expr.map(Expr::If))
+        .or(block.map(Expr::Block))
+        .or(loop_expr)
+        .map(|expr| Stmt::Expr {
+            expr,
+            semicolon: None,
+        })
+        .or(pair(expr, semicolon).map(|(expr, semicolon)| Stmt::Expr {
+            expr,
+            semicolon: Some(semicolon),
+        }))
+        .parse(input)
 }
 fn let_stmt(input: Input) -> IResult<Stmt> {
     let (input, kw_let) = kw_let.parse(input)?;
@@ -267,4 +276,9 @@ mod tests {
     test_parse!(if_else_expr, expr, r#"if true {} else {}"#);
     test_parse!(if_else_if_expr, expr, r#"if true {} else if false {}"#);
     test_parse!(loop_expr, expr, r#"loop {}"#);
+    test_parse!(return_expr, expr, r#"return 5"#);
+    test_parse!(break_expr, expr, r#"break 5"#);
+    test_parse!(continue_expr, expr, r#"continue"#);
+    test_parse!(block_expr, expr, r#"{x; y; z}"#);
+    test_parse!(block_expr2, expr, r#"{if true {} loop {} {} x}"#);
 }

@@ -1,0 +1,16 @@
+---
+source: crates/walrus-parser/src/grammar.rs
+expression: got
+---
+Ok(
+    (
+        [],
+        Continue(
+            ContinueExpr {
+                kw_continue: KwContinue {
+                    span: 0..8,
+                },
+            },
+        ),
+    ),
+)

@@ -1,0 +1,99 @@
+---
+source: crates/walrus-parser/src/grammar.rs
+expression: got
+---
+Ok(
+    (
+        [],
+        Block(
+            Block {
+                lcurly: LCurly {
+                    span: 0..1,
+                },
+                stmts: [
+                    Expr {
+                        expr: If(
+                            IfExpr {
+                                kw_if: KwIf {
+                                    span: 1..3,
+                                },
+                                test_expr: Lit(
+                                    Bool(
+                                        True(
+                                            KwTrue {
+                                                span: 4..8,
+                                            },
+                                        ),
+                                    ),
+                                ),
+                                then_block: Block {
+                                    lcurly: LCurly {
+                                        span: 9..10,
+                                    },
+                                    stmts: [],
+                                    expr: None,
+                                    rcurly: RCurly {
+                                        span: 10..11,
+                                    },
+                                },
+                                else_expr: None,
+                            },
+                        ),
+                        semicolon: None,
+                    },
+                    Expr {
+                        expr: Loop(
+                            LoopExpr {
+                                kw_loop: KwLoop {
+                                    span: 12..16,
+                                },
+                                block: Block {
+                                    lcurly: LCurly {
+                                        span: 17..18,
+                                    },
+                                    stmts: [],
+                                    expr: None,
+                                    rcurly: RCurly {
+                                        span: 18..19,
+                                    },
+                                },
+                            },
+                        ),
+                        semicolon: None,
+                    },
+                    Expr {
+                        expr: Block(
+                            Block {
+                                lcurly: LCurly {
+                                    span: 20..21,
+                                },
+                                stmts: [],
+                                expr: None,
+                                rcurly: RCurly {
+                                    span: 21..22,
+                                },
+                            },
+                        ),
+                        semicolon: None,
+                    },
+                ],
+                expr: Some(
+                    Path(
+                        Path(
+                            Punctuated1NoTrail {
+                                first: Ident {
+                                    span: 23..24,
+                                    text: "x",
+                                },
+                                tail: [],
+                            },
+                        ),
+                    ),
+                ),
+                rcurly: RCurly {
+                    span: 24..25,
+                },
+            },
+        ),
+    ),
+)

@@ -1,0 +1,26 @@
+---
+source: crates/walrus-parser/src/grammar.rs
+expression: got
+---
+Ok(
+    (
+        [],
+        Return(
+            ReturnExpr {
+                kw_return: KwReturn {
+                    span: 0..6,
+                },
+                expr: Lit(
+                    Int(
+                        Dec(
+                            DecInt {
+                                span: 7..8,
+                                text: "5",
+                            },
+                        ),
+                    ),
+                ),
+            },
+        ),
+    ),
+)

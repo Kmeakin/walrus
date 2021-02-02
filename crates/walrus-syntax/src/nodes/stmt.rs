@@ -4,7 +4,7 @@ use super::*;
 pub enum Stmt {
     Expr {
         expr: Expr,
-        semicolon: Semicolon,
+        semicolon: Option<Semicolon>,
     },
     Let {
         kw_let: KwLet,

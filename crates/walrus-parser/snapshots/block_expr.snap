@@ -1,0 +1,70 @@
+---
+source: crates/walrus-parser/src/grammar.rs
+expression: got
+---
+Ok(
+    (
+        [],
+        Block(
+            Block {
+                lcurly: LCurly {
+                    span: 0..1,
+                },
+                stmts: [
+                    Expr {
+                        expr: Path(
+                            Path(
+                                Punctuated1NoTrail {
+                                    first: Ident {
+                                        span: 1..2,
+                                        text: "x",
+                                    },
+                                    tail: [],
+                                },
+                            ),
+                        ),
+                        semicolon: Some(
+                            Semicolon {
+                                span: 2..3,
+                            },
+                        ),
+                    },
+                    Expr {
+                        expr: Path(
+                            Path(
+                                Punctuated1NoTrail {
+                                    first: Ident {
+                                        span: 4..5,
+                                        text: "y",
+                                    },
+                                    tail: [],
+                                },
+                            ),
+                        ),
+                        semicolon: Some(
+                            Semicolon {
+                                span: 5..6,
+                            },
+                        ),
+                    },
+                ],
+                expr: Some(
+                    Path(
+                        Path(
+                            Punctuated1NoTrail {
+                                first: Ident {
+                                    span: 7..8,
+                                    text: "z",
+                                },
+                                tail: [],
+                            },
+                        ),
+                    ),
+                ),
+                rcurly: RCurly {
+                    span: 8..9,
+                },
+            },
+        ),
+    ),
+)
