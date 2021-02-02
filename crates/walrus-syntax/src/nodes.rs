@@ -1,12 +1,23 @@
 use crate::tokens::*;
-use std::iter;
 
+mod decl;
+mod expr;
 mod lit;
+mod pat;
+mod stmt;
+mod ty;
 
-pub use self::lit::*;
+pub use self::{decl::*, expr::*, lit::*, pat::*, stmt::*, ty::*};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Punctuated0<Inner, Sep> {
+    pub first: Option<Inner>,
+    pub tail: Vec<(Sep, Inner)>,
+    pub trail: Option<Sep>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Punctuated0NoTrail<Inner, Sep> {
     pub first: Option<Inner>,
     pub tail: Vec<(Sep, Inner)>,
 }
@@ -15,9 +26,26 @@ pub struct Punctuated0<Inner, Sep> {
 pub struct Punctuated1<Inner, Sep> {
     pub first: Inner,
     pub tail: Vec<(Sep, Inner)>,
+    pub trail: Option<Sep>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Punctuated1NoTrail<Inner, Sep> {
+    pub first: Inner,
+    pub tail: Vec<(Sep, Inner)>,
 }
 
 impl<Inner, Sep> Default for Punctuated0<Inner, Sep> {
+    fn default() -> Self {
+        Self {
+            first: None,
+            tail: Vec::new(),
+            trail: None,
+        }
+    }
+}
+
+impl<Inner, Sep> Default for Punctuated0NoTrail<Inner, Sep> {
     fn default() -> Self {
         Self {
             first: None,
@@ -33,7 +61,21 @@ impl<Inner, Sep> Punctuated0<Inner, Sep> {
     }
 }
 
+impl<Inner, Sep> Punctuated0NoTrail<Inner, Sep> {
+    pub fn iter(&self) -> impl Iterator<Item = &Inner> {
+        let tail = self.tail.iter().map(|(_, item)| item);
+        self.first.iter().chain(tail)
+    }
+}
+
 impl<Inner, Sep> Punctuated1<Inner, Sep> {
+    pub fn iter(&self) -> impl Iterator<Item = &Inner> {
+        let tail = self.tail.iter().map(|(_, item)| item);
+        std::iter::once(&self.first).chain(tail)
+    }
+}
+
+impl<Inner, Sep> Punctuated1NoTrail<Inner, Sep> {
     pub fn iter(&self) -> impl Iterator<Item = &Inner> {
         let tail = self.tail.iter().map(|(_, item)| item);
         std::iter::once(&self.first).chain(tail)
@@ -53,3 +95,6 @@ pub type Tuple<T> = Paren<Punctuated0<T, Comma>>;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Var(pub Ident);
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Path(pub Punctuated1NoTrail<Ident, ColonColon>);
