@@ -34,16 +34,18 @@ Ok(
                             },
                         ),
                         ret: None,
-                        block: Block {
-                            lcurly: LCurly {
-                                span: 7..8,
+                        expr: Block(
+                            Block {
+                                lcurly: LCurly {
+                                    span: 7..8,
+                                },
+                                stmts: [],
+                                expr: None,
+                                rcurly: RCurly {
+                                    span: 8..9,
+                                },
                             },
-                            stmts: [],
-                            expr: None,
-                            rcurly: RCurly {
-                                span: 8..9,
-                            },
-                        },
+                        ),
                     },
                 ),
             ],

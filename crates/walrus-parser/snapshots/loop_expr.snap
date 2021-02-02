@@ -10,16 +10,18 @@ Ok(
                 kw_loop: KwLoop {
                     span: 0..4,
                 },
-                block: Block {
-                    lcurly: LCurly {
-                        span: 5..6,
+                expr: Block(
+                    Block {
+                        lcurly: LCurly {
+                            span: 5..6,
+                        },
+                        stmts: [],
+                        expr: None,
+                        rcurly: RCurly {
+                            span: 6..7,
+                        },
                     },
-                    stmts: [],
-                    expr: None,
-                    rcurly: RCurly {
-                        span: 6..7,
-                    },
-                },
+                ),
             },
         ),
     ),

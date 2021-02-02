@@ -19,17 +19,19 @@ Ok(
                         ),
                     ),
                 ),
-                then_block: Block {
-                    lcurly: LCurly {
-                        span: 8..9,
+                then_branch: Block(
+                    Block {
+                        lcurly: LCurly {
+                            span: 8..9,
+                        },
+                        stmts: [],
+                        expr: None,
+                        rcurly: RCurly {
+                            span: 9..10,
+                        },
                     },
-                    stmts: [],
-                    expr: None,
-                    rcurly: RCurly {
-                        span: 9..10,
-                    },
-                },
-                else_expr: None,
+                ),
+                else_branch: None,
             },
         ),
     ),
