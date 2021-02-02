@@ -1,0 +1,39 @@
+---
+source: crates/walrus-parser/src/grammar.rs
+expression: got
+---
+Ok(
+    (
+        [],
+        Call(
+            CallExpr {
+                func: Path(
+                    Path(
+                        Punctuated1NoTrail {
+                            first: Ident {
+                                span: 0..1,
+                                text: "f",
+                            },
+                            tail: [],
+                        },
+                    ),
+                ),
+                args: ArgList(
+                    Delimited {
+                        open: LParen {
+                            span: 1..2,
+                        },
+                        inner: Punctuated0 {
+                            first: None,
+                            tail: [],
+                            trail: None,
+                        },
+                        close: RParen {
+                            span: 2..3,
+                        },
+                    },
+                ),
+            },
+        ),
+    ),
+)

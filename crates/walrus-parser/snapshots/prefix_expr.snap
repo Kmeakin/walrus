@@ -1,0 +1,28 @@
+---
+source: crates/walrus-parser/src/grammar.rs
+expression: got
+---
+Ok(
+    (
+        [],
+        Unary(
+            UnaryExpr {
+                op: Sub(
+                    Minus {
+                        span: 0..1,
+                    },
+                ),
+                expr: Lit(
+                    Int(
+                        Dec(
+                            DecInt {
+                                span: 1..2,
+                                text: "2",
+                            },
+                        ),
+                    ),
+                ),
+            },
+        ),
+    ),
+)

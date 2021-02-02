@@ -1,9 +1,15 @@
 use super::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct SourceFile {
+    pub decls: Vec<Decl>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Decl {
     Fn {
         kw_fn: KwFn,
+        name: Var,
         params: ParamList,
         ret: Option<RetType>,
         block: Block,

@@ -1,0 +1,26 @@
+---
+source: crates/walrus-parser/src/grammar.rs
+expression: got
+---
+Ok(
+    (
+        [],
+        Loop(
+            LoopExpr {
+                kw_loop: KwLoop {
+                    span: 0..4,
+                },
+                block: Block {
+                    lcurly: LCurly {
+                        span: 5..6,
+                    },
+                    stmts: [],
+                    expr: None,
+                    rcurly: RCurly {
+                        span: 6..7,
+                    },
+                },
+            },
+        ),
+    ),
+)

@@ -240,3 +240,31 @@ fn let_stmt(input: Input) -> IResult<Stmt> {
     ))
 }
 fn semicolon_stmt(input: Input) -> IResult<Stmt> { semicolon.map(Stmt::Semicolon).parse(input) }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    test_parse!(true_expr, expr, r#"true"#);
+    test_parse!(false_expr, expr, r#"false"#);
+    test_parse!(int_expr, expr, r#"123"#);
+    test_parse!(assign_expr, expr, r#"1=2"#);
+    test_parse!(nested_assign_expr, expr, r#"1=2=3"#);
+    test_parse!(add_expr, expr, r#"1+2"#);
+    test_parse!(nested_add_expr, expr, r#"1+2+3"#);
+    test_parse!(mul_expr, expr, r#"1*2"#);
+    test_parse!(nested_mul_expr, expr, r#"1*2*3"#);
+    test_parse!(prefix_expr, expr, r#"-2"#);
+    test_parse!(nested_prefix_expr, expr, r#"--2"#);
+    test_parse!(call_expr, expr, r#"f()"#);
+    test_parse!(nested_call_expr, expr, r#"f()()"#);
+    test_parse!(field_expr, expr, r#"x._0"#);
+    test_parse!(nested_field_expr, expr, r#"x._0._0"#);
+    test_parse!(mixed_expr, expr, r#"-1+2"#);
+    test_parse!(lambda_expr, expr, r#"() => 1"#);
+    test_parse!(nested_lambda_expr, expr, r#"(x) => (_) => x"#);
+    test_parse!(if_expr, expr, r#"if true {}"#);
+    test_parse!(if_else_expr, expr, r#"if true {} else {}"#);
+    test_parse!(if_else_if_expr, expr, r#"if true {} else if false {}"#);
+    test_parse!(loop_expr, expr, r#"loop {}"#);
+}

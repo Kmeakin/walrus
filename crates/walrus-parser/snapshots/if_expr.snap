@@ -1,0 +1,36 @@
+---
+source: crates/walrus-parser/src/grammar.rs
+expression: got
+---
+Ok(
+    (
+        [],
+        If(
+            IfExpr {
+                kw_if: KwIf {
+                    span: 0..2,
+                },
+                test_expr: Lit(
+                    Bool(
+                        True(
+                            KwTrue {
+                                span: 3..7,
+                            },
+                        ),
+                    ),
+                ),
+                then_block: Block {
+                    lcurly: LCurly {
+                        span: 8..9,
+                    },
+                    stmts: [],
+                    expr: None,
+                    rcurly: RCurly {
+                        span: 9..10,
+                    },
+                },
+                else_expr: None,
+            },
+        ),
+    ),
+)

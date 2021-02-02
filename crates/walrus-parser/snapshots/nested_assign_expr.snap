@@ -1,0 +1,57 @@
+---
+source: crates/walrus-parser/src/grammar.rs
+expression: got
+---
+Ok(
+    (
+        [],
+        Binary(
+            BinaryExpr {
+                lhs: Lit(
+                    Int(
+                        Dec(
+                            DecInt {
+                                span: 0..1,
+                                text: "1",
+                            },
+                        ),
+                    ),
+                ),
+                op: Assign(
+                    Eq {
+                        span: 1..2,
+                    },
+                ),
+                rhs: Binary(
+                    BinaryExpr {
+                        lhs: Lit(
+                            Int(
+                                Dec(
+                                    DecInt {
+                                        span: 2..3,
+                                        text: "2",
+                                    },
+                                ),
+                            ),
+                        ),
+                        op: Assign(
+                            Eq {
+                                span: 3..4,
+                            },
+                        ),
+                        rhs: Lit(
+                            Int(
+                                Dec(
+                                    DecInt {
+                                        span: 4..5,
+                                        text: "3",
+                                    },
+                                ),
+                            ),
+                        ),
+                    },
+                ),
+            },
+        ),
+    ),
+)

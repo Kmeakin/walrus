@@ -1,0 +1,67 @@
+---
+source: crates/walrus-parser/src/grammar.rs
+expression: got
+---
+Ok(
+    (
+        [],
+        If(
+            IfExpr {
+                kw_if: KwIf {
+                    span: 0..2,
+                },
+                test_expr: Lit(
+                    Bool(
+                        True(
+                            KwTrue {
+                                span: 3..7,
+                            },
+                        ),
+                    ),
+                ),
+                then_block: Block {
+                    lcurly: LCurly {
+                        span: 8..9,
+                    },
+                    stmts: [],
+                    expr: None,
+                    rcurly: RCurly {
+                        span: 9..10,
+                    },
+                },
+                else_expr: Some(
+                    ElseIf {
+                        kw_else: KwElse {
+                            span: 11..15,
+                        },
+                        if_expr: IfExpr {
+                            kw_if: KwIf {
+                                span: 16..18,
+                            },
+                            test_expr: Lit(
+                                Bool(
+                                    False(
+                                        KwFalse {
+                                            span: 19..24,
+                                        },
+                                    ),
+                                ),
+                            ),
+                            then_block: Block {
+                                lcurly: LCurly {
+                                    span: 25..26,
+                                },
+                                stmts: [],
+                                expr: None,
+                                rcurly: RCurly {
+                                    span: 26..27,
+                                },
+                            },
+                            else_expr: None,
+                        },
+                    },
+                ),
+            },
+        ),
+    ),
+)

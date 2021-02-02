@@ -1,0 +1,12 @@
+---
+source: crates/walrus-parser/src/grammar.rs
+expression: got
+---
+Ok(
+    (
+        [],
+        SourceFile {
+            decls: [],
+        },
+    ),
+)

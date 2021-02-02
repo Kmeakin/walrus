@@ -1,0 +1,41 @@
+---
+source: crates/walrus-parser/src/grammar.rs
+expression: got
+---
+Ok(
+    (
+        [],
+        Lambda(
+            LambdaExpr {
+                params: ParamList(
+                    Delimited {
+                        open: LParen {
+                            span: 0..1,
+                        },
+                        inner: Punctuated0 {
+                            first: None,
+                            tail: [],
+                            trail: None,
+                        },
+                        close: RParen {
+                            span: 1..2,
+                        },
+                    },
+                ),
+                fat_arrow: FatArrow {
+                    span: 3..5,
+                },
+                expr: Lit(
+                    Int(
+                        Dec(
+                            DecInt {
+                                span: 6..7,
+                                text: "1",
+                            },
+                        ),
+                    ),
+                ),
+            },
+        ),
+    ),
+)

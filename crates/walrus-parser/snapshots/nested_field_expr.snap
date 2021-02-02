@@ -1,0 +1,46 @@
+---
+source: crates/walrus-parser/src/grammar.rs
+expression: got
+---
+Ok(
+    (
+        [],
+        Field(
+            FieldExpr {
+                expr: Field(
+                    FieldExpr {
+                        expr: Path(
+                            Path(
+                                Punctuated1NoTrail {
+                                    first: Ident {
+                                        span: 0..1,
+                                        text: "x",
+                                    },
+                                    tail: [],
+                                },
+                            ),
+                        ),
+                        dot: Dot {
+                            span: 1..2,
+                        },
+                        var: Var(
+                            Ident {
+                                span: 2..4,
+                                text: "_0",
+                            },
+                        ),
+                    },
+                ),
+                dot: Dot {
+                    span: 4..5,
+                },
+                var: Var(
+                    Ident {
+                        span: 5..7,
+                        text: "_0",
+                    },
+                ),
+            },
+        ),
+    ),
+)

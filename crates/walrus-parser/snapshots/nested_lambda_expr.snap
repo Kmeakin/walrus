@@ -1,0 +1,85 @@
+---
+source: crates/walrus-parser/src/grammar.rs
+expression: got
+---
+Ok(
+    (
+        [],
+        Lambda(
+            LambdaExpr {
+                params: ParamList(
+                    Delimited {
+                        open: LParen {
+                            span: 0..1,
+                        },
+                        inner: Punctuated0 {
+                            first: Some(
+                                Param {
+                                    pat: Var(
+                                        Var(
+                                            Ident {
+                                                span: 1..2,
+                                                text: "x",
+                                            },
+                                        ),
+                                    ),
+                                    ascription: None,
+                                },
+                            ),
+                            tail: [],
+                            trail: None,
+                        },
+                        close: RParen {
+                            span: 2..3,
+                        },
+                    },
+                ),
+                fat_arrow: FatArrow {
+                    span: 4..6,
+                },
+                expr: Lambda(
+                    LambdaExpr {
+                        params: ParamList(
+                            Delimited {
+                                open: LParen {
+                                    span: 7..8,
+                                },
+                                inner: Punctuated0 {
+                                    first: Some(
+                                        Param {
+                                            pat: Ignore(
+                                                Underscore {
+                                                    span: 8..9,
+                                                },
+                                            ),
+                                            ascription: None,
+                                        },
+                                    ),
+                                    tail: [],
+                                    trail: None,
+                                },
+                                close: RParen {
+                                    span: 9..10,
+                                },
+                            },
+                        ),
+                        fat_arrow: FatArrow {
+                            span: 11..13,
+                        },
+                        expr: Path(
+                            Path(
+                                Punctuated1NoTrail {
+                                    first: Ident {
+                                        span: 14..15,
+                                        text: "x",
+                                    },
+                                    tail: [],
+                                },
+                            ),
+                        ),
+                    },
+                ),
+            },
+        ),
+    ),
+)

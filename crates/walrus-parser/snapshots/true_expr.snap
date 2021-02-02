@@ -1,0 +1,18 @@
+---
+source: crates/walrus-parser/src/grammar.rs
+expression: got
+---
+Ok(
+    (
+        [],
+        Lit(
+            Bool(
+                True(
+                    KwTrue {
+                        span: 0..4,
+                    },
+                ),
+            ),
+        ),
+    ),
+)
