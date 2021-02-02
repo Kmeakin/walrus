@@ -1,12 +1,14 @@
-use crate::syntax;
+use crate::{diagnostic::Diagnostic, syntax};
 use la_arena::{Arena, ArenaMap, Idx};
-use std::{fmt, iter::FromIterator, ops::Index};
+use smol_str::SmolStr;
+use std::ops::Index;
 
 pub type FnDefId = Idx<FnDef>;
-pub type ImportId = Idx<Import>;
 pub type ExprId = Idx<Expr>;
 pub type TypeId = Idx<Type>;
 pub type PatId = Idx<Pat>;
+
+pub type Var = SmolStr;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Module {
@@ -17,24 +19,57 @@ pub struct Module {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ModuleData {
+    pub fn_defs: Arena<FnDef>,
     pub exprs: Arena<Expr>,
     pub types: Arena<Type>,
-    pub pat: Arena<Pat>,
+    pub pats: Arena<Pat>,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum Item {
-    FnDef(FnDefId),
+impl Index<FnDefId> for ModuleData {
+    type Output = FnDef;
+    fn index(&self, id: FnDefId) -> &Self::Output { &self.fn_defs[id] }
+}
+impl Index<ExprId> for ModuleData {
+    type Output = Expr;
+    fn index(&self, id: ExprId) -> &Self::Output { &self.exprs[id] }
+}
+impl Index<TypeId> for ModuleData {
+    type Output = Type;
+    fn index(&self, id: TypeId) -> &Self::Output { &self.types[id] }
+}
+impl Index<PatId> for ModuleData {
+    type Output = Pat;
+    fn index(&self, id: PatId) -> &Self::Output { &self.pats[id] }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Import {
-    pub path: Path,
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ModuleSource {
+    pub fn_defs: ArenaMap<FnDefId, syntax::FnDef>,
+    pub exprs: ArenaMap<ExprId, syntax::Expr>,
+    pub types: ArenaMap<TypeId, syntax::Type>,
+    pub pats: ArenaMap<PatId, syntax::Pat>,
+}
+
+impl Index<FnDefId> for ModuleSource {
+    type Output = syntax::FnDef;
+    fn index(&self, id: FnDefId) -> &Self::Output { &self.fn_defs[id] }
+}
+impl Index<ExprId> for ModuleSource {
+    type Output = syntax::Expr;
+    fn index(&self, id: ExprId) -> &Self::Output { &self.exprs[id] }
+}
+impl Index<TypeId> for ModuleSource {
+    type Output = syntax::Type;
+    fn index(&self, id: TypeId) -> &Self::Output { &self.types[id] }
+}
+impl Index<PatId> for ModuleSource {
+    type Output = syntax::Pat;
+    fn index(&self, id: PatId) -> &Self::Output { &self.pats[id] }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct FnDef {
-    pub name: Name,
+    pub name: Var,
     pub params: Vec<Param>,
     pub ret_type: Option<TypeId>,
     pub body: Block,
@@ -50,11 +85,11 @@ pub struct Param {
 pub enum Expr {
     Missing,
     Lit(Lit),
-    Path(Path),
+    Var(Var),
     Tuple(Vec<ExprId>),
     Field {
         base: ExprId,
-        field: Field,
+        field: Var,
     },
     Unop {
         op: UnOp,
@@ -84,16 +119,33 @@ pub enum Expr {
         body: ExprId,
     },
 }
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum Field {
-    Missing,
-    Tuple(u32),
+pub enum UnOp {
+    Add,
+    Sub,
 }
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum BinOp {
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Eq,
+    NotEq,
+    Less,
+    LessEq,
+    Greater,
+    GreaterEq,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
 pub struct Block {
     pub stmts: Vec<Stmt>,
     pub expr: Option<ExprId>,
 }
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Stmt {
     Let {
@@ -112,14 +164,14 @@ pub enum Lit {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Pat {
-    Bind(Name),
+    Var(Var),
     Wildcard,
     Tuple(Vec<PatId>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Type {
-    Path(Path),
+    Var(Var),
     Infer,
     Tuple(Vec<TypeId>),
     Fn { params: Vec<TypeId>, ret: TypeId },

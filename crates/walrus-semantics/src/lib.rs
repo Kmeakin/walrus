@@ -15,6 +15,7 @@
     elided_lifetimes_in_paths
 )]
 
+mod diagnostic;
 mod hir;
 
 pub(crate) use walrus_syntax as syntax;
