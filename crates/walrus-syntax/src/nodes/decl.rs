@@ -7,13 +7,16 @@ pub struct SourceFile {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Decl {
-    Fn {
-        kw_fn: KwFn,
-        name: Var,
-        params: ParamList,
-        ret: Option<RetType>,
-        block: Block,
-    },
+    Fn(FnDef),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct FnDef {
+    pub kw_fn: KwFn,
+    pub name: Var,
+    pub params: ParamList,
+    pub ret: Option<RetType>,
+    pub block: Block,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

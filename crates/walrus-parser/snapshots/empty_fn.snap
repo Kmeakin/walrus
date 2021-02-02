@@ -7,43 +7,45 @@ Ok(
         [],
         SourceFile {
             decls: [
-                Fn {
-                    kw_fn: KwFn {
-                        span: 0..2,
+                Fn(
+                    FnDef {
+                        kw_fn: KwFn {
+                            span: 0..2,
+                        },
+                        name: Var(
+                            Ident {
+                                span: 3..4,
+                                text: "f",
+                            },
+                        ),
+                        params: ParamList(
+                            Delimited {
+                                open: LParen {
+                                    span: 4..5,
+                                },
+                                inner: Punctuated0 {
+                                    first: None,
+                                    tail: [],
+                                    trail: None,
+                                },
+                                close: RParen {
+                                    span: 5..6,
+                                },
+                            },
+                        ),
+                        ret: None,
+                        block: Block {
+                            lcurly: LCurly {
+                                span: 7..8,
+                            },
+                            stmts: [],
+                            expr: None,
+                            rcurly: RCurly {
+                                span: 8..9,
+                            },
+                        },
                     },
-                    name: Var(
-                        Ident {
-                            span: 3..4,
-                            text: "f",
-                        },
-                    ),
-                    params: ParamList(
-                        Delimited {
-                            open: LParen {
-                                span: 4..5,
-                            },
-                            inner: Punctuated0 {
-                                first: None,
-                                tail: [],
-                                trail: None,
-                            },
-                            close: RParen {
-                                span: 5..6,
-                            },
-                        },
-                    ),
-                    ret: None,
-                    block: Block {
-                        lcurly: LCurly {
-                            span: 7..8,
-                        },
-                        stmts: [],
-                        expr: None,
-                        rcurly: RCurly {
-                            span: 8..9,
-                        },
-                    },
-                },
+                ),
             ],
         },
     ),

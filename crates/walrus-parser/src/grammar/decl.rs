@@ -23,13 +23,13 @@ fn fn_decl(input: Input) -> IResult<Decl> {
     let (input, block) = block.parse(input)?;
     Ok((
         input,
-        Decl::Fn {
+        Decl::Fn(FnDef {
             kw_fn,
             name,
             params,
             ret,
             block,
-        },
+        }),
     ))
 }
 
