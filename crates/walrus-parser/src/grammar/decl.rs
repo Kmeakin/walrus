@@ -14,7 +14,7 @@ fn fn_decl(input: Input) -> IResult<Decl> {
     let (input, name) = var.parse(input)?;
     let (input, params) = param_list.parse(input)?;
     let (input, ret) = ret_type.opt().parse(input)?;
-    let (input, block) = block.parse(input)?;
+    let (input, expr) = block_expr.parse(input)?;
     Ok((
         input,
         Decl::Fn(FnDef {
@@ -22,7 +22,7 @@ fn fn_decl(input: Input) -> IResult<Decl> {
             name,
             params,
             ret,
-            block,
+            expr,
         }),
     ))
 }

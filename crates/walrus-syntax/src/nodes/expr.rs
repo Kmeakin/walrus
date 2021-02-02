@@ -72,8 +72,8 @@ pub struct FieldExpr {
 pub struct IfExpr {
     pub kw_if: KwIf,
     pub test_expr: Box<Expr>,
-    pub then_block: Block,
-    pub else_expr: Option<ElseExpr>,
+    pub then_branch: Box<Expr>,
+    pub else_branch: Option<ElseExpr>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -117,5 +117,5 @@ pub struct LambdaExpr {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct LoopExpr {
     pub kw_loop: KwLoop,
-    pub block: Block,
+    pub expr: Box<Expr>,
 }

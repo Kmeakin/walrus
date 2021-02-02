@@ -85,7 +85,7 @@ impl Ctx {
             name: syntax.name.clone().into(),
             params: self.lower_param_list(&syntax.params),
             ret_type: syntax.ret.as_ref().map(|ret| self.lower_type(&ret.ty)),
-            body: self.lower_block(&syntax.block),
+            body: self.lower_expr(&syntax.expr),
         };
         self.alloc_fn_def(syntax.clone(), hir)
     }
@@ -116,21 +116,6 @@ impl Ctx {
             }
         };
         self.alloc_pat(syntax.clone(), hir)
-    }
-
-    fn lower_block(&mut self, syntax: &syntax::Block) -> Block {
-        Block {
-            stmts: syntax
-                .stmts
-                .iter()
-                .filter_map(|stmt| self.lower_stmt(stmt))
-                .collect(),
-            expr: syntax
-                .expr
-                .as_ref()
-                .as_ref()
-                .map(|expr| self.lower_expr(&expr)),
-        }
     }
 
     fn lower_stmt(&mut self, syntax: &syntax::Stmt) -> Option<Stmt> {
@@ -165,7 +150,7 @@ impl Ctx {
             ),
             syntax::Expr::Lambda(expr) => Expr::Lambda {
                 params: self.lower_param_list(&expr.params),
-                body: self.lower_expr(&expr.expr),
+                expr: self.lower_expr(&expr.expr),
             },
             syntax::Expr::Unary(expr) => Expr::Unop {
                 op: expr.op.into(),
@@ -187,7 +172,7 @@ impl Ctx {
                     .collect(),
             },
             syntax::Expr::Field(expr) => Expr::Field {
-                base: self.lower_expr(&expr.base),
+                expr: self.lower_expr(&expr.base),
                 var: expr.var.clone().into(),
             },
             syntax::Expr::If(expr) => self.lower_if_expr(expr),
@@ -198,8 +183,8 @@ impl Ctx {
                 Expr::Break(expr.expr.as_ref().map(|expr| self.lower_expr(expr)))
             }
             syntax::Expr::Continue(_) => Expr::Continue,
-            syntax::Expr::Loop(expr) => Expr::Loop(self.lower_block(&expr.block)),
-            syntax::Expr::Block(block) => Expr::Block(self.lower_block(block)),
+            syntax::Expr::Loop(expr) => Expr::Loop(self.lower_expr(&expr.expr)),
+            syntax::Expr::Block(block) => todo!(),
         };
         self.alloc_expr(syntax.clone(), hir)
     }
@@ -207,8 +192,8 @@ impl Ctx {
     fn lower_if_expr(&mut self, syntax: &syntax::IfExpr) -> Expr {
         Expr::If {
             test: self.lower_expr(&syntax.test_expr),
-            then: self.lower_block(&syntax.then_block),
-            else_: match &syntax.else_expr {
+            then_branch: self.lower_expr(&syntax.then_branch),
+            else_branch: match &syntax.else_branch {
                 None => None,
                 Some(syntax::ElseExpr::ElseBlock { block, .. }) => Some(self.lower_expr(&block)),
                 Some(syntax::ElseExpr::ElseIf { if_expr, .. }) => Some(self.lower_expr(&if_expr)),

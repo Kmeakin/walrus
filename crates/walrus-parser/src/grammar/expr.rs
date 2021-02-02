@@ -173,15 +173,15 @@ fn tuple_expr(input: Input) -> IResult<Expr> { tuple(expr).map(Expr::Tuple).pars
 fn if_expr(input: Input) -> IResult<Expr> {
     let (input, kw_if) = kw_if.parse(input)?;
     let (input, test_expr) = expr.parse(input)?;
-    let (input, then_block) = block.parse(input)?;
-    let (input, else_expr) = else_expr.opt().parse(input)?;
+    let (input, then_branch) = block_expr.parse(input)?;
+    let (input, else_branch) = else_expr.opt().parse(input)?;
     Ok((
         input,
         Expr::If(IfExpr {
             kw_if,
             test_expr: box test_expr,
-            then_block,
-            else_expr,
+            then_branch: box then_branch,
+            else_branch,
         }),
     ))
 }
@@ -199,8 +199,14 @@ fn else_expr(input: Input) -> IResult<ElseExpr> {
 }
 fn loop_expr(input: Input) -> IResult<Expr> {
     let (input, kw_loop) = kw_loop.parse(input)?;
-    let (input, block) = block.parse(input)?;
-    Ok((input, Expr::Loop(LoopExpr { kw_loop, block })))
+    let (input, expr) = block_expr.parse(input)?;
+    Ok((
+        input,
+        Expr::Loop(LoopExpr {
+            kw_loop,
+            expr: box expr,
+        }),
+    ))
 }
 pub fn block(input: Input) -> IResult<Block> {
     let (input, lcurly) = lcurly.parse(input)?;

@@ -1,3 +1,4 @@
+use crate::scopes::Binding;
 use std::num::{ParseFloatError, ParseIntError};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -11,4 +12,5 @@ pub enum LitError {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Diagnostic {
     BadLit(LitError),
+    DuplicateBinding { first: Binding, second: Binding },
 }

@@ -5,6 +5,7 @@ use smol_str::SmolStr;
 use std::{fmt, ops::Index};
 
 mod lower;
+mod walk;
 
 pub type FnDefId = Idx<FnDef>;
 pub type ExprId = Idx<Expr>;
@@ -13,6 +14,10 @@ pub type PatId = Idx<Pat>;
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Var(SmolStr);
+
+impl Var {
+    pub fn new(s: impl Into<SmolStr>) -> Self { Self(s.into()) }
+}
 
 impl fmt::Debug for Var {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "{:?}", self.0) }
@@ -93,7 +98,7 @@ pub struct FnDef {
     pub name: Var,
     pub params: Vec<Param>,
     pub ret_type: Option<TypeId>,
-    pub body: Block,
+    pub body: ExprId,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -108,7 +113,7 @@ pub enum Expr {
     Var(Var),
     Tuple(Vec<ExprId>),
     Field {
-        base: ExprId,
+        expr: ExprId,
         var: Var,
     },
     Unop {
@@ -124,19 +129,22 @@ pub enum Expr {
         func: ExprId,
         args: Vec<ExprId>,
     },
-    Block(Block),
-    Loop(Block),
+    Block {
+        stmts: Vec<Stmt>,
+        expr: Option<ExprId>,
+    },
+    Loop(ExprId),
     If {
         test: ExprId,
-        then: Block,
-        else_: Option<ExprId>,
+        then_branch: ExprId,
+        else_branch: Option<ExprId>,
     },
     Break(Option<ExprId>),
     Return(Option<ExprId>),
     Continue,
     Lambda {
         params: Vec<Param>,
-        body: ExprId,
+        expr: ExprId,
     },
 }
 
@@ -144,33 +152,6 @@ pub enum Expr {
 pub enum UnOp {
     Add,
     Sub,
-}
-
-impl From<syntax::UnaryOp> for UnOp {
-    fn from(op: syntax::UnaryOp) -> Self {
-        match op {
-            syntax::UnaryOp::Add(_) => Self::Add,
-            syntax::UnaryOp::Sub(_) => Self::Sub,
-        }
-    }
-}
-
-impl From<syntax::BinaryOp> for BinOp {
-    fn from(op: syntax::BinaryOp) -> Self {
-        match op {
-            syntax::BinaryOp::Add(_) => Self::Add,
-            syntax::BinaryOp::Sub(_) => Self::Sub,
-            syntax::BinaryOp::Mul(_) => Self::Mul,
-            syntax::BinaryOp::Div(_) => Self::Div,
-            syntax::BinaryOp::Assign(_) => Self::Assign,
-            syntax::BinaryOp::Eq(_) => Self::Eq,
-            syntax::BinaryOp::NotEq(_) => Self::NotEq,
-            syntax::BinaryOp::Less(_) => Self::Less,
-            syntax::BinaryOp::LessEq(_) => Self::LessEq,
-            syntax::BinaryOp::Greater(_) => Self::Greater,
-            syntax::BinaryOp::GreaterEq(_) => Self::GreaterEq,
-        }
-    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -188,10 +169,30 @@ pub enum BinOp {
     GreaterEq,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
-pub struct Block {
-    pub stmts: Vec<Stmt>,
-    pub expr: Option<ExprId>,
+impl From<syntax::UnaryOp> for UnOp {
+    fn from(op: syntax::UnaryOp) -> Self {
+        match op {
+            syntax::UnaryOp::Add(_) => Self::Add,
+            syntax::UnaryOp::Sub(_) => Self::Sub,
+        }
+    }
+}
+impl From<syntax::BinaryOp> for BinOp {
+    fn from(op: syntax::BinaryOp) -> Self {
+        match op {
+            syntax::BinaryOp::Add(_) => Self::Add,
+            syntax::BinaryOp::Sub(_) => Self::Sub,
+            syntax::BinaryOp::Mul(_) => Self::Mul,
+            syntax::BinaryOp::Div(_) => Self::Div,
+            syntax::BinaryOp::Assign(_) => Self::Assign,
+            syntax::BinaryOp::Eq(_) => Self::Eq,
+            syntax::BinaryOp::NotEq(_) => Self::NotEq,
+            syntax::BinaryOp::Less(_) => Self::Less,
+            syntax::BinaryOp::LessEq(_) => Self::LessEq,
+            syntax::BinaryOp::Greater(_) => Self::Greater,
+            syntax::BinaryOp::GreaterEq(_) => Self::GreaterEq,
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]

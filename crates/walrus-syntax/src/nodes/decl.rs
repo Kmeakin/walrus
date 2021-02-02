@@ -16,7 +16,7 @@ pub struct FnDef {
     pub name: Var,
     pub params: ParamList,
     pub ret: Option<RetType>,
-    pub block: Block,
+    pub expr: Expr,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
