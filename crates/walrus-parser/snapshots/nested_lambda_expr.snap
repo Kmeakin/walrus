@@ -66,14 +66,11 @@ Ok(
                         fat_arrow: FatArrow {
                             span: 11..13,
                         },
-                        expr: Path(
-                            Path(
-                                Punctuated1NoTrail {
-                                    first: Ident {
-                                        span: 14..15,
-                                        text: "x",
-                                    },
-                                    tail: [],
+                        expr: Var(
+                            Var(
+                                Ident {
+                                    span: 14..15,
+                                    text: "x",
                                 },
                             ),
                         ),

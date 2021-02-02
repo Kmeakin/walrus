@@ -7,12 +7,6 @@ pub fn source_file(input: Input) -> IResult<SourceFile> {
 
 pub fn var(input: Input) -> IResult<Var> { (ident.map(Var)).parse(input) }
 
-pub fn path(input: Input) -> IResult<Path> {
-    punctuated1_no_trail(ident, colon_colon)
-        .map(Path)
-        .parse(input)
-}
-
 pub fn decl(input: Input) -> IResult<Decl> { fn_decl.parse(input) }
 
 fn fn_decl(input: Input) -> IResult<Decl> {

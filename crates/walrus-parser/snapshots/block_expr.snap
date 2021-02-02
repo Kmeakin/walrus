@@ -12,14 +12,11 @@ Ok(
                 },
                 stmts: [
                     Expr {
-                        expr: Path(
-                            Path(
-                                Punctuated1NoTrail {
-                                    first: Ident {
-                                        span: 1..2,
-                                        text: "x",
-                                    },
-                                    tail: [],
+                        expr: Var(
+                            Var(
+                                Ident {
+                                    span: 1..2,
+                                    text: "x",
                                 },
                             ),
                         ),
@@ -30,14 +27,11 @@ Ok(
                         ),
                     },
                     Expr {
-                        expr: Path(
-                            Path(
-                                Punctuated1NoTrail {
-                                    first: Ident {
-                                        span: 4..5,
-                                        text: "y",
-                                    },
-                                    tail: [],
+                        expr: Var(
+                            Var(
+                                Ident {
+                                    span: 4..5,
+                                    text: "y",
                                 },
                             ),
                         ),
@@ -49,14 +43,11 @@ Ok(
                     },
                 ],
                 expr: Some(
-                    Path(
-                        Path(
-                            Punctuated1NoTrail {
-                                first: Ident {
-                                    span: 7..8,
-                                    text: "z",
-                                },
-                                tail: [],
+                    Var(
+                        Var(
+                            Ident {
+                                span: 7..8,
+                                text: "z",
                             },
                         ),
                     ),

@@ -95,6 +95,3 @@ pub type Tuple<T> = Paren<Punctuated0<T, Comma>>;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Var(pub Ident);
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Path(pub Punctuated1NoTrail<Ident, ColonColon>);

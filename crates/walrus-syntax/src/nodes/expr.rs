@@ -3,7 +3,7 @@ use super::*;
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Expr {
     Lit(Lit),
-    Path(Path),
+    Var(Var),
     Paren(Paren<Expr>),
     Tuple(Tuple<Expr>),
     Lambda(LambdaExpr),

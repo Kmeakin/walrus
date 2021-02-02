@@ -10,14 +10,11 @@ Ok(
                 open: LParen {
                     span: 0..1,
                 },
-                inner: Path(
-                    Path(
-                        Punctuated1NoTrail {
-                            first: Ident {
-                                span: 1..2,
-                                text: "T",
-                            },
-                            tail: [],
+                inner: Var(
+                    Var(
+                        Ident {
+                            span: 1..2,
+                            text: "T",
                         },
                     ),
                 ),

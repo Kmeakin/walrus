@@ -1,7 +1,7 @@
 use super::*;
 
 pub fn ty(input: Input) -> IResult<Type> {
-    path_type
+    var_type
         .or(infer_type)
         .or(fn_type)
         .or(paren_type)
@@ -27,7 +27,7 @@ pub fn ret_type(input: Input) -> IResult<RetType> {
     ))
 }
 
-fn path_type(input: Input) -> IResult<Type> { path.map(Type::Path).parse(input) }
+fn var_type(input: Input) -> IResult<Type> { var.map(Type::Var).parse(input) }
 fn infer_type(input: Input) -> IResult<Type> { underscore.map(Type::Infer).parse(input) }
 fn paren_type(input: Input) -> IResult<Type> { paren(ty).map(Type::Paren).parse(input) }
 fn tuple_type(input: Input) -> IResult<Type> { tuple(ty).map(Type::Tuple).parse(input) }

@@ -2,7 +2,7 @@ use super::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Type {
-    Path(Path),
+    Var(Var),
     Infer(Underscore),
     Paren(Paren<Type>),
     Tuple(Tuple<Type>),

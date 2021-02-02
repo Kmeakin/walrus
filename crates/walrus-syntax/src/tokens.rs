@@ -74,7 +74,6 @@ token!(Dot);
 token!(Comma);
 token!(Semicolon);
 token!(Colon);
-token!(ColonColon);
 token!(ThinArrow);
 token!(FatArrow);
 token!(Underscore);

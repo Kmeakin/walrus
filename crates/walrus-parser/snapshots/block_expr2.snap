@@ -78,14 +78,11 @@ Ok(
                     },
                 ],
                 expr: Some(
-                    Path(
-                        Path(
-                            Punctuated1NoTrail {
-                                first: Ident {
-                                    span: 23..24,
-                                    text: "x",
-                                },
-                                tail: [],
+                    Var(
+                        Var(
+                            Ident {
+                                span: 23..24,
+                                text: "x",
                             },
                         ),
                     ),

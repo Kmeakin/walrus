@@ -7,14 +7,11 @@ Ok(
         [],
         Field(
             FieldExpr {
-                expr: Path(
-                    Path(
-                        Punctuated1NoTrail {
-                            first: Ident {
-                                span: 0..1,
-                                text: "x",
-                            },
-                            tail: [],
+                expr: Var(
+                    Var(
+                        Ident {
+                            span: 0..1,
+                            text: "x",
                         },
                     ),
                 ),

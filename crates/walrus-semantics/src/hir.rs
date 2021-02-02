@@ -3,6 +3,8 @@ use la_arena::{Arena, ArenaMap, Idx};
 use smol_str::SmolStr;
 use std::ops::Index;
 
+mod lower;
+
 pub type FnDefId = Idx<FnDef>;
 pub type ExprId = Idx<Expr>;
 pub type TypeId = Idx<Type>;

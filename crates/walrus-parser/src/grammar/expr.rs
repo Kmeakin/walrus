@@ -158,7 +158,7 @@ fn suffix_expr(input: Input) -> IResult<Expr> {
 }
 fn atom_expr(input: Input) -> IResult<Expr> {
     lit_expr
-        .or(path_expr)
+        .or(var_expr)
         .or(paren_expr)
         .or(tuple_expr)
         .or(loop_expr)
@@ -167,7 +167,7 @@ fn atom_expr(input: Input) -> IResult<Expr> {
         .parse(input)
 }
 fn lit_expr(input: Input) -> IResult<Expr> { lit.map(Expr::Lit).parse(input) }
-fn path_expr(input: Input) -> IResult<Expr> { path.map(Expr::Path).parse(input) }
+fn var_expr(input: Input) -> IResult<Expr> { var.map(Expr::Var).parse(input) }
 fn paren_expr(input: Input) -> IResult<Expr> { paren(expr).map(Expr::Paren).parse(input) }
 fn tuple_expr(input: Input) -> IResult<Expr> { tuple(expr).map(Expr::Tuple).parse(input) }
 fn if_expr(input: Input) -> IResult<IfExpr> {

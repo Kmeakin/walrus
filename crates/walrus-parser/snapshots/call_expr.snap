@@ -7,14 +7,11 @@ Ok(
         [],
         Call(
             CallExpr {
-                func: Path(
-                    Path(
-                        Punctuated1NoTrail {
-                            first: Ident {
-                                span: 0..1,
-                                text: "f",
-                            },
-                            tail: [],
+                func: Var(
+                    Var(
+                        Ident {
+                            span: 0..1,
+                            text: "f",
                         },
                     ),
                 ),

@@ -36,7 +36,6 @@ pub fn rparen(input: Input) -> IResult<RParen> { token(TokenKind::RParen, input)
 pub fn lcurly(input: Input) -> IResult<LCurly> { token(TokenKind::LCurly, input) }
 pub fn rcurly(input: Input) -> IResult<RCurly> { token(TokenKind::RCurly, input) }
 pub fn colon(input: Input) -> IResult<Colon> { token(TokenKind::Colon, input) }
-pub fn colon_colon(input: Input) -> IResult<ColonColon> { token(TokenKind::ColonColon, input) }
 pub fn comma(input: Input) -> IResult<Comma> { token(TokenKind::Comma, input) }
 pub fn dot(input: Input) -> IResult<Dot> { token(TokenKind::Dot, input) }
 pub fn eq(input: Input) -> IResult<Eq> { token(TokenKind::Eq, input) }

@@ -12,14 +12,11 @@ Ok(
                 },
                 inner: Punctuated0 {
                     first: Some(
-                        Path(
-                            Path(
-                                Punctuated1NoTrail {
-                                    first: Ident {
-                                        span: 1..2,
-                                        text: "A",
-                                    },
-                                    tail: [],
+                        Var(
+                            Var(
+                                Ident {
+                                    span: 1..2,
+                                    text: "A",
                                 },
                             ),
                         ),
@@ -42,14 +39,11 @@ Ok(
                         },
                         inner: Punctuated0 {
                             first: Some(
-                                Path(
-                                    Path(
-                                        Punctuated1NoTrail {
-                                            first: Ident {
-                                                span: 8..9,
-                                                text: "B",
-                                            },
-                                            tail: [],
+                                Var(
+                                    Var(
+                                        Ident {
+                                            span: 8..9,
+                                            text: "B",
                                         },
                                     ),
                                 ),
@@ -65,14 +59,11 @@ Ok(
                         thin_arrow: ThinArrow {
                             span: 11..13,
                         },
-                        ty: Path(
-                            Path(
-                                Punctuated1NoTrail {
-                                    first: Ident {
-                                        span: 14..15,
-                                        text: "C",
-                                    },
-                                    tail: [],
+                        ty: Var(
+                            Var(
+                                Ident {
+                                    span: 14..15,
+                                    text: "C",
                                 },
                             ),
                         ),
