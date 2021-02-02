@@ -83,7 +83,6 @@ pub struct Param {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Expr {
-    Missing,
     Lit(Lit),
     Var(Var),
     Tuple(Vec<ExprId>),
