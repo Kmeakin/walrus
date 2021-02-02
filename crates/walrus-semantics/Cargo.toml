@@ -1,0 +1,17 @@
+[package]
+name = "walrus-semantics"
+version = "0.1.0"
+authors = ["Karl Meakin <karlwfmeakin@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+walrus-syntax = { path = "../walrus-syntax" }
+
+la-arena = "0.2.0"
+ordered-float = "2.0.1"
+smol_str = "0.1.17"
+
+[dev-dependencies]
+insta = "1.5.3"
