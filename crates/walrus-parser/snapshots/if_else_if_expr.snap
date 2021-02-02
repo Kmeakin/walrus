@@ -34,31 +34,33 @@ Ok(
                         kw_else: KwElse {
                             span: 11..15,
                         },
-                        if_expr: IfExpr {
-                            kw_if: KwIf {
-                                span: 16..18,
-                            },
-                            test_expr: Lit(
-                                Bool(
-                                    False(
-                                        KwFalse {
-                                            span: 19..24,
-                                        },
+                        if_expr: If(
+                            IfExpr {
+                                kw_if: KwIf {
+                                    span: 16..18,
+                                },
+                                test_expr: Lit(
+                                    Bool(
+                                        False(
+                                            KwFalse {
+                                                span: 19..24,
+                                            },
+                                        ),
                                     ),
                                 ),
-                            ),
-                            then_block: Block {
-                                lcurly: LCurly {
-                                    span: 25..26,
+                                then_block: Block {
+                                    lcurly: LCurly {
+                                        span: 25..26,
+                                    },
+                                    stmts: [],
+                                    expr: None,
+                                    rcurly: RCurly {
+                                        span: 26..27,
+                                    },
                                 },
-                                stmts: [],
-                                expr: None,
-                                rcurly: RCurly {
-                                    span: 26..27,
-                                },
+                                else_expr: None,
                             },
-                            else_expr: None,
-                        },
+                        ),
                     },
                 ),
             },

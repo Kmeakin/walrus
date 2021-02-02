@@ -7,7 +7,7 @@ Ok(
         [],
         Field(
             FieldExpr {
-                expr: Var(
+                base: Var(
                     Var(
                         Ident {
                             span: 0..1,

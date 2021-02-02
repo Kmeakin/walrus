@@ -63,7 +63,7 @@ pub enum UnaryOp {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct FieldExpr {
-    pub expr: Box<Expr>,
+    pub base: Box<Expr>,
     pub dot: Dot,
     pub var: Var,
 }
@@ -78,14 +78,8 @@ pub struct IfExpr {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ElseExpr {
-    ElseBlock {
-        kw_else: KwElse,
-        block: Block,
-    },
-    ElseIf {
-        kw_else: KwElse,
-        if_expr: Box<IfExpr>,
-    },
+    ElseBlock { kw_else: KwElse, block: Box<Expr> },
+    ElseIf { kw_else: KwElse, if_expr: Box<Expr> },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -99,13 +93,13 @@ pub struct Block {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ReturnExpr {
     pub kw_return: KwReturn,
-    pub expr: Box<Expr>,
+    pub expr: Option<Box<Expr>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct BreakExpr {
     pub kw_break: KwBreak,
-    pub expr: Box<Expr>,
+    pub expr: Option<Box<Expr>>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]

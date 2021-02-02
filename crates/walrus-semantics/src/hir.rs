@@ -1,7 +1,8 @@
 use crate::{diagnostic::Diagnostic, syntax};
 use la_arena::{Arena, ArenaMap, Idx};
+use ordered_float::OrderedFloat;
 use smol_str::SmolStr;
-use std::ops::Index;
+use std::{fmt, ops::Index};
 
 mod lower;
 
@@ -10,16 +11,29 @@ pub type ExprId = Idx<Expr>;
 pub type TypeId = Idx<Type>;
 pub type PatId = Idx<Pat>;
 
-pub type Var = SmolStr;
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct Var(SmolStr);
+
+impl fmt::Debug for Var {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "{:?}", self.0) }
+}
+impl fmt::Display for Var {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "{}", self.0) }
+}
+
+impl From<syntax::Var> for Var {
+    fn from(var: syntax::Var) -> Self { Self(var.0.text) }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Module {
+    pub decls: Vec<Decl>,
     pub data: ModuleData,
     pub source: ModuleSource,
     pub diagnostics: Vec<Diagnostic>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ModuleData {
     pub fn_defs: Arena<FnDef>,
     pub exprs: Arena<Expr>,
@@ -44,7 +58,7 @@ impl Index<PatId> for ModuleData {
     fn index(&self, id: PatId) -> &Self::Output { &self.pats[id] }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ModuleSource {
     pub fn_defs: ArenaMap<FnDefId, syntax::FnDef>,
     pub exprs: ArenaMap<ExprId, syntax::Expr>,
@@ -70,6 +84,11 @@ impl Index<PatId> for ModuleSource {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum Decl {
+    Fn(FnDefId),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct FnDef {
     pub name: Var,
     pub params: Vec<Param>,
@@ -90,7 +109,7 @@ pub enum Expr {
     Tuple(Vec<ExprId>),
     Field {
         base: ExprId,
-        field: Var,
+        var: Var,
     },
     Unop {
         op: UnOp,
@@ -127,12 +146,40 @@ pub enum UnOp {
     Sub,
 }
 
+impl From<syntax::UnaryOp> for UnOp {
+    fn from(op: syntax::UnaryOp) -> Self {
+        match op {
+            syntax::UnaryOp::Add(_) => Self::Add,
+            syntax::UnaryOp::Sub(_) => Self::Sub,
+        }
+    }
+}
+
+impl From<syntax::BinaryOp> for BinOp {
+    fn from(op: syntax::BinaryOp) -> Self {
+        match op {
+            syntax::BinaryOp::Add(_) => Self::Add,
+            syntax::BinaryOp::Sub(_) => Self::Sub,
+            syntax::BinaryOp::Mul(_) => Self::Mul,
+            syntax::BinaryOp::Div(_) => Self::Div,
+            syntax::BinaryOp::Assign(_) => Self::Assign,
+            syntax::BinaryOp::Eq(_) => Self::Eq,
+            syntax::BinaryOp::NotEq(_) => Self::NotEq,
+            syntax::BinaryOp::Less(_) => Self::Less,
+            syntax::BinaryOp::LessEq(_) => Self::LessEq,
+            syntax::BinaryOp::Greater(_) => Self::Greater,
+            syntax::BinaryOp::GreaterEq(_) => Self::GreaterEq,
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum BinOp {
     Add,
     Sub,
     Mul,
     Div,
+    Assign,
     Eq,
     NotEq,
     Less,
@@ -161,12 +208,14 @@ pub enum Stmt {
 pub enum Lit {
     Bool(bool),
     Int(u32),
+    Float(OrderedFloat<f32>),
+    Char(char),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Pat {
     Var(Var),
-    Wildcard,
+    Ignore,
     Tuple(Vec<PatId>),
 }
 

@@ -28,23 +28,23 @@ fn lambda_expr(input: Input) -> IResult<Expr> {
 }
 fn return_expr(input: Input) -> IResult<Expr> {
     let (input, kw_return) = kw_return.parse(input)?;
-    let (input, expr) = expr.parse(input)?;
+    let (input, expr) = expr.opt().parse(input)?;
     Ok((
         input,
         Expr::Return(ReturnExpr {
             kw_return,
-            expr: box expr,
+            expr: expr.map(Box::new),
         }),
     ))
 }
 fn break_expr(input: Input) -> IResult<Expr> {
     let (input, kw_break) = kw_break.parse(input)?;
-    let (input, expr) = expr.parse(input)?;
+    let (input, expr) = expr.opt().parse(input)?;
     Ok((
         input,
         Expr::Break(BreakExpr {
             kw_break,
-            expr: box expr,
+            expr: expr.map(Box::new),
         }),
     ))
 }
@@ -149,7 +149,7 @@ fn suffix_expr(input: Input) -> IResult<Expr> {
             args,
         }),
         Suffix::Field(dot, var) => Expr::Field(FieldExpr {
-            expr: box expr,
+            base: box expr,
             dot,
             var,
         }),
@@ -162,27 +162,27 @@ fn atom_expr(input: Input) -> IResult<Expr> {
         .or(paren_expr)
         .or(tuple_expr)
         .or(loop_expr)
-        .or(if_expr.map(Expr::If))
-        .or(block.map(Expr::Block))
+        .or(if_expr)
+        .or(block_expr)
         .parse(input)
 }
 fn lit_expr(input: Input) -> IResult<Expr> { lit.map(Expr::Lit).parse(input) }
 fn var_expr(input: Input) -> IResult<Expr> { var.map(Expr::Var).parse(input) }
 fn paren_expr(input: Input) -> IResult<Expr> { paren(expr).map(Expr::Paren).parse(input) }
 fn tuple_expr(input: Input) -> IResult<Expr> { tuple(expr).map(Expr::Tuple).parse(input) }
-fn if_expr(input: Input) -> IResult<IfExpr> {
+fn if_expr(input: Input) -> IResult<Expr> {
     let (input, kw_if) = kw_if.parse(input)?;
     let (input, test_expr) = expr.parse(input)?;
     let (input, then_block) = block.parse(input)?;
     let (input, else_expr) = else_expr.opt().parse(input)?;
     Ok((
         input,
-        IfExpr {
+        Expr::If(IfExpr {
             kw_if,
             test_expr: box test_expr,
             then_block,
             else_expr,
-        },
+        }),
     ))
 }
 fn else_expr(input: Input) -> IResult<ElseExpr> {
@@ -191,7 +191,10 @@ fn else_expr(input: Input) -> IResult<ElseExpr> {
         kw_else,
         if_expr: box if_expr,
     }))
-    .or(block.map(|block| ElseExpr::ElseBlock { kw_else, block }))
+    .or(block_expr.map(|block| ElseExpr::ElseBlock {
+        kw_else,
+        block: box block,
+    }))
     .parse(input)
 }
 fn loop_expr(input: Input) -> IResult<Expr> {
@@ -214,11 +217,10 @@ pub fn block(input: Input) -> IResult<Block> {
         },
     ))
 }
+pub fn block_expr(input: Input) -> IResult<Expr> { block.map(Expr::Block).parse(input) }
 fn stmt(input: Input) -> IResult<Stmt> { expr_stmt.or(let_stmt).or(semicolon_stmt).parse(input) }
 fn expr_stmt(input: Input) -> IResult<Stmt> {
-    (if_expr.map(Expr::If))
-        .or(block.map(Expr::Block))
-        .or(loop_expr)
+    (if_expr.or(block_expr).or(loop_expr))
         .map(|expr| Stmt::Expr {
             expr,
             semicolon: None,

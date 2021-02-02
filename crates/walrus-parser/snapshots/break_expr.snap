@@ -10,13 +10,15 @@ Ok(
                 kw_break: KwBreak {
                     span: 0..5,
                 },
-                expr: Lit(
-                    Int(
-                        Dec(
-                            DecInt {
-                                span: 6..7,
-                                text: "5",
-                            },
+                expr: Some(
+                    Lit(
+                        Int(
+                            Dec(
+                                DecInt {
+                                    span: 6..7,
+                                    text: "5",
+                                },
+                            ),
                         ),
                     ),
                 ),

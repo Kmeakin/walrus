@@ -34,16 +34,18 @@ Ok(
                         kw_else: KwElse {
                             span: 11..15,
                         },
-                        block: Block {
-                            lcurly: LCurly {
-                                span: 16..17,
+                        block: Block(
+                            Block {
+                                lcurly: LCurly {
+                                    span: 16..17,
+                                },
+                                stmts: [],
+                                expr: None,
+                                rcurly: RCurly {
+                                    span: 17..18,
+                                },
                             },
-                            stmts: [],
-                            expr: None,
-                            rcurly: RCurly {
-                                span: 17..18,
-                            },
-                        },
+                        ),
                     },
                 ),
             },
