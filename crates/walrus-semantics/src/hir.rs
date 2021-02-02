@@ -98,7 +98,7 @@ pub struct FnDef {
     pub name: Var,
     pub params: Vec<Param>,
     pub ret_type: Option<TypeId>,
-    pub body: ExprId,
+    pub expr: ExprId,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]

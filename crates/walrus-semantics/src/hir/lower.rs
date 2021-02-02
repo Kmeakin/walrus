@@ -85,7 +85,7 @@ impl Ctx {
             name: syntax.name.clone().into(),
             params: self.lower_param_list(&syntax.params),
             ret_type: syntax.ret.as_ref().map(|ret| self.lower_type(&ret.ty)),
-            body: self.lower_expr(&syntax.expr),
+            expr: self.lower_expr(&syntax.expr),
         };
         self.alloc_fn_def(syntax.clone(), hir)
     }

@@ -1,6 +1,6 @@
 use crate::{
     diagnostic::Diagnostic,
-    hir::{ExprId, FnDefId, Module, Pat, PatId, TypeId, Var},
+    hir::{Decl, Expr, ExprId, FnDefId, Module, Param, Pat, PatId, Stmt, Type, TypeId, Var},
 };
 use la_arena::{Arena, ArenaMap, Idx};
 use std::collections::HashMap;
@@ -96,14 +96,6 @@ impl Scopes {
         self.scope = old_scope;
     }
 
-    fn insert_pat(&mut self, module: &Module, bindings: &mut Bindings, id: PatId) {
-        let pat = &module.data[id];
-        match pat {
-            Pat::Var(var) => self.insert_binding(bindings, var, Binding::Local(id)),
-            pat => pat.walk_child_pats(|id| self.insert_pat(module, bindings, id)),
-        }
-    }
-
     fn insert_binding(&mut self, bindings: &mut Bindings, name: &Var, binding: Binding) {
         match bindings.get(&name) {
             Some(first) => self.diagnostics.push(Diagnostic::DuplicateBinding {
@@ -117,5 +109,88 @@ impl Scopes {
                 bindings.insert(name.clone(), binding);
             }
         }
+    }
+
+    fn module_scope(&mut self, module: &Module) {
+        let mut bindings = Bindings::new();
+        for decl in &module.decls {
+            match decl {
+                Decl::Fn(id) => {
+                    let fn_def = &module.data[*id];
+                    self.insert_binding(&mut bindings, &fn_def.name, Binding::Fn(*id))
+                }
+            }
+        }
+
+        for decl in &module.decls {
+            match decl {
+                Decl::Fn(id) => self.fn_def_scope(module, *id),
+            }
+        }
+    }
+
+    fn param_list_scope(&mut self, module: &Module, params: &[Param]) {
+        let mut bindings = Bindings::new();
+        for param in params {
+            let Param { pat, ty } = param;
+            self.pat_scope(module, &mut bindings, *pat);
+            if let Some(ty) = ty {
+                self.type_scope(module, *ty)
+            }
+        }
+    }
+
+    fn fn_def_scope(&mut self, module: &Module, id: FnDefId) {
+        let fn_def = &module.data[id].clone();
+        self.in_child_scope(|this| {
+            this.param_list_scope(module, &fn_def.params);
+            if let Some(ret_type) = fn_def.ret_type {
+                this.type_scope(module, ret_type)
+            }
+            this.expr_scope(module, fn_def.expr)
+        })
+    }
+
+    fn expr_scope(&mut self, module: &Module, id: ExprId) {
+        self.set_scope_of_expr(id, self.scope);
+        let expr = &module.data[id];
+        match expr {
+            Expr::Block { stmts, expr } => {
+                for stmt in stmts {
+                    match stmt {
+                        Stmt::Expr(expr) => self.expr_scope(module, *expr),
+                        Stmt::Let { pat, ty, expr } => {
+                            self.pat_scope(module, &mut Bindings::new(), *pat);
+                            if let Some(ty) = ty {
+                                self.type_scope(module, *ty);
+                            }
+                            self.expr_scope(module, *expr);
+                        }
+                    }
+                }
+                if let Some(expr) = expr {
+                    self.expr_scope(module, *expr)
+                }
+            }
+            Expr::Lambda { params, expr } => {
+                self.param_list_scope(module, params);
+                self.expr_scope(module, *expr)
+            }
+            expr => expr.walk_child_exprs(|id| self.expr_scope(module, id)),
+        }
+    }
+
+    fn pat_scope(&mut self, module: &Module, bindings: &mut Bindings, id: PatId) {
+        let pat = &module.data[id];
+        match pat {
+            Pat::Var(var) => self.insert_binding(bindings, var, Binding::Local(id)),
+            pat => pat.walk_child_pats(|id| self.pat_scope(module, bindings, id)),
+        }
+    }
+
+    fn type_scope(&mut self, module: &Module, id: TypeId) {
+        self.set_scope_of_type(id, self.scope);
+        let ty = &module.data[id];
+        ty.walk_child_types(|id| self.type_scope(module, id))
     }
 }
