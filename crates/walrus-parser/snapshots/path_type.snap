@@ -1,0 +1,39 @@
+---
+source: crates/walrus-parser/src/grammar.rs
+expression: got
+---
+Ok(
+    (
+        [],
+        Path(
+            Path(
+                Punctuated1NoTrail {
+                    first: Ident {
+                        span: 0..1,
+                        text: "x",
+                    },
+                    tail: [
+                        (
+                            ColonColon {
+                                span: 1..3,
+                            },
+                            Ident {
+                                span: 3..4,
+                                text: "y",
+                            },
+                        ),
+                        (
+                            ColonColon {
+                                span: 4..6,
+                            },
+                            Ident {
+                                span: 6..7,
+                                text: "Z",
+                            },
+                        ),
+                    ],
+                },
+            ),
+        ),
+    ),
+)

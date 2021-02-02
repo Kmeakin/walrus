@@ -1,0 +1,24 @@
+---
+source: crates/walrus-parser/src/grammar.rs
+expression: got
+---
+Ok(
+    (
+        [],
+        Tuple(
+            Delimited {
+                open: LParen {
+                    span: 0..1,
+                },
+                inner: Punctuated0 {
+                    first: None,
+                    tail: [],
+                    trail: None,
+                },
+                close: RParen {
+                    span: 1..2,
+                },
+            },
+        ),
+    ),
+)

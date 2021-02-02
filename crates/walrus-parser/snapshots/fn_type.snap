@@ -1,0 +1,52 @@
+---
+source: crates/walrus-parser/src/grammar.rs
+expression: got
+---
+Ok(
+    (
+        [],
+        Fn {
+            args: Delimited {
+                open: LParen {
+                    span: 0..1,
+                },
+                inner: Punctuated0 {
+                    first: Some(
+                        Path(
+                            Path(
+                                Punctuated1NoTrail {
+                                    first: Ident {
+                                        span: 1..2,
+                                        text: "T",
+                                    },
+                                    tail: [],
+                                },
+                            ),
+                        ),
+                    ),
+                    tail: [],
+                    trail: None,
+                },
+                close: RParen {
+                    span: 2..3,
+                },
+            },
+            ret: RetType {
+                thin_arrow: ThinArrow {
+                    span: 4..6,
+                },
+                ty: Path(
+                    Path(
+                        Punctuated1NoTrail {
+                            first: Ident {
+                                span: 7..8,
+                                text: "V",
+                            },
+                            tail: [],
+                        },
+                    ),
+                ),
+            },
+        },
+    ),
+)

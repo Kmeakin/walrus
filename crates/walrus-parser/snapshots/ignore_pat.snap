@@ -1,0 +1,14 @@
+---
+source: crates/walrus-parser/src/grammar.rs
+expression: got
+---
+Ok(
+    (
+        [],
+        Ignore(
+            Underscore {
+                span: 0..1,
+            },
+        ),
+    ),
+)

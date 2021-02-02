@@ -3,9 +3,9 @@ use super::*;
 pub fn ty(input: Input) -> IResult<Type> {
     path_type
         .or(infer_type)
+        .or(fn_type)
         .or(paren_type)
         .or(tuple_type)
-        .or(fn_type)
         .parse(input)
 }
 
@@ -35,4 +35,18 @@ fn fn_type(input: Input) -> IResult<Type> {
     let (input, args) = paren(punctuated0(ty, comma)).parse(input)?;
     let (input, ret) = ret_type.parse(input)?;
     Ok((input, Type::Fn { args, ret }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    test_parse!(path_type, ty, r#"x::y::Z"#);
+    test_parse!(infer_type, ty, r#"_"#);
+    test_parse!(tuple0_type, ty, r#"()"#);
+    test_parse!(tuple1_type, ty, r#"(T,)"#);
+    test_parse!(tuple2_type, ty, r#"(T,V)"#);
+    test_parse!(paren_type, ty, r#"(T)"#);
+    test_parse!(fn_type, ty, r#"(T) -> V"#);
+    test_parse!(nested_fn_type, ty, r#"(A) -> (B) -> C"#);
 }
