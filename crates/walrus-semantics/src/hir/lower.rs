@@ -184,7 +184,19 @@ impl Ctx {
             }
             syntax::Expr::Continue(_) => Expr::Continue,
             syntax::Expr::Loop(expr) => Expr::Loop(self.lower_expr(&expr.expr)),
-            syntax::Expr::Block(block) => todo!(),
+            syntax::Expr::Block(block) => {
+                let stmts = block
+                    .stmts
+                    .iter()
+                    .filter_map(|stmt| self.lower_stmt(stmt))
+                    .collect();
+                let expr = block
+                    .expr
+                    .as_ref()
+                    .as_ref()
+                    .map(|expr| self.lower_expr(&expr));
+                Expr::Block { stmts, expr }
+            }
         };
         self.alloc_expr(syntax.clone(), hir)
     }

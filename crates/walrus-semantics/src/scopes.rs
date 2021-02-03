@@ -28,10 +28,10 @@ impl Default for Scope {
         Self {
             parent: None,
             bindings: [
-                (Var::new("Bool"), Binding::BuiltinType),
-                (Var::new("Int"), Binding::BuiltinType),
-                (Var::new("Float"), Binding::BuiltinType),
-                (Var::new("Char"), Binding::BuiltinType),
+                (Var::new("Bool"), Binding::BuiltinType(BuiltinType::Bool)),
+                (Var::new("Int"), Binding::BuiltinType(BuiltinType::Int)),
+                (Var::new("Float"), Binding::BuiltinType(BuiltinType::Float)),
+                (Var::new("Char"), Binding::BuiltinType(BuiltinType::Char)),
             ]
             .iter()
             .cloned()
@@ -44,7 +44,15 @@ impl Default for Scope {
 pub enum Binding {
     Local(PatId),
     Fn(FnDefId),
-    BuiltinType,
+    BuiltinType(BuiltinType),
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum BuiltinType {
+    Bool,
+    Int,
+    Float,
+    Char,
 }
 
 impl Scopes {

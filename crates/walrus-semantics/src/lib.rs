@@ -18,5 +18,6 @@
 mod diagnostic;
 mod hir;
 mod scopes;
+mod ty;
 
 pub(crate) use walrus_syntax as syntax;
