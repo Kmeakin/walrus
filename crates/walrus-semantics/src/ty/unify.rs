@@ -60,6 +60,41 @@ impl InferenceTable {
         self.var_unification_table.new_key(TypeVarValue::Unknown)
     }
 
+    /// Propagates the type completely; type variables without known type are
+    /// replaced by `Type::Unknown`.
+    pub(crate) fn propagate_type_completely(&mut self, ty: &Type) -> Type {
+        self.propagate_type_completely_inner(&mut Vec::new(), ty)
+    }
+
+    pub(crate) fn propagate_type_completely_inner(
+        &mut self,
+        tv_stack: &mut Vec<TypeVarId>,
+        ty: &Type,
+    ) -> Type {
+        ty.clone().fold(&mut |ty| match ty {
+            Type::Infer(tv) => {
+                let inner = tv.to_inner();
+                if tv_stack.contains(&inner) {
+                    return tv.fallback_value();
+                }
+                self.var_unification_table
+                    .inlined_probe_value(inner)
+                    .as_known()
+                    .map_or_else(
+                        || tv.fallback_value(),
+                        |known_ty| {
+                            // known_ty may contain other variables that are known by now
+                            tv_stack.push(inner);
+                            let result = self.propagate_type_completely_inner(tv_stack, known_ty);
+                            tv_stack.pop();
+                            result
+                        },
+                    )
+            }
+            _ => ty,
+        })
+    }
+
     /// Propagates the type as far as currently possible, replacing type
     /// variables by their known types. All types returned by the `infer_*`
     /// functions should be propagated as far as possible, i.e. contain no

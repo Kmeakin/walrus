@@ -88,7 +88,7 @@ impl Index<PatId> for ModuleSource {
     fn index(&self, id: PatId) -> &Self::Output { &self.pats[id] }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Decl {
     Fn(FnDefId),
 }

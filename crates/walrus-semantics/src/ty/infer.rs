@@ -2,7 +2,8 @@ use super::{unify::InferenceTable, InferType, Type};
 use crate::{
     diagnostic::Diagnostic,
     hir::{
-        self, BinOp, Expr, ExprId, FnDefId, Lit, Module, Param, Pat, PatId, Stmt, TypeId, UnOp, Var,
+        self, BinOp, Decl, Expr, ExprId, FnDefId, Lit, Module, Param, Pat, PatId, Stmt, TypeId,
+        UnOp, Var,
     },
     scopes::{Binding, Scopes},
 };
@@ -36,6 +37,27 @@ struct Ctx {
 }
 
 impl Ctx {
+    fn finish(mut self) -> InferenceResult {
+        let result = std::mem::take(&mut self.result);
+        for (expr, ty) in result.type_of_expr.iter() {
+            let was_unknown = ty == &Type::Unknown;
+            let ty = self.propagate_type_completely(&ty);
+            if !was_unknown && ty == Type::Unknown {
+                todo!("Unable to infer type")
+            }
+        }
+
+        for (pat, ty) in result.type_of_pat.iter() {
+            let was_unknown = ty == &Type::Unknown;
+            let ty = self.propagate_type_completely(&ty);
+            if !was_unknown && ty == Type::Unknown {
+                todo!("Unable to infer type")
+            }
+        }
+
+        result
+    }
+
     fn with_fn_type<T>(&mut self, ty: FnType, f: impl Fn(&mut Self) -> T) -> T {
         let old_fn_type = self.fn_type.clone();
         self.fn_type = Some(ty);
@@ -92,10 +114,92 @@ impl Ctx {
         self.table.propagate_type_as_far_as_possible(ty)
     }
 
+    /// Propagates the type completely; type variables without known type are
+    /// replaced by `Type::Unknown`.
+    fn propagate_type_completely(&mut self, ty: &Type) -> Type {
+        self.table
+            .propagate_type_completely_inner(&mut Vec::new(), ty)
+    }
+
+    fn propagate_fn_type_completely(&mut self, fn_type: &FnType) -> FnType {
+        FnType {
+            params: fn_type
+                .params
+                .iter()
+                .map(|param| self.propagate_type_completely(param))
+                .collect(),
+            ret: self.propagate_type_completely(&fn_type.ret),
+        }
+    }
+
+    fn try_to_unify(&mut self, expected: &Type, got: &Type) {
+        if self.unify(got, expected) {
+            todo!("Type mismatch")
+        }
+    }
+
+    fn try_to_unify_and_propagate_as_far_as_possible(
+        &mut self,
+        expected: &Type,
+        got: &Type,
+    ) -> Type {
+        self.try_to_unify(expected, got);
+        self.propagate_type_as_far_as_possible(got)
+    }
+
     fn unify(&mut self, t1: &Type, t2: &Type) -> bool { self.table.unify(t1, t2) }
 }
 
 impl Ctx {
+    fn infer_module(&mut self) {
+        self.module
+            .decls
+            .clone()
+            .iter()
+            .copied()
+            .for_each(|decl| self.infer_decl(decl));
+        self.module
+            .decls
+            .clone()
+            .iter()
+            .copied()
+            .for_each(|decl| self.infer_decl_body(decl));
+    }
+
+    fn infer_decl(&mut self, decl: Decl) {
+        match decl {
+            Decl::Fn(fn_id) => self.infer_fn_decl(fn_id),
+        }
+    }
+
+    fn infer_fn_decl(&mut self, fn_id: FnDefId) {
+        let fn_decl = self.module.data[fn_id].clone();
+        let params = fn_decl
+            .params
+            .iter()
+            .map(|param| self.infer_binding(param.pat, param.ty, None))
+            .collect();
+        let ret = fn_decl
+            .ret_type
+            .map_or(Type::UNIT, |ty| self.resolve_type(ty));
+        self.set_fn_ty(fn_id, FnType { params, ret });
+    }
+
+    fn infer_decl_body(&mut self, decl: Decl) {
+        match decl {
+            Decl::Fn(fn_id) => self.infer_fn_body(fn_id),
+        };
+    }
+
+    fn infer_fn_body(&mut self, fn_id: FnDefId) -> Type {
+        let fn_decl = self.module.data[fn_id].clone();
+        let fn_type = self.result.type_of_fn[fn_id].clone();
+        let body_type = self.with_fn_type(fn_type.clone(), |this| {
+            this.infer_expr(&Type::Unknown, fn_decl.expr)
+        });
+        self.try_to_unify_and_propagate_as_far_as_possible(&fn_type.ret, &body_type)
+    }
+
     /// Common inference logic for any construct that binds a value to a pattern
     /// (ie fn params, lambda params, let bindings)
     /// FnParam { pat, ascription } => infer_binding(pat, ascription, None),
@@ -134,13 +238,9 @@ impl Ctx {
                 Type::tuple(tys)
             }
         };
-
-        if !self.unify(&ty, expected) {
-            todo!("Type mismatch")
-        }
         let ty = self.propagate_type_as_far_as_possible(&ty);
         self.set_pat_ty(id, ty.clone());
-        ty
+        self.try_to_unify_and_propagate_as_far_as_possible(expected, &ty)
     }
 
     fn infer_expr(&mut self, expected: &Type, id: ExprId) -> Type {
@@ -160,17 +260,14 @@ impl Ctx {
             Expr::Unop { op, expr } => self.infer_unop_expr(op, expr),
             Expr::Binop { lhs, op, rhs } => self.infer_binop_expr(op, lhs, rhs),
             Expr::Loop(expr) => self.infer_loop_expr(expected, expr),
-            Expr::Return(expr) => self.infer_return_expr(expected, expr),
-            Expr::Break(expr) => self.infer_break_expr(expected, expr),
+            Expr::Return(expr) => self.infer_return_expr(expr),
+            Expr::Break(expr) => self.infer_break_expr(expr),
             Expr::Continue => self.infer_continue_expr(),
             Expr::Block { stmts, expr } => self.infer_block_expr(expected, &stmts, expr),
         };
         let ty = self.propagate_type_as_far_as_possible(&ty);
         self.set_expr_ty(id, ty.clone());
-        if !self.unify(&ty, expected) {
-            todo!("Type mismatch")
-        }
-        self.propagate_type_as_far_as_possible(&ty)
+        self.try_to_unify_and_propagate_as_far_as_possible(expected, &ty)
     }
 
     fn infer_var_expr(&mut self, var: &Var, expr: ExprId) -> Type {
@@ -214,27 +311,25 @@ impl Ctx {
         then_branch: ExprId,
         else_branch: Option<ExprId>,
     ) -> Type {
-        {
-            let _test_ty = self.infer_expr(&Type::BOOL, test);
-            match else_branch {
-                None => {
-                    self.infer_expr(&Type::Unknown, then_branch);
-                    Type::UNIT
-                }
-                Some(else_branch) => {
-                    let then_ty = self.infer_expr(&Type::Unknown, then_branch);
-                    let else_ty = self.infer_expr(&Type::Unknown, else_branch);
-                    if self.unify(&then_ty, &else_ty) {
-                        then_ty
-                    } else {
-                        self.result.diagnostics.push(Diagnostic::IfBranchMismatch {
-                            then_branch,
-                            else_branch,
-                            then_ty,
-                            else_ty,
-                        });
-                        Type::Unknown
-                    }
+        let _test_ty = self.infer_expr(&Type::BOOL, test);
+        match else_branch {
+            None => {
+                self.infer_expr(&Type::Unknown, then_branch);
+                Type::UNIT
+            }
+            Some(else_branch) => {
+                let then_ty = self.infer_expr(&Type::Unknown, then_branch);
+                let else_ty = self.infer_expr(&Type::Unknown, else_branch);
+                if self.unify(&then_ty, &else_ty) {
+                    then_ty
+                } else {
+                    self.result.diagnostics.push(Diagnostic::IfBranchMismatch {
+                        then_branch,
+                        else_branch,
+                        then_ty,
+                        else_ty,
+                    });
+                    Type::Unknown
                 }
             }
         }
@@ -279,7 +374,7 @@ impl Ctx {
 
     fn infer_binop_expr(&mut self, op: BinOp, lhs: ExprId, rhs: ExprId) -> Type {
         let lhs_ty = self.infer_expr(&Type::Unknown, lhs);
-        let rhs_ty = self.infer_expr(&lhs_ty, rhs);
+        let _rhs_ty = self.infer_expr(&lhs_ty, rhs);
         match op {
             BinOp::Assign => todo!("Assignment not yet supported"),
             BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div => {
@@ -315,28 +410,20 @@ impl Ctx {
         })
     }
 
-    fn infer_return_expr(&mut self, expected: &Type, expr: Option<ExprId>) -> Type {
-        let result_ty = expr.map_or(Type::UNIT, |expr| self.infer_expr(&Type::Unknown, expr));
+    fn infer_return_expr(&mut self, expr: Option<ExprId>) -> Type {
+        let result_type = expr.map_or(Type::UNIT, |expr| self.infer_expr(&Type::Unknown, expr));
         match self.fn_type.clone() {
             None => todo!("Return outside of function"),
-            Some(fn_type) => {
-                if !self.unify(&fn_type.ret, &result_ty) {
-                    todo!("Type mismatch")
-                }
-            }
+            Some(fn_type) => self.try_to_unify(&fn_type.ret, &result_type),
         }
         Type::NEVER
     }
 
-    fn infer_break_expr(&mut self, expected: &Type, expr: Option<ExprId>) -> Type {
-        let result_ty = expr.map_or(Type::UNIT, |expr| self.infer_expr(&Type::Unknown, expr));
+    fn infer_break_expr(&mut self, expr: Option<ExprId>) -> Type {
+        let result_type = expr.map_or(Type::UNIT, |expr| self.infer_expr(&Type::Unknown, expr));
         match self.loop_type.clone() {
             None => todo!("Break outside of loop"),
-            Some(ty) => {
-                if !self.unify(&ty, &result_ty) {
-                    todo!("Type mismatch")
-                }
-            }
+            Some(loop_type) => self.try_to_unify(&loop_type, &result_type),
         }
         Type::NEVER
     }
