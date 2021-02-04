@@ -1,3 +1,5 @@
+#![allow(clippy::cast_possible_truncation)]
+
 use std::{cmp, fmt, hash, marker::PhantomData};
 
 /// The index of a value allocated in an arena that holds `T`s.
@@ -27,7 +29,7 @@ impl<T> From<Idx<T>> for u32 {
     fn from(idx: Idx<T>) -> Self { idx.raw }
 }
 impl<T> From<Idx<T>> for usize {
-    fn from(idx: Idx<T>) -> Self { idx.raw as usize }
+    fn from(idx: Idx<T>) -> Self { idx.raw as Self }
 }
 
 impl<T> fmt::Debug for Idx<T> {
@@ -43,7 +45,7 @@ impl<T> Clone for Idx<T> {
 impl<T> Copy for Idx<T> {}
 
 impl<T> PartialEq for Idx<T> {
-    fn eq(&self, other: &Idx<T>) -> bool { self.raw == other.raw }
+    fn eq(&self, other: &Self) -> bool { self.raw == other.raw }
 }
 impl<T> Eq for Idx<T> {}
 

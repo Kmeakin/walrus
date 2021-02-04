@@ -154,6 +154,7 @@ pub enum Expr {
 pub enum UnOp {
     Add,
     Sub,
+    Not,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -169,6 +170,8 @@ pub enum BinOp {
     LessEq,
     Greater,
     GreaterEq,
+    And,
+    Or,
 }
 
 impl From<syntax::UnaryOp> for UnOp {

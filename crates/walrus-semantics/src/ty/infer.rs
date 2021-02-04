@@ -30,7 +30,7 @@ pub struct FnType {
 }
 
 impl From<FnType> for Type {
-    fn from(func: FnType) -> Type { Type::function(func.params, func.ret) }
+    fn from(func: FnType) -> Self { Self::function(func.params, func.ret) }
 }
 
 struct Ctx {
@@ -58,7 +58,7 @@ impl Ctx {
         let mut result = std::mem::take(&mut self.result);
         for ty in result.type_of_expr.values_mut() {
             let was_unknown = ty == &Type::Unknown;
-            *ty = self.propagate_type_completely(&ty);
+            *ty = self.propagate_type_completely(ty);
             if !was_unknown && ty == &Type::Unknown {
                 todo!("Unable to infer type")
             }
@@ -66,7 +66,7 @@ impl Ctx {
 
         for ty in result.type_of_pat.values_mut() {
             let was_unknown = ty == &Type::Unknown;
-            *ty = self.propagate_type_completely(&ty);
+            *ty = self.propagate_type_completely(ty);
             if !was_unknown && ty == &Type::Unknown {
                 todo!("Unable to infer type")
             }
@@ -224,16 +224,14 @@ impl Ctx {
 
     /// Common inference logic for any construct that binds a value to a pattern
     /// (ie fn params, lambda params, let bindings)
-    /// FnParam { pat, ascription } => infer_binding(pat, ascription, None),
-    /// LambdaParam { pat, ascription } => infer_binding(pat, ascription, None),
-    /// Let { pat, ascription, val} => infer_binding(pat, ascription, val),
+    /// type annotation takes priority over the expr, which takes priority over
+    /// the pattern
+    /// eg `let (x,y): (Bool,Bool,Bool) = (1,2,3);` will create an error
+    /// pointing at the expr and the pattern, not at the annotation. This is
+    /// because, when the user provides a type annotation, they usually want
+    /// it to guide the inference process on expr inference (eg `let x:
+    /// Vec<_> = xs.iter().collect()`)
     fn infer_binding(&mut self, pat: PatId, ty: Option<TypeId>, expr: Option<ExprId>) -> Type {
-        // type annotation takes priority over the expr, which takes priority over the
-        // pattern
-        // eg `let (x,y): (Bool,Bool,Bool) = (1,2,3);` will create an error pointing at
-        // the expr and the pattern, not at the annotation. This is because, when the
-        // user provides a type annotation, they usually want it to guide the inference
-        // process on expr inference (eg `let x: Vec<_> = xs.iter().collect()`)
         let ty = match ty {
             Some(ty) => self.resolve_type(ty),
             None => self.new_type_var(),
@@ -298,7 +296,7 @@ impl Ctx {
 
     fn infer_var_expr(&mut self, var: &Var, expr: ExprId) -> Type {
         let scope = self.scopes.scope_of_expr(expr);
-        let binding = self.scopes.lookup_in_scope(scope, &var);
+        let binding = self.scopes.lookup_in_scope(scope, var);
         let ty = match binding {
             Some(Binding::Local(pat_id)) => Ok(self.result.type_of_pat[*pat_id].clone()),
             Some(Binding::Fn(fn_id)) => Ok(Type::from(self.result.type_of_fn[*fn_id].clone())),
@@ -369,7 +367,7 @@ impl Ctx {
             .collect::<Vec<_>>();
         let ret_type = self.new_type_var();
         let lambda_ty = FnType {
-            params: param_types.clone(),
+            params: param_types,
             ret: ret_type.clone(),
         };
         self.unify(&lambda_ty.clone().into(), expected);
@@ -449,7 +447,7 @@ impl Ctx {
         for stmt in stmts {
             match stmt {
                 Stmt::Expr(expr) => self.infer_expr(&Type::Unknown, *expr),
-                Stmt::Let { pat, ty, expr } => self.infer_binding(*pat, ty.clone(), Some(*expr)),
+                Stmt::Let { pat, ty, expr } => self.infer_binding(*pat, *ty, Some(*expr)),
             };
         }
 
@@ -461,47 +459,51 @@ impl Ctx {
 }
 
 impl Lit {
-    fn ty(&self) -> Type {
+    const fn ty(self) -> Type {
         match self {
-            Lit::Bool(_) => Type::BOOL,
-            Lit::Int(_) => Type::INT,
-            Lit::Float(_) => Type::FLOAT,
-            Lit::Char(_) => Type::CHAR,
+            Self::Bool(_) => Type::BOOL,
+            Self::Int(_) => Type::INT,
+            Self::Float(_) => Type::FLOAT,
+            Self::Char(_) => Type::CHAR,
         }
     }
 }
 
 impl UnOp {
-    fn lhs_expectation(self) -> Type {
+    const fn lhs_expectation(self) -> Type {
         match self {
             Self::Add | Self::Sub => Type::Unknown,
+            Self::Not => Type::BOOL,
         }
     }
 
     fn return_type(self, lhs_type: Type) -> Type {
         match self {
             Self::Add | Self::Sub => lhs_type,
+            Self::Not => Type::BOOL,
         }
     }
 }
 impl BinOp {
-    fn lhs_expectation(self) -> Type {
-        #[allow(clippy::match_same_arms)]
+    #![allow(clippy::match_same_arms)]
+
+    const fn lhs_expectation(self) -> Type {
         match self {
             Self::Add | Self::Sub | Self::Mul | Self::Div => Type::Unknown,
             Self::Assign => Type::Unknown,
             Self::Eq | Self::NotEq => Type::Unknown,
             Self::Less | Self::LessEq | Self::Greater | Self::GreaterEq => Type::Unknown,
+            Self::And | Self::Or => Type::BOOL,
         }
     }
 
     fn rhs_expectation(self, lhs_type: Type) -> Type {
-        #[allow(clippy::match_same_arms)]
         match self {
             Self::Add | Self::Sub | Self::Mul | Self::Div => lhs_type,
             Self::Assign => lhs_type,
             Self::Eq | Self::NotEq => lhs_type,
             Self::Less | Self::LessEq | Self::Greater | Self::GreaterEq => lhs_type,
+            Self::And | Self::Or => Type::BOOL,
         }
     }
 
@@ -515,6 +517,7 @@ impl BinOp {
             | Self::LessEq
             | Self::Greater
             | Self::GreaterEq => Type::BOOL,
+            Self::And | Self::Or => Type::BOOL,
         }
     }
 }

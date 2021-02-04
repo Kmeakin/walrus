@@ -120,7 +120,7 @@ impl Ctx {
 
     fn lower_stmt(&mut self, syntax: &syntax::Stmt) -> Option<Stmt> {
         let stmt = match syntax {
-            syntax::Stmt::Expr { expr, semicolon } => Stmt::Expr(self.lower_expr(expr)),
+            syntax::Stmt::Expr { expr, .. } => Stmt::Expr(self.lower_expr(expr)),
             syntax::Stmt::Let {
                 pat,
                 ascription,
@@ -194,7 +194,7 @@ impl Ctx {
                     .expr
                     .as_ref()
                     .as_ref()
-                    .map(|expr| self.lower_expr(&expr));
+                    .map(|expr| self.lower_expr(expr));
                 Expr::Block { stmts, expr }
             }
         };
@@ -207,8 +207,8 @@ impl Ctx {
             then_branch: self.lower_expr(&syntax.then_branch),
             else_branch: match &syntax.else_branch {
                 None => None,
-                Some(syntax::ElseExpr::ElseBlock { block, .. }) => Some(self.lower_expr(&block)),
-                Some(syntax::ElseExpr::ElseIf { if_expr, .. }) => Some(self.lower_expr(&if_expr)),
+                Some(syntax::ElseExpr::ElseBlock { block, .. }) => Some(self.lower_expr(block)),
+                Some(syntax::ElseExpr::ElseIf { if_expr, .. }) => Some(self.lower_expr(if_expr)),
             },
         }
     }

@@ -1,7 +1,4 @@
-use crate::{
-    diagnostic::Diagnostic,
-    hir::{Decl, Expr, ExprId, FnDefId, Module, Param, Pat, PatId, Stmt, Type, TypeId, Var},
-};
+use crate::{diagnostic::Diagnostic, hir::*};
 use arena::{Arena, ArenaMap, Idx};
 use std::collections::HashMap;
 
@@ -111,7 +108,7 @@ impl Scopes {
     }
 
     fn insert_binding(&mut self, bindings: &mut Bindings, name: &Var, binding: Binding) {
-        match bindings.get(&name) {
+        match bindings.get(name) {
             Some(first) => self.diagnostics.push(Diagnostic::DuplicateBinding {
                 first: *first,
                 second: binding,

@@ -1,3 +1,5 @@
+#![allow(clippy::fallible_impl_from)]
+
 use smol_str::SmolStr;
 use text_size::TextRange as Span;
 use walrus_lexer::{Token, TokenKind};

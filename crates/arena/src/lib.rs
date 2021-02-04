@@ -1,18 +1,21 @@
 #![warn(
+    clippy::all,
+    clippy::nursery,
+    clippy::pedantic,
     missing_copy_implementations,
     missing_debug_implementations,
     rust_2018_idioms,
-    unused_qualifications,
-    clippy::all,
-    clippy::pedantic,
-    clippy::nursery
+    unused_qualifications
 )]
 #![allow(
-    clippy::must_use_candidate,
-    clippy::wildcard_imports,
+    clippy::doc_markdown,
     clippy::enum_glob_use,
     clippy::module_name_repetitions,
-    elided_lifetimes_in_paths
+    clippy::must_use_candidate,
+    clippy::similar_names,
+    clippy::wildcard_imports,
+    elided_lifetimes_in_paths,
+    dead_code
 )]
 
 pub mod arena;

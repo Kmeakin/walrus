@@ -24,7 +24,7 @@ impl<T> Arena<T> {
     /// let arena: arena::Arena<i32> = arena::Arena::new();
     /// assert!(arena.is_empty());
     /// ```
-    pub const fn new() -> Arena<T> { Arena { data: Vec::new() } }
+    pub const fn new() -> Self { Self { data: Vec::new() } }
 
     /// Empties the arena, removing all contained values.
     ///
@@ -110,7 +110,7 @@ impl<T> Arena<T> {
 }
 
 impl<T> Default for Arena<T> {
-    fn default() -> Arena<T> { Arena { data: Vec::new() } }
+    fn default() -> Self { Self { data: Vec::new() } }
 }
 
 impl<T> Index<Idx<T>> for Arena<T> {

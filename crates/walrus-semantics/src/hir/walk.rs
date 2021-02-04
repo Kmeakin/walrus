@@ -3,21 +3,21 @@ use super::*;
 impl Expr {
     pub fn walk_child_exprs(&self, mut f: impl FnMut(ExprId)) {
         match self {
-            Expr::Lit(_) | Expr::Var(_) | Expr::Continue => {}
-            Expr::Tuple(exprs) => exprs.iter().for_each(|expr| f(*expr)),
-            Expr::Field { expr, .. }
-            | Expr::Unop { expr, .. }
-            | Expr::Lambda { expr, .. }
-            | Expr::Loop(expr) => f(*expr),
-            Expr::Binop { lhs, rhs, .. } => {
+            Self::Lit(_) | Self::Var(_) | Self::Continue => {}
+            Self::Tuple(exprs) => exprs.iter().for_each(|expr| f(*expr)),
+            Self::Field { expr, .. }
+            | Self::Unop { expr, .. }
+            | Self::Lambda { expr, .. }
+            | Self::Loop(expr) => f(*expr),
+            Self::Binop { lhs, rhs, .. } => {
                 f(*lhs);
                 f(*rhs);
             }
-            Expr::Call { func, args } => {
+            Self::Call { func, args } => {
                 f(*func);
                 args.iter().for_each(|expr| f(*expr))
             }
-            Expr::Block { stmts, expr } => {
+            Self::Block { stmts, expr } => {
                 for stmt in stmts {
                     match stmt {
                         Stmt::Let { expr, .. } | Stmt::Expr(expr) => f(*expr),
@@ -27,7 +27,7 @@ impl Expr {
                     f(*expr)
                 }
             }
-            Expr::If {
+            Self::If {
                 test,
                 then_branch,
                 else_branch,
@@ -38,7 +38,7 @@ impl Expr {
                     f(*else_branch)
                 }
             }
-            Expr::Break(expr) | Expr::Return(expr) => {
+            Self::Break(expr) | Self::Return(expr) => {
                 if let Some(expr) = expr {
                     f(*expr)
                 }
