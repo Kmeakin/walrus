@@ -213,6 +213,17 @@ pub fn block(input: Input) -> IResult<Block> {
     let (input, stmts) = many0(stmt).parse(input)?;
     let (input, expr) = expr.opt().parse(input)?;
     let (input, rcurly) = rcurly.parse(input)?;
+
+    let (stmts, expr) = match (stmts.as_slice(), &expr) {
+        (
+            [Stmt::Expr {
+                expr,
+                semicolon: None,
+            }],
+            None,
+        ) => (vec![], Some(expr.clone())),
+        _ => (stmts, expr),
+    };
     Ok((
         input,
         Block {
@@ -224,18 +235,33 @@ pub fn block(input: Input) -> IResult<Block> {
     ))
 }
 pub fn block_expr(input: Input) -> IResult<Expr> { block.map(Expr::Block).parse(input) }
-fn stmt(input: Input) -> IResult<Stmt> { expr_stmt.or(let_stmt).or(semicolon_stmt).parse(input) }
-fn expr_stmt(input: Input) -> IResult<Stmt> {
-    (if_expr.or(block_expr).or(loop_expr))
-        .map(|expr| Stmt::Expr {
+fn stmt(input: Input) -> IResult<Stmt> {
+    blocklike_expr_stmt
+        .or(expr_stmt)
+        .or(let_stmt)
+        .or(semicolon_stmt)
+        .parse(input)
+}
+fn blocklike_expr_stmt(input: Input) -> IResult<Stmt> {
+    let (input, expr) = if_expr.or(loop_expr).or(block_expr).parse(input)?;
+    Ok((
+        input,
+        Stmt::Expr {
             expr,
             semicolon: None,
-        })
-        .or(pair(expr, semicolon).map(|(expr, semicolon)| Stmt::Expr {
+        },
+    ))
+}
+fn expr_stmt(input: Input) -> IResult<Stmt> {
+    let (input, expr) = expr.parse(input)?;
+    let (input, semicolon) = semicolon.parse(input)?;
+    Ok((
+        input,
+        Stmt::Expr {
             expr,
             semicolon: Some(semicolon),
-        }))
-        .parse(input)
+        },
+    ))
 }
 fn let_stmt(input: Input) -> IResult<Stmt> {
     let (input, kw_let) = kw_let.parse(input)?;
