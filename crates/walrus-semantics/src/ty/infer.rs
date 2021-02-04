@@ -25,8 +25,8 @@ pub struct InferenceResult {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FnType {
-    params: Vec<Type>,
-    ret: Type,
+    pub params: Vec<Type>,
+    pub ret: Type,
 }
 
 impl From<FnType> for Type {
@@ -107,7 +107,9 @@ impl Ctx {
         let ty = self.module.data[id].clone();
         match ty {
             hir::Type::Infer => self.new_type_var(),
-            hir::Type::Tuple(tys) => Type::tuple(tys.iter().map(|ty| self.resolve_type(*ty))),
+            hir::Type::Tuple(tys) => {
+                Type::tuple(tys.iter().map(|ty| self.resolve_type(*ty)).collect())
+            }
             hir::Type::Fn { params, ret } => Type::function(
                 params.iter().map(|ty| self.resolve_type(*ty)).collect(),
                 self.resolve_type(ret),
@@ -140,14 +142,14 @@ impl Ctx {
     }
 
     fn propagate_fn_type_completely(&mut self, fn_type: &FnType) -> FnType {
-        dbg!(FnType {
+        FnType {
             params: fn_type
                 .params
                 .iter()
                 .map(|param| self.propagate_type_completely(param))
                 .collect(),
-            ret: dbg!(self.propagate_type_completely(&fn_type.ret)),
-        })
+            ret: self.propagate_type_completely(&fn_type.ret),
+        }
     }
 
     fn try_to_unify(&mut self, expected: &Type, got: &Type) {
@@ -161,6 +163,8 @@ impl Ctx {
         expected: &Type,
         got: &Type,
     ) -> Type {
+        dbg!(&expected);
+        dbg!(&got);
         self.try_to_unify(expected, got);
         self.propagate_type_as_far_as_possible(got)
     }
@@ -252,7 +256,8 @@ impl Ctx {
                 let tys = pats
                     .iter()
                     .zip(expectations)
-                    .map(|(pat, expected)| self.infer_pat(expected, *pat));
+                    .map(|(pat, expected)| self.infer_pat(expected, *pat))
+                    .collect();
                 Type::tuple(tys)
             }
         };
@@ -285,7 +290,7 @@ impl Ctx {
         };
         let ty = self.propagate_type_as_far_as_possible(&ty);
         self.set_expr_ty(id, ty.clone());
-        self.try_to_unify_and_propagate_as_far_as_possible(expected, &ty)
+        dbg!(self.try_to_unify_and_propagate_as_far_as_possible(expected, &ty))
     }
 
     fn infer_var_expr(&mut self, var: &Var, expr: ExprId) -> Type {
@@ -319,7 +324,8 @@ impl Ctx {
         let tys = exprs
             .iter()
             .zip(expectations)
-            .map(|(expr, expected)| self.infer_expr(expected, *expr));
+            .map(|(expr, expected)| self.infer_expr(expected, *expr))
+            .collect();
         Type::tuple(tys)
     }
 
@@ -339,7 +345,7 @@ impl Ctx {
                 let then_ty = self.infer_expr(&Type::Unknown, then_branch);
                 let else_ty = self.infer_expr(&Type::Unknown, else_branch);
                 if self.unify(&then_ty, &else_ty) {
-                    then_ty
+                    dbg!(then_ty)
                 } else {
                     self.result.diagnostics.push(Diagnostic::IfBranchMismatch {
                         then_branch,

@@ -24,7 +24,7 @@ impl Type {
 
     pub const fn new0(ctor: TypeCtor) -> Self { Self::App(TypeApp::new0(ctor)) }
     pub fn function(params: Vec<Type>, ret: Type) -> Self { Self::App(TypeApp::func(params, ret)) }
-    pub fn tuple(tys: impl Iterator<Item = Type>) -> Self { Self::App(TypeApp::tuple(tys)) }
+    pub fn tuple(tys: Vec<Type>) -> Self { Self::App(TypeApp::tuple(tys)) }
     pub fn as_tuple(&self) -> Option<&[Type]> {
         match self {
             Type::App(TypeApp {
@@ -126,10 +126,10 @@ impl TypeApp {
             params: params.into_iter().chain(Some(ret)).collect(),
         }
     }
-    pub fn tuple(tys: impl Iterator<Item = Type>) -> Self {
+    pub fn tuple(tys: Vec<Type>) -> Self {
         Self {
             ctor: TypeCtor::Tuple,
-            params: tys.collect(),
+            params: tys,
         }
     }
 }
@@ -184,7 +184,12 @@ mod tests {
         let syntax = walrus_parser::parse(src);
         let hir = crate::hir::lower(&syntax);
         let scopes = crate::scopes::scopes(&hir);
-        let types = infer(hir, scopes);
+        let types = infer(hir.clone(), scopes);
+
+        let first_fn = &hir.data.fn_defs.iter().next().unwrap();
+        let ret_type = &types.type_of_fn[first_fn.0].ret;
+
+        assert_eq!(ret_type, &expected);
 
         let mut settings = insta::Settings::new();
         settings.set_snapshot_path("../snapshots");
@@ -208,5 +213,89 @@ fn f() -> _ {g}
 fn g() -> _ {1}
 "#,
         Type::function(vec![], Type::INT)
+    );
+
+    test_infer!(
+        if_then_else,
+        r#"fn f() -> _ {if true {1} else {0}}"#,
+        Type::INT
+    );
+
+    test_infer!(
+        tuple,
+        r#"fn f() -> _ {(1,false)}"#,
+        Type::tuple(vec![Type::INT, Type::BOOL])
+    );
+
+    test_infer!(
+        lambda,
+        r#"fn f() -> _ { (x: Int) => x }"#,
+        Type::function(vec![Type::INT], Type::INT)
+    );
+
+    test_infer!(
+        lambda_call,
+        r#"
+fn f() -> _ {
+    let id = (x) => x;
+    id(1)
+}"#,
+        Type::INT
+    );
+
+    test_infer!(unary_sub, r#"fn f() -> _ {-0}"#, Type::INT);
+    test_infer!(unary_add, r#"fn f() -> _ {+0}"#, Type::INT);
+
+    test_infer!(cmp, r#"fn f() -> _ {0 == 1}"#, Type::BOOL);
+    test_infer!(loop_never, r#"fn f() -> _ { loop {} }"#, Type::NEVER);
+    test_infer!(loop_unit, r#"fn f() -> _ { loop { break } }"#, Type::UNIT);
+    test_infer!(loop_int, r#"fn f() -> _ { loop { break 1 } }"#, Type::INT);
+
+    test_infer!(return_unit, r#"fn f() -> _ { return }"#, Type::UNIT);
+    test_infer!(return_int, r#"fn f() -> _ { return 1 }"#, Type::INT);
+
+    test_infer!(
+        lambda_return_unit,
+        r#"fn f() -> _ { () => return }"#,
+        Type::UNIT
+    );
+    test_infer!(
+        lambda_return_int,
+        r#"fn f() -> _ { () => return 1 }"#,
+        Type::INT
+    );
+
+    test_infer!(
+        fn_params,
+        r#"
+fn f() -> _ { g }
+fn g(_: Int) -> _ {}
+"#,
+        Type::function(vec![Type::INT], Type::UNIT)
+    );
+
+    test_infer!(
+        factorial,
+        r#"
+fn f() -> _ { factorial }
+fn factorial(x: _) -> _ {
+    if x == 0 { 1 }
+    else      { x * factorial(x-1) }
+}
+"#,
+        Type::function(vec![Type::INT], Type::INT)
+    );
+
+    test_infer!(
+        parity,
+        r#"
+fn f() -> _ { (is_odd, is_even) }
+fn is_odd(x: _)  -> _ { if x == 0 { false } else { is_even(x-1) } }
+fn is_even(x: _) -> _ { if x == 0 { true  } else { is_odd(x-1)  } }
+"#,
+        Type::tuple(vec![
+            Type::function(vec![Type::INT], Type::BOOL),
+            Type::function(vec![Type::INT], Type::BOOL),
+        ])
     );
 }
