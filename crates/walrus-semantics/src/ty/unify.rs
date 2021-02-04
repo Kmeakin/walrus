@@ -129,7 +129,7 @@ impl InferenceTable {
         })
     }
 
-    fn propagate_type_shallow(&mut self, ty: Type) -> Type {
+    fn propagate_type_shallow(&mut self, ty: &Type) -> Type {
         match ty {
             Type::Infer(tv) => {
                 let inner = tv.to_inner();
@@ -148,16 +148,13 @@ impl InferenceTable {
             return true;
         }
 
-        let t1 = self.propagate_type_shallow(t1.clone());
-        let t2 = self.propagate_type_shallow(t2.clone());
+        let t1 = self.propagate_type_shallow(&t1.clone());
+        let t2 = self.propagate_type_shallow(&t2.clone());
         match (t1, t2) {
             (Type::App(t1), Type::App(t2)) if t1.ctor == t2.ctor => {
                 let t1 = &t1.params;
                 let t2 = &t2.params;
-                t1.iter()
-                    .zip(t2.iter())
-                    .all(|(t1, t2)| self.unify(&t1, &t2))
-                    && t1.len() == t2.len()
+                t1.iter().zip(t2.iter()).all(|(t1, t2)| self.unify(t1, t2)) && t1.len() == t2.len()
             }
             (Type::Unknown, _) | (_, Type::Unknown) => true,
             (Type::Infer(InferType::Var(tv1)), Type::Infer(InferType::Var(tv2))) => {
@@ -167,7 +164,7 @@ impl InferenceTable {
 
             (Type::Infer(InferType::Var(tv)), other) | (other, Type::Infer(InferType::Var(tv))) => {
                 self.var_unification_table
-                    .union_value(tv, TypeVarValue::Known(other.clone()));
+                    .union_value(tv, TypeVarValue::Known(other));
                 true
             }
 

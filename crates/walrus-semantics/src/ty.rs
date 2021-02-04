@@ -23,20 +23,20 @@ impl Type {
     pub const NEVER: Self = Self::new0(TypeCtor::Never);
 
     pub const fn new0(ctor: TypeCtor) -> Self { Self::App(TypeApp::new0(ctor)) }
-    pub fn function(params: Vec<Type>, ret: Type) -> Self { Self::App(TypeApp::func(params, ret)) }
-    pub fn tuple(tys: Vec<Type>) -> Self { Self::App(TypeApp::tuple(tys)) }
-    pub fn as_tuple(&self) -> Option<&[Type]> {
+    pub fn function(params: Vec<Self>, ret: Self) -> Self { Self::App(TypeApp::func(params, ret)) }
+    pub fn tuple(tys: Vec<Self>) -> Self { Self::App(TypeApp::tuple(tys)) }
+    pub fn as_tuple(&self) -> Option<&[Self]> {
         match self {
-            Type::App(TypeApp {
+            Self::App(TypeApp {
                 ctor: TypeCtor::Tuple,
                 params,
             }) => Some(params),
             _ => None,
         }
     }
-    pub fn as_fn(&self) -> Option<(&[Type], &Type)> {
+    pub fn as_fn(&self) -> Option<(&[Self], &Self)> {
         match self {
-            Type::App(TypeApp {
+            Self::App(TypeApp {
                 ctor: TypeCtor::Fn,
                 params,
             }) => Some(
@@ -46,32 +46,6 @@ impl Type {
                     .unwrap(),
             ),
             _ => None,
-        }
-    }
-
-    pub fn is_num(&self) -> bool {
-        match self {
-            _ => [Self::INT, Self::FLOAT].contains(self),
-        }
-    }
-
-    pub fn is_eq(&self) -> bool {
-        match self {
-            Type::App(TypeApp {
-                ctor: TypeCtor::Tuple,
-                params,
-            }) => params.iter().all(Self::is_num),
-            _ => [Self::BOOL, Self::INT, Self::FLOAT, Self::CHAR].contains(self),
-        }
-    }
-
-    pub fn is_cmp(&self) -> bool {
-        match self {
-            Type::App(TypeApp {
-                ctor: TypeCtor::Tuple,
-                params,
-            }) => params.iter().all(Self::is_num),
-            _ => [Self::INT, Self::FLOAT].contains(self),
         }
     }
 

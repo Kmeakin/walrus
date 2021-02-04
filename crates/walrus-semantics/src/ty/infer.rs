@@ -472,20 +472,21 @@ impl Lit {
 }
 
 impl UnOp {
-    fn lhs_expectation(&self) -> Type {
+    fn lhs_expectation(self) -> Type {
         match self {
             Self::Add | Self::Sub => Type::Unknown,
         }
     }
 
-    fn return_type(&self, lhs_type: Type) -> Type {
+    fn return_type(self, lhs_type: Type) -> Type {
         match self {
             Self::Add | Self::Sub => lhs_type,
         }
     }
 }
 impl BinOp {
-    fn lhs_expectation(&self) -> Type {
+    fn lhs_expectation(self) -> Type {
+        #[allow(clippy::match_same_arms)]
         match self {
             Self::Add | Self::Sub | Self::Mul | Self::Div => Type::Unknown,
             Self::Assign => Type::Unknown,
@@ -494,7 +495,8 @@ impl BinOp {
         }
     }
 
-    fn rhs_expectation(&self, lhs_type: Type) -> Type {
+    fn rhs_expectation(self, lhs_type: Type) -> Type {
+        #[allow(clippy::match_same_arms)]
         match self {
             Self::Add | Self::Sub | Self::Mul | Self::Div => lhs_type,
             Self::Assign => lhs_type,
@@ -503,7 +505,7 @@ impl BinOp {
         }
     }
 
-    fn return_type(&self, rhs_type: Type) -> Type {
+    fn return_type(self, rhs_type: Type) -> Type {
         match self {
             Self::Add | Self::Sub | Self::Mul | Self::Div => rhs_type,
             Self::Assign => Type::UNIT,
