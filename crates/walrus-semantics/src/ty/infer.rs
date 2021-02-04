@@ -406,13 +406,8 @@ impl Ctx {
     }
 
     fn infer_loop_expr(&mut self, expected: &Type, expr: ExprId) -> Type {
-        let expr = self.module.data[expr].clone();
-        let (stmts, expr) = match expr {
-            Expr::Block { stmts, expr } => (stmts, expr),
-            _ => unreachable!(),
-        };
         self.with_loop_type(Type::NEVER, |this| {
-            this.infer_block_expr(expected, &stmts, expr);
+            this.infer_expr(expected, expr);
             this.loop_type.clone().unwrap()
         })
     }
@@ -428,9 +423,9 @@ impl Ctx {
 
     fn infer_break_expr(&mut self, expr: Option<ExprId>) -> Type {
         let result_type = expr.map_or(Type::UNIT, |expr| self.infer_expr(&Type::Unknown, expr));
-        match self.loop_type.clone() {
+        match self.loop_type.as_mut() {
             None => todo!("Break outside of loop"),
-            Some(loop_type) => self.try_to_unify(&loop_type, &result_type),
+            Some(loop_type) => *loop_type = result_type,
         }
         Type::NEVER
     }
@@ -444,8 +439,6 @@ impl Ctx {
     }
 
     fn infer_block_expr(&mut self, expected: &Type, stmts: &[Stmt], expr: Option<ExprId>) -> Type {
-        dbg!((stmts, expr));
-
         for stmt in stmts {
             match stmt {
                 Stmt::Expr(expr) => self.infer_expr(&Type::Unknown, *expr),

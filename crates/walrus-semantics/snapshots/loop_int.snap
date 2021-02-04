@@ -6,7 +6,7 @@ InferenceResult {
     type_of_expr: {
         0: App(
             TypeApp {
-                ctor: Tuple,
+                ctor: Int,
                 params: [],
             },
         ),
@@ -22,6 +22,18 @@ InferenceResult {
                 params: [],
             },
         ),
+        3: App(
+            TypeApp {
+                ctor: Int,
+                params: [],
+            },
+        ),
+        4: App(
+            TypeApp {
+                ctor: Int,
+                params: [],
+            },
+        ),
     },
     type_of_pat: {},
     type_of_fn: {
@@ -29,7 +41,7 @@ InferenceResult {
             params: [],
             ret: App(
                 TypeApp {
-                    ctor: Never,
+                    ctor: Int,
                     params: [],
                 },
             ),
