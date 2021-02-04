@@ -57,6 +57,7 @@ token!(KwLet);
 token!(KwLoop);
 token!(KwReturn);
 token!(KwTrue);
+token!(KwStruct);
 
 token_with_text!(Ident);
 token_with_text!(DecInt);

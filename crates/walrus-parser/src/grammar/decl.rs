@@ -7,9 +7,14 @@ pub fn source_file(input: Input) -> IResult<SourceFile> {
 
 pub fn var(input: Input) -> IResult<Var> { (ident.map(Var)).parse(input) }
 
-pub fn decl(input: Input) -> IResult<Decl> { fn_decl.parse(input) }
+pub fn decl(input: Input) -> IResult<Decl> {
+    fn_decl
+        .map(Decl::Fn)
+        .or(struct_decl.map(Decl::Struct))
+        .parse(input)
+}
 
-fn fn_decl(input: Input) -> IResult<Decl> {
+fn fn_decl(input: Input) -> IResult<FnDef> {
     let (input, kw_fn) = kw_fn.parse(input)?;
     let (input, name) = var.parse(input)?;
     let (input, params) = param_list.parse(input)?;
@@ -17,14 +22,35 @@ fn fn_decl(input: Input) -> IResult<Decl> {
     let (input, expr) = block_expr.parse(input)?;
     Ok((
         input,
-        Decl::Fn(FnDef {
+        FnDef {
             kw_fn,
             name,
             params,
             ret,
             expr,
-        }),
+        },
     ))
+}
+
+fn struct_decl(input: Input) -> IResult<StructDef> {
+    let (input, kw_struct) = kw_struct.parse(input)?;
+    let (input, name) = var.parse(input)?;
+    let (input, fields) = curly(punctuated0(struct_field, comma)).parse(input)?;
+    Ok((
+        input,
+        StructDef {
+            kw_struct,
+            name,
+            fields,
+        },
+    ))
+}
+
+fn struct_field(input: Input) -> IResult<StructField> {
+    let (input, name) = var.parse(input)?;
+    let (input, colon) = colon.parse(input)?;
+    let (input, ty) = ty.parse(input)?;
+    Ok((input, StructField { name, colon, ty }))
 }
 
 pub fn param_list(input: Input) -> IResult<ParamList> {

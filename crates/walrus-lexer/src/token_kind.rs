@@ -26,6 +26,7 @@ pub enum TokenKind {
     #[token("let")] KwLet,
     #[token("loop")] KwLoop,
     #[token("return")] KwReturn,
+    #[token("struct")] KwStruct,
     #[token("true")] KwTrue,
 
     #[regex(r"(\p{XID_Start}|_)\p{XID_Continue}*")] Ident,
@@ -126,7 +127,7 @@ mod tests {
     );
     test_lex!(
         keywords,
-        r"break continue else false fn if import let loop return true"
+        r"break continue else false fn if import let loop return struct true"
     );
     test_lex!(idents, "abc_DEF_123");
     test_lex!(dec_int, "123_456_7890");

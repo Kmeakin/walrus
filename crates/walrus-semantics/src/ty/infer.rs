@@ -224,6 +224,7 @@ impl Ctx {
     fn infer_decl(&mut self, decl: Decl) {
         match decl {
             Decl::Fn(fn_id) => self.infer_fn_decl(fn_id),
+            Decl::Struct(_) => todo!(),
         }
     }
 
@@ -243,6 +244,7 @@ impl Ctx {
     fn infer_decl_body(&mut self, decl: Decl) {
         match decl {
             Decl::Fn(fn_id) => self.infer_fn_body(fn_id),
+            Decl::Struct(_) => todo!(),
         };
     }
 

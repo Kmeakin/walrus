@@ -8,6 +8,7 @@ pub struct SourceFile {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Decl {
     Fn(FnDef),
+    Struct(StructDef),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -17,6 +18,20 @@ pub struct FnDef {
     pub params: ParamList,
     pub ret: Option<RetType>,
     pub expr: Expr,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct StructDef {
+    pub kw_struct: KwStruct,
+    pub name: Var,
+    pub fields: Curly<Punctuated0<StructField, Comma>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct StructField {
+    pub name: Var,
+    pub colon: Colon,
+    pub ty: Type,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

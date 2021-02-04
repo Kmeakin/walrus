@@ -10,6 +10,7 @@ mod walk;
 pub use self::lower::lower;
 
 pub type FnDefId = Idx<FnDef>;
+pub type StructDefId = Idx<StructDef>;
 pub type ExprId = Idx<Expr>;
 pub type TypeId = Idx<Type>;
 pub type PatId = Idx<Pat>;
@@ -43,6 +44,7 @@ pub struct Module {
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ModuleData {
     pub fn_defs: Arena<FnDef>,
+    pub struct_defs: Arena<StructDef>,
     pub exprs: Arena<Expr>,
     pub types: Arena<Type>,
     pub pats: Arena<Pat>,
@@ -51,6 +53,10 @@ pub struct ModuleData {
 impl Index<FnDefId> for ModuleData {
     type Output = FnDef;
     fn index(&self, id: FnDefId) -> &Self::Output { &self.fn_defs[id] }
+}
+impl Index<StructDefId> for ModuleData {
+    type Output = StructDef;
+    fn index(&self, id: StructDefId) -> &Self::Output { &self.struct_defs[id] }
 }
 impl Index<ExprId> for ModuleData {
     type Output = Expr;
@@ -67,6 +73,7 @@ impl Index<PatId> for ModuleData {
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ModuleSource {
+    pub struct_defs: ArenaMap<StructDefId, syntax::StructDef>,
     pub fn_defs: ArenaMap<FnDefId, syntax::FnDef>,
     pub exprs: ArenaMap<ExprId, syntax::Expr>,
     pub types: ArenaMap<TypeId, syntax::Type>,
@@ -76,6 +83,10 @@ pub struct ModuleSource {
 impl Index<FnDefId> for ModuleSource {
     type Output = syntax::FnDef;
     fn index(&self, id: FnDefId) -> &Self::Output { &self.fn_defs[id] }
+}
+impl Index<StructDefId> for ModuleSource {
+    type Output = syntax::StructDef;
+    fn index(&self, id: StructDefId) -> &Self::Output { &self.struct_defs[id] }
 }
 impl Index<ExprId> for ModuleSource {
     type Output = syntax::Expr;
@@ -93,6 +104,7 @@ impl Index<PatId> for ModuleSource {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Decl {
     Fn(FnDefId),
+    Struct(StructDefId),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -101,6 +113,18 @@ pub struct FnDef {
     pub params: Vec<Param>,
     pub ret_type: Option<TypeId>,
     pub expr: ExprId,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct StructDef {
+    pub name: Var,
+    pub fields: Vec<StructField>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct StructField {
+    pub name: Var,
+    pub ty: TypeId,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]

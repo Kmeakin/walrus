@@ -48,6 +48,7 @@ pub enum Binding {
     Local(PatId),
     Fn(FnDefId),
     BuiltinType(BuiltinType),
+    Struct(StructDefId),
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -130,12 +131,17 @@ impl Scopes {
                     let fn_def = &module.data[*id];
                     self.insert_binding(&mut bindings, &fn_def.name, Binding::Fn(*id))
                 }
+                Decl::Struct(id) => {
+                    let fn_def = &module.data[*id];
+                    self.insert_binding(&mut bindings, &fn_def.name, Binding::Struct(*id))
+                }
             }
         }
 
         for decl in &module.decls {
             match decl {
                 Decl::Fn(id) => self.fn_def_scope(module, *id),
+                Decl::Struct(id) => self.struct_def_scope(module, *id),
             }
         }
     }
@@ -161,6 +167,8 @@ impl Scopes {
             this.expr_scope(module, fn_def.expr)
         })
     }
+
+    fn struct_def_scope(&mut self, module: &Module, id: StructDefId) { todo!() }
 
     fn expr_scope(&mut self, module: &Module, id: ExprId) {
         self.set_scope_of_expr(id, self.scope);

@@ -36,6 +36,12 @@ impl Ctx {
         id
     }
 
+    fn alloc_struct_def(&mut self, syntax: syntax::StructDef, hir: StructDef) -> StructDefId {
+        let id = self.data.struct_defs.alloc(hir);
+        self.source.struct_defs.insert(id, syntax);
+        id
+    }
+
     fn alloc_expr(&mut self, syntax: syntax::Expr, hir: Expr) -> ExprId {
         let id = self.data.exprs.alloc(hir);
         self.source.exprs.insert(id, syntax);
@@ -58,7 +64,8 @@ impl Ctx {
 impl Ctx {
     fn lower_decl(&mut self, syntax: &syntax::Decl) -> Decl {
         match syntax {
-            syntax::Decl::Fn(fn_def) => Decl::Fn(self.lower_fn_def(fn_def)),
+            syntax::Decl::Fn(id) => Decl::Fn(self.lower_fn_def(id)),
+            syntax::Decl::Struct(id) => Decl::Struct(self.lower_struct_def(id)),
         }
     }
 
@@ -87,6 +94,26 @@ impl Ctx {
             expr: self.lower_expr(&syntax.expr),
         };
         self.alloc_fn_def(syntax.clone(), hir)
+    }
+
+    fn lower_struct_def(&mut self, syntax: &syntax::StructDef) -> StructDefId {
+        let hir = StructDef {
+            name: syntax.name.clone().into(),
+            fields: syntax
+                .fields
+                .inner
+                .iter()
+                .map(|field| self.lower_struct_field(field))
+                .collect(),
+        };
+        self.alloc_struct_def(syntax.clone(), hir)
+    }
+
+    fn lower_struct_field(&mut self, syntax: &syntax::StructField) -> StructField {
+        StructField {
+            name: syntax.name.clone().into(),
+            ty: self.lower_type(&syntax.ty),
+        }
     }
 
     fn lower_type(&mut self, syntax: &syntax::Type) -> TypeId {
