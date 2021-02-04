@@ -166,7 +166,7 @@ mod tests {
         assert_eq!(ret_type, &expected);
 
         let mut settings = insta::Settings::new();
-        settings.set_snapshot_path("../snapshots");
+        settings.set_snapshot_path("../snapshots/infer");
         settings.set_prepend_module_to_snapshot(false);
         settings.bind(|| assert_debug_snapshot!(types));
     }
