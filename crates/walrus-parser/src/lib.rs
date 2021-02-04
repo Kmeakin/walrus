@@ -19,3 +19,18 @@
 #![allow(dead_code)]
 
 mod grammar;
+
+use nom::Parser;
+use walrus_syntax::SourceFile;
+
+pub fn parse(src: &str) -> SourceFile {
+    let tokens = walrus_lexer::lex(src)
+        .filter(|token| !token.kind.is_trivia())
+        .collect::<Vec<_>>()
+        .clone();
+
+    let (_input, source_file) = crate::grammar::source_file
+        .parse(&tokens)
+        .expect("Parser should not fail");
+    source_file
+}

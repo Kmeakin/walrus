@@ -12,7 +12,7 @@ mod lit;
 mod pat;
 mod ty;
 
-use self::{decl::*, expr::*, lit::*, pat::*, support::*, tokens::*, ty::*};
+pub use self::{decl::*, expr::*, lit::*, pat::*, support::*, tokens::*, ty::*};
 
 #[cfg(test)]
 use crate::test_parse;

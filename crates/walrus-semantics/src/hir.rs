@@ -7,6 +7,8 @@ use std::{fmt, ops::Index};
 mod lower;
 mod walk;
 
+pub use self::lower::lower;
+
 pub type FnDefId = Idx<FnDef>;
 pub type ExprId = Idx<Expr>;
 pub type TypeId = Idx<Type>;

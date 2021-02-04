@@ -8,6 +8,7 @@ edition = "2018"
 
 [dependencies]
 walrus-syntax = { path = "../walrus-syntax" }
+walrus-parser = { path = "../walrus-parser" }
 
 la-arena = "0.2.0"
 ordered-float = "2.0.1"

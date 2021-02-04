@@ -9,6 +9,12 @@ use crate::{
 };
 use la_arena::ArenaMap;
 
+pub fn infer(module: Module, scopes: Scopes) -> InferenceResult {
+    let mut ctx = Ctx::new(module, scopes);
+    ctx.infer_module();
+    ctx.finish()
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct InferenceResult {
     pub type_of_expr: ArenaMap<ExprId, Type>,
@@ -28,8 +34,8 @@ impl From<FnType> for Type {
 }
 
 struct Ctx {
-    scopes: Scopes,
     module: Module,
+    scopes: Scopes,
     result: InferenceResult,
     table: InferenceTable,
     fn_type: Option<FnType>,
@@ -37,22 +43,37 @@ struct Ctx {
 }
 
 impl Ctx {
+    fn new(module: Module, scopes: Scopes) -> Self {
+        Self {
+            module,
+            scopes,
+            result: InferenceResult::default(),
+            table: InferenceTable::default(),
+            fn_type: None,
+            loop_type: None,
+        }
+    }
+
     fn finish(mut self) -> InferenceResult {
-        let result = std::mem::take(&mut self.result);
-        for (expr, ty) in result.type_of_expr.iter() {
+        let mut result = std::mem::take(&mut self.result);
+        for ty in result.type_of_expr.values_mut() {
             let was_unknown = ty == &Type::Unknown;
-            let ty = self.propagate_type_completely(&ty);
-            if !was_unknown && ty == Type::Unknown {
+            *ty = self.propagate_type_completely(&ty);
+            if !was_unknown && ty == &Type::Unknown {
                 todo!("Unable to infer type")
             }
         }
 
-        for (pat, ty) in result.type_of_pat.iter() {
+        for ty in result.type_of_pat.values_mut() {
             let was_unknown = ty == &Type::Unknown;
-            let ty = self.propagate_type_completely(&ty);
-            if !was_unknown && ty == Type::Unknown {
+            *ty = self.propagate_type_completely(&ty);
+            if !was_unknown && ty == &Type::Unknown {
                 todo!("Unable to infer type")
             }
+        }
+
+        for ty in result.type_of_fn.values_mut() {
+            *ty = self.propagate_fn_type_completely(ty);
         }
 
         result
@@ -88,10 +109,7 @@ impl Ctx {
             hir::Type::Infer => self.new_type_var(),
             hir::Type::Tuple(tys) => Type::tuple(tys.iter().map(|ty| self.resolve_type(*ty))),
             hir::Type::Fn { params, ret } => Type::function(
-                params
-                    .iter()
-                    .map(|ty| self.resolve_type(*ty))
-                    .collect::<Vec<_>>(),
+                params.iter().map(|ty| self.resolve_type(*ty)).collect(),
                 self.resolve_type(ret),
             ),
             hir::Type::Var(var) => {
@@ -122,18 +140,18 @@ impl Ctx {
     }
 
     fn propagate_fn_type_completely(&mut self, fn_type: &FnType) -> FnType {
-        FnType {
+        dbg!(FnType {
             params: fn_type
                 .params
                 .iter()
                 .map(|param| self.propagate_type_completely(param))
                 .collect(),
-            ret: self.propagate_type_completely(&fn_type.ret),
-        }
+            ret: dbg!(self.propagate_type_completely(&fn_type.ret)),
+        })
     }
 
     fn try_to_unify(&mut self, expected: &Type, got: &Type) {
-        if self.unify(got, expected) {
+        if !self.unify(got, expected) {
             todo!("Type mismatch")
         }
     }

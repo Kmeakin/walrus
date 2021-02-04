@@ -1,0 +1,48 @@
+---
+source: crates/walrus-semantics/src/ty.rs
+expression: types
+---
+InferenceResult {
+    type_of_expr: ArenaMap {
+        v: [
+            Some(
+                App(
+                    TypeApp {
+                        ctor: Bool,
+                        params: [],
+                    },
+                ),
+            ),
+            Some(
+                App(
+                    TypeApp {
+                        ctor: Bool,
+                        params: [],
+                    },
+                ),
+            ),
+        ],
+        _ty: PhantomData,
+    },
+    type_of_pat: ArenaMap {
+        v: [],
+        _ty: PhantomData,
+    },
+    type_of_fn: ArenaMap {
+        v: [
+            Some(
+                FnType {
+                    params: [],
+                    ret: App(
+                        TypeApp {
+                            ctor: Bool,
+                            params: [],
+                        },
+                    ),
+                },
+            ),
+        ],
+        _ty: PhantomData,
+    },
+    diagnostics: [],
+}

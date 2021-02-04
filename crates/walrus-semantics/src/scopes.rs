@@ -5,6 +5,12 @@ use crate::{
 use la_arena::{Arena, ArenaMap, Idx};
 use std::collections::HashMap;
 
+pub fn scopes(module: &Module) -> Scopes {
+    let mut scopes = Scopes::new();
+    scopes.module_scope(module);
+    scopes
+}
+
 pub type ScopeId = Idx<Scope>;
 pub type Bindings = HashMap<Var, Binding>;
 

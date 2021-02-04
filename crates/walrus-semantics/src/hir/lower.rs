@@ -3,7 +3,7 @@ use crate::diagnostic::LitError;
 use super::*;
 use ordered_float::OrderedFloat;
 
-pub fn lower_module(syntax: &syntax::SourceFile) -> Module {
+pub fn lower(syntax: &syntax::SourceFile) -> Module {
     let mut ctx = Ctx::default();
     let decls = syntax
         .decls
