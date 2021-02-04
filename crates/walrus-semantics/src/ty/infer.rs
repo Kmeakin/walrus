@@ -363,11 +363,15 @@ impl Ctx {
             .map(|param| self.infer_binding(param.pat, param.ty, None))
             .collect::<Vec<_>>();
         let lambda_ty = FnType {
-            params: param_tys,
+            params: param_tys.clone(),
             ret: expected.clone(),
         };
-        self.with_fn_type(lambda_ty.clone(), |this| this.infer_expr(expected, body));
-        lambda_ty.into()
+        let ret_type = self.with_fn_type(lambda_ty.clone(), |this| this.infer_expr(expected, body));
+        FnType {
+            params: param_tys,
+            ret: ret_type,
+        }
+        .into()
     }
 
     fn infer_call_expr(&mut self, func: ExprId, args: &[ExprId]) -> Type {

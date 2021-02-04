@@ -229,7 +229,13 @@ fn g() -> _ {1}
 
     test_infer!(
         lambda,
-        r#"fn f() -> _ { (x: Int) => x }"#,
+        r#"fn f() -> _ { (x: Int) => false }"#,
+        Type::function(vec![Type::INT], Type::BOOL)
+    );
+
+    test_infer!(
+        lambda2,
+        r#"fn f() -> _ { (x) => x + 1 }"#,
         Type::function(vec![Type::INT], Type::INT)
     );
 
