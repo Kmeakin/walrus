@@ -263,12 +263,12 @@ fn f() -> _ {
     test_infer!(
         lambda_return_unit,
         r#"fn f() -> _ { () => return }"#,
-        Type::UNIT
+        Type::function(vec![], Type::UNIT)
     );
     test_infer!(
         lambda_return_int,
         r#"fn f() -> _ { () => return 1 }"#,
-        Type::INT
+        Type::function(vec![], Type::INT)
     );
 
     test_infer!(

@@ -152,10 +152,12 @@ impl Ctx {
         }
     }
 
-    fn try_to_unify(&mut self, expected: &Type, got: &Type) {
-        if !self.unify(got, expected) {
-            todo!("Type mismatch")
+    fn try_to_unify(&mut self, expected: &Type, got: &Type) -> bool {
+        let unified = self.unify(got, expected);
+        if !unified {
+            todo!("Type mismatch: got {got:?}, expected {expected:?}")
         }
+        unified
     }
 
     fn try_to_unify_and_propagate_as_far_as_possible(
@@ -237,7 +239,7 @@ impl Ctx {
             None => self.new_type_var(),
         };
         let expr_ty = match expr {
-            Some(val) => self.infer_expr(&ty, val),
+            Some(expr) => self.infer_expr(&ty, expr),
             None => ty,
         };
         let expr_ty = self.propagate_type_as_far_as_possible(&expr_ty);
@@ -259,9 +261,12 @@ impl Ctx {
                 Type::tuple(tys)
             }
         };
+        if !self.unify(expected, &ty) {
+            todo!("Type mismatch")
+        }
         let ty = self.propagate_type_as_far_as_possible(&ty);
         self.set_pat_ty(id, ty.clone());
-        self.try_to_unify_and_propagate_as_far_as_possible(expected, &ty)
+        ty
     }
 
     fn infer_expr(&mut self, expected: &Type, id: ExprId) -> Type {
@@ -358,20 +363,18 @@ impl Ctx {
     }
 
     fn infer_lambda_expr(&mut self, expected: &Type, params: &[Param], body: ExprId) -> Type {
-        let param_tys = params
+        let param_types = params
             .iter()
             .map(|param| self.infer_binding(param.pat, param.ty, None))
             .collect::<Vec<_>>();
+        let ret_type = self.new_type_var();
         let lambda_ty = FnType {
-            params: param_tys.clone(),
-            ret: expected.clone(),
+            params: param_types.clone(),
+            ret: ret_type.clone(),
         };
-        let ret_type = self.with_fn_type(lambda_ty.clone(), |this| this.infer_expr(expected, body));
-        FnType {
-            params: param_tys,
-            ret: ret_type,
-        }
-        .into()
+        self.unify(&lambda_ty.clone().into(), expected);
+        self.with_fn_type(lambda_ty.clone(), |this| this.infer_expr(&ret_type, body));
+        lambda_ty.into()
     }
 
     fn infer_call_expr(&mut self, func: ExprId, args: &[ExprId]) -> Type {
@@ -421,7 +424,7 @@ impl Ctx {
         match self.fn_type.clone() {
             None => todo!("Return outside of function"),
             Some(fn_type) => self.try_to_unify(&fn_type.ret, &result_type),
-        }
+        };
         Type::NEVER
     }
 
