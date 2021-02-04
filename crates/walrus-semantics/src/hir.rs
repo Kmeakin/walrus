@@ -116,7 +116,7 @@ pub enum Expr {
     Tuple(Vec<ExprId>),
     Field {
         expr: ExprId,
-        var: Var,
+        field: Field,
     },
     Unop {
         op: UnOp,
@@ -148,6 +148,11 @@ pub enum Expr {
         params: Vec<Param>,
         expr: ExprId,
     },
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum Field {
+    Tuple(u32),
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]

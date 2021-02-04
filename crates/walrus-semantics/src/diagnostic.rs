@@ -1,10 +1,9 @@
-use either::Either;
-
 use crate::{
-    hir::{BinOp, ExprId, PatId, TypeId, Var},
+    hir::{BinOp, ExprId, Field, PatId, TypeId, Var},
     scopes::Binding,
     ty::Type,
 };
+use either::Either;
 use std::num::{ParseFloatError, ParseIntError};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -60,5 +59,14 @@ pub enum Diagnostic {
         lhs_type: Type,
         op: BinOp,
         rhs_type: Type,
+    },
+    NoSuchField {
+        expr: ExprId,
+        ty: Type,
+        field: Field,
+    },
+    NoFields {
+        expr: ExprId,
+        ty: Type,
     },
 }

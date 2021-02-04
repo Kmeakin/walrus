@@ -172,7 +172,9 @@ impl Ctx {
             },
             syntax::Expr::Field(expr) => Expr::Field {
                 expr: self.lower_expr(&expr.base),
-                var: expr.var.clone().into(),
+                field: match &expr.field {
+                    syntax::Field::Tuple(int) => Field::Tuple(self.lower_int(&int.text, 10)),
+                },
             },
             syntax::Expr::If(expr) => self.lower_if_expr(expr),
             syntax::Expr::Return(expr) => {

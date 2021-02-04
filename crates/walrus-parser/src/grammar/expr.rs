@@ -131,14 +131,15 @@ fn prefix_expr(input: Input) -> IResult<Expr> {
 }
 enum Suffix {
     Call(ArgList),
-    Field(Dot, Var),
+    Field(Dot, Field),
 }
 fn arg_list(input: Input) -> IResult<ArgList> {
     paren(punctuated0(expr, comma)).map(ArgList).parse(input)
 }
+fn field(input: Input) -> IResult<Field> { dec_int.map(Field::Tuple).parse(input) }
 fn suffix(input: Input) -> IResult<Suffix> {
     (arg_list.map(Suffix::Call))
-        .or(pair(dot, var).map(|(dot, var)| Suffix::Field(dot, var)))
+        .or(pair(dot, field).map(|(dot, field)| Suffix::Field(dot, field)))
         .parse(input)
 }
 fn suffix_expr(input: Input) -> IResult<Expr> {
@@ -148,10 +149,10 @@ fn suffix_expr(input: Input) -> IResult<Expr> {
             func: box expr,
             args,
         }),
-        Suffix::Field(dot, var) => Expr::Field(FieldExpr {
+        Suffix::Field(dot, field) => Expr::Field(FieldExpr {
             base: box expr,
             dot,
-            var,
+            field,
         }),
     })
     .parse(input)

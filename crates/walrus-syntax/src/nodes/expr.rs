@@ -65,7 +65,11 @@ pub enum UnaryOp {
 pub struct FieldExpr {
     pub base: Box<Expr>,
     pub dot: Dot,
-    pub var: Var,
+    pub field: Field,
+}
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum Field {
+    Tuple(DecInt),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

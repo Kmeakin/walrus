@@ -1,9 +1,9 @@
-use super::{unify::InferenceTable, InferType, Type};
+use super::{unify::InferenceTable, *};
 use crate::{
     diagnostic::Diagnostic,
     hir::{
-        self, BinOp, Decl, Expr, ExprId, FnDefId, Lit, Module, Param, Pat, PatId, Stmt, TypeId,
-        UnOp, Var,
+        self, BinOp, Decl, Expr, ExprId, Field, FnDefId, Lit, Module, Param, Pat, PatId, Stmt,
+        TypeId, UnOp, Var,
     },
     scopes::{Binding, Scopes},
 };
@@ -314,7 +314,7 @@ impl Ctx {
             } => self.infer_if_expr(test, then_branch, else_branch),
             Expr::Lambda { params, expr } => self.infer_lambda_expr(expected, &params, expr),
             Expr::Call { func, args } => self.infer_call_expr(func, &args),
-            Expr::Field { expr, var } => self.infer_field_expr(expr, var),
+            Expr::Field { expr, field } => self.infer_field_expr(expr, field),
             Expr::Unop { op, expr } => self.infer_unop_expr(op, expr),
             Expr::Binop { lhs, op, rhs } => self.infer_binop_expr(op, lhs, rhs),
             Expr::Loop(expr) => self.infer_loop_expr(expected, expr),
@@ -411,7 +411,32 @@ impl Ctx {
         }
     }
 
-    fn infer_field_expr(&mut self, base: ExprId, var: Var) -> Type { todo!() }
+    fn infer_field_expr(&mut self, base: ExprId, field: Field) -> Type {
+        let base_type = self.infer_expr(&Type::Unknown, base);
+        match base_type {
+            Type::App(TypeApp {
+                ctor: TypeCtor::Tuple,
+                ref params,
+            }) => match field {
+                Field::Tuple(idx) if (idx as usize) < params.len() => params[idx as usize].clone(),
+                _ => {
+                    self.result.diagnostics.push(Diagnostic::NoSuchField {
+                        expr: base,
+                        ty: base_type,
+                        field,
+                    });
+                    Type::Unknown
+                }
+            },
+            _ => {
+                self.result.diagnostics.push(Diagnostic::NoFields {
+                    expr: base,
+                    ty: base_type,
+                });
+                Type::Unknown
+            }
+        }
+    }
 
     fn infer_unop_expr(&mut self, op: UnOp, lhs: ExprId) -> Type {
         let lhs_expectation = op.lhs_expectation();
