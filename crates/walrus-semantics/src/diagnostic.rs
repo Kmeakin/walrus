@@ -21,11 +21,6 @@ pub enum Diagnostic {
         first: Binding,
         second: Binding,
     },
-    NotValue {
-        var: Var,
-        expr: ExprId,
-        binding: Binding,
-    },
     UnboundVar {
         var: Var,
         id: Either<ExprId, TypeId>,
