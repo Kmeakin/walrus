@@ -14,6 +14,7 @@
     clippy::module_name_repetitions,
     elided_lifetimes_in_paths
 )]
+#![feature(format_args_capture)]
 
 mod diagnostic;
 mod hir;

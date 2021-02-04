@@ -163,8 +163,6 @@ impl Ctx {
         expected: &Type,
         got: &Type,
     ) -> Type {
-        dbg!(&expected);
-        dbg!(&got);
         self.try_to_unify(expected, got);
         self.propagate_type_as_far_as_possible(got)
     }
@@ -290,7 +288,7 @@ impl Ctx {
         };
         let ty = self.propagate_type_as_far_as_possible(&ty);
         self.set_expr_ty(id, ty.clone());
-        dbg!(self.try_to_unify_and_propagate_as_far_as_possible(expected, &ty))
+        self.try_to_unify_and_propagate_as_far_as_possible(expected, &ty)
     }
 
     fn infer_var_expr(&mut self, var: &Var, expr: ExprId) -> Type {
@@ -345,7 +343,7 @@ impl Ctx {
                 let then_ty = self.infer_expr(&Type::Unknown, then_branch);
                 let else_ty = self.infer_expr(&Type::Unknown, else_branch);
                 if self.unify(&then_ty, &else_ty) {
-                    dbg!(then_ty)
+                    then_ty
                 } else {
                     self.result.diagnostics.push(Diagnostic::IfBranchMismatch {
                         then_branch,
@@ -390,36 +388,21 @@ impl Ctx {
 
     fn infer_field_expr(&mut self, base: ExprId, var: Var) -> Type { todo!() }
 
-    fn infer_unop_expr(&mut self, op: UnOp, expr: ExprId) -> Type {
-        match op {
-            UnOp::Add | UnOp::Sub => self.infer_expr(&Type::INT, expr),
-        }
+    fn infer_unop_expr(&mut self, op: UnOp, lhs: ExprId) -> Type {
+        let lhs_expectation = op.lhs_expectation();
+        let lhs_type = self.infer_expr(&lhs_expectation, lhs);
+        op.return_type(lhs_type)
     }
 
     fn infer_binop_expr(&mut self, op: BinOp, lhs: ExprId, rhs: ExprId) -> Type {
-        let lhs_ty = self.infer_expr(&Type::Unknown, lhs);
-        let _rhs_ty = self.infer_expr(&lhs_ty, rhs);
-        match op {
-            BinOp::Assign => todo!("Assignment not yet supported"),
-            BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div => {
-                if !lhs_ty.is_num() {
-                    todo!("Operator not supported on this type")
-                };
-                lhs_ty
-            }
-            BinOp::Eq | BinOp::NotEq => {
-                if !lhs_ty.is_eq() {
-                    todo!("Operator not supported on this type")
-                };
-                Type::BOOL
-            }
-            BinOp::Less | BinOp::LessEq | BinOp::Greater | BinOp::GreaterEq => {
-                if !lhs_ty.is_cmp() {
-                    todo!("Operator not supported on this type")
-                };
-                Type::BOOL
-            }
+        let lhs_expectation = op.lhs_expectation();
+        let lhs_type = self.infer_expr(&lhs_expectation, lhs);
+        let rhs_expectation = op.rhs_expectation(lhs_type.clone());
+        if lhs_type != Type::Unknown && rhs_expectation == Type::Unknown {
+            todo!("Cannot apply op: {lhs_type:?} {op:?} {rhs_expectation:?}")
         }
+        let rhs_type = self.infer_expr(&rhs_expectation, rhs);
+        op.return_type(rhs_type)
     }
 
     fn infer_loop_expr(&mut self, expected: &Type, expr: ExprId) -> Type {
@@ -461,6 +444,8 @@ impl Ctx {
     }
 
     fn infer_block_expr(&mut self, expected: &Type, stmts: &[Stmt], expr: Option<ExprId>) -> Type {
+        dbg!((stmts, expr));
+
         for stmt in stmts {
             match stmt {
                 Stmt::Expr(expr) => self.infer_expr(&Type::Unknown, *expr),
@@ -482,6 +467,52 @@ impl Lit {
             Lit::Int(_) => Type::INT,
             Lit::Float(_) => Type::FLOAT,
             Lit::Char(_) => Type::CHAR,
+        }
+    }
+}
+
+impl UnOp {
+    fn lhs_expectation(&self) -> Type {
+        match self {
+            Self::Add | Self::Sub => Type::Unknown,
+        }
+    }
+
+    fn return_type(&self, lhs_type: Type) -> Type {
+        match self {
+            Self::Add | Self::Sub => lhs_type,
+        }
+    }
+}
+impl BinOp {
+    fn lhs_expectation(&self) -> Type {
+        match self {
+            Self::Add | Self::Sub | Self::Mul | Self::Div => Type::Unknown,
+            Self::Assign => Type::Unknown,
+            Self::Eq | Self::NotEq => Type::Unknown,
+            Self::Less | Self::LessEq | Self::Greater | Self::GreaterEq => Type::Unknown,
+        }
+    }
+
+    fn rhs_expectation(&self, lhs_type: Type) -> Type {
+        match self {
+            Self::Add | Self::Sub | Self::Mul | Self::Div => lhs_type,
+            Self::Assign => lhs_type,
+            Self::Eq | Self::NotEq => lhs_type,
+            Self::Less | Self::LessEq | Self::Greater | Self::GreaterEq => lhs_type,
+        }
+    }
+
+    fn return_type(&self, rhs_type: Type) -> Type {
+        match self {
+            Self::Add | Self::Sub | Self::Mul | Self::Div => rhs_type,
+            Self::Assign => Type::UNIT,
+            Self::Eq
+            | Self::NotEq
+            | Self::Less
+            | Self::LessEq
+            | Self::Greater
+            | Self::GreaterEq => Type::BOOL,
         }
     }
 }

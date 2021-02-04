@@ -287,11 +287,20 @@ fn factorial(x: _) -> _ {
     );
 
     test_infer!(
+        add,
+        r#"
+fn f() -> _ { add }
+fn add(x: _, y: _) -> _ { x + y + 1 }
+"#,
+        Type::function(vec![Type::INT, Type::INT], Type::INT)
+    );
+
+    test_infer!(
         parity,
         r#"
 fn f() -> _ { (is_odd, is_even) }
-fn is_odd(x: _)  -> _ { if x == 0 { false } else { is_even(x-1) } }
-fn is_even(x: _) -> _ { if x == 0 { true  } else { is_odd(x-1)  } }
+fn is_odd(x: _)  -> _ { if x == 0 { false } else { is_even(x - 1) } }
+fn is_even(x: _) -> _ { if x == 0 { true  } else { is_odd(x - 1)  } }
 "#,
         Type::tuple(vec![
             Type::function(vec![Type::INT], Type::BOOL),

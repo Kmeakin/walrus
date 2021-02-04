@@ -1,0 +1,198 @@
+---
+source: crates/walrus-semantics/src/ty.rs
+expression: types
+---
+InferenceResult {
+    type_of_expr: {
+        0: App(
+            TypeApp {
+                ctor: Fn,
+                params: [
+                    App(
+                        TypeApp {
+                            ctor: Int,
+                            params: [],
+                        },
+                    ),
+                    App(
+                        TypeApp {
+                            ctor: Int,
+                            params: [],
+                        },
+                    ),
+                ],
+            },
+        ),
+        1: App(
+            TypeApp {
+                ctor: Fn,
+                params: [
+                    App(
+                        TypeApp {
+                            ctor: Int,
+                            params: [],
+                        },
+                    ),
+                    App(
+                        TypeApp {
+                            ctor: Int,
+                            params: [],
+                        },
+                    ),
+                ],
+            },
+        ),
+        2: App(
+            TypeApp {
+                ctor: Int,
+                params: [],
+            },
+        ),
+        3: App(
+            TypeApp {
+                ctor: Int,
+                params: [],
+            },
+        ),
+        4: App(
+            TypeApp {
+                ctor: Bool,
+                params: [],
+            },
+        ),
+        5: App(
+            TypeApp {
+                ctor: Int,
+                params: [],
+            },
+        ),
+        6: App(
+            TypeApp {
+                ctor: Int,
+                params: [],
+            },
+        ),
+        7: App(
+            TypeApp {
+                ctor: Int,
+                params: [],
+            },
+        ),
+        8: App(
+            TypeApp {
+                ctor: Fn,
+                params: [
+                    App(
+                        TypeApp {
+                            ctor: Int,
+                            params: [],
+                        },
+                    ),
+                    App(
+                        TypeApp {
+                            ctor: Int,
+                            params: [],
+                        },
+                    ),
+                ],
+            },
+        ),
+        9: App(
+            TypeApp {
+                ctor: Int,
+                params: [],
+            },
+        ),
+        10: App(
+            TypeApp {
+                ctor: Int,
+                params: [],
+            },
+        ),
+        11: App(
+            TypeApp {
+                ctor: Int,
+                params: [],
+            },
+        ),
+        12: App(
+            TypeApp {
+                ctor: Int,
+                params: [],
+            },
+        ),
+        13: App(
+            TypeApp {
+                ctor: Int,
+                params: [],
+            },
+        ),
+        14: App(
+            TypeApp {
+                ctor: Int,
+                params: [],
+            },
+        ),
+        15: App(
+            TypeApp {
+                ctor: Int,
+                params: [],
+            },
+        ),
+        16: App(
+            TypeApp {
+                ctor: Int,
+                params: [],
+            },
+        ),
+    },
+    type_of_pat: {
+        0: App(
+            TypeApp {
+                ctor: Int,
+                params: [],
+            },
+        ),
+    },
+    type_of_fn: {
+        0: FnType {
+            params: [],
+            ret: App(
+                TypeApp {
+                    ctor: Fn,
+                    params: [
+                        App(
+                            TypeApp {
+                                ctor: Int,
+                                params: [],
+                            },
+                        ),
+                        App(
+                            TypeApp {
+                                ctor: Int,
+                                params: [],
+                            },
+                        ),
+                    ],
+                },
+            ),
+        },
+        1: FnType {
+            params: [
+                App(
+                    TypeApp {
+                        ctor: Int,
+                        params: [],
+                    },
+                ),
+            ],
+            ret: App(
+                TypeApp {
+                    ctor: Int,
+                    params: [],
+                },
+            ),
+        },
+    },
+    diagnostics: [],
+}
