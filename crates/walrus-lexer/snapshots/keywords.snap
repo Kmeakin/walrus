@@ -23,5 +23,7 @@ expression: got
     47..48@Whitespace " ",
     48..54@KwReturn "return",
     54..55@Whitespace " ",
-    55..59@KwTrue "true",
+    55..61@KwStruct "struct",
+    61..62@Whitespace " ",
+    62..66@KwTrue "true",
 ]
