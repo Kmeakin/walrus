@@ -57,7 +57,7 @@ fn continue_expr(input: Input) -> IResult<Expr> {
 }
 fn assign_op(input: Input) -> IResult<Binop> { eq.map(Binop::Assign).parse(input) }
 fn assign_expr(input: Input) -> IResult<Expr> {
-    let (input, lhs) = cmp_expr.parse(input)?;
+    let (input, lhs) = or_expr.parse(input)?;
     let (input, op) = assign_op.parse(input)?;
     let (input, rhs) = expr.parse(input)?;
     Ok((
@@ -68,6 +68,30 @@ fn assign_expr(input: Input) -> IResult<Expr> {
             rhs: box rhs,
         }),
     ))
+}
+fn or_op(input: Input) -> IResult<Binop> { or_or.map(Binop::Or).parse(input) }
+fn or_expr(input: Input) -> IResult<Expr> {
+    let (input, init) = and_expr.parse(input)?;
+    fold_many0(pair(or_op, add_expr), init, |lhs, (op, rhs)| {
+        Expr::Binary(BinaryExpr {
+            lhs: box lhs,
+            op,
+            rhs: box rhs,
+        })
+    })
+    .parse(input)
+}
+fn and_op(input: Input) -> IResult<Binop> { and_and.map(Binop::And).parse(input) }
+fn and_expr(input: Input) -> IResult<Expr> {
+    let (input, init) = cmp_expr.parse(input)?;
+    fold_many0(pair(and_op, add_expr), init, |lhs, (op, rhs)| {
+        Expr::Binary(BinaryExpr {
+            lhs: box lhs,
+            op,
+            rhs: box rhs,
+        })
+    })
+    .parse(input)
 }
 fn cmp_op(input: Input) -> IResult<Binop> {
     (eq_eq.map(Binop::Eq))

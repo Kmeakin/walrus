@@ -42,6 +42,8 @@ pub struct UnaryExpr {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Binop {
+    Or(OrOr),
+    And(AndAnd),
     Add(Plus),
     Sub(Minus),
     Mul(Star),

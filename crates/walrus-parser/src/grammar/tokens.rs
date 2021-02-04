@@ -45,6 +45,9 @@ pub fn thin_arrow(input: Input) -> IResult<ThinArrow> { token(TokenKind::ThinArr
 pub fn underscore(input: Input) -> IResult<Underscore> { token(TokenKind::Underscore, input) }
 
 pub fn bang(input: Input) -> IResult<Bang> { token(TokenKind::Bang, input) }
+pub fn and_and(input: Input) -> IResult<AndAnd> { token(TokenKind::AndAnd, input) }
+pub fn or_or(input: Input) -> IResult<OrOr> { token(TokenKind::OrOr, input) }
+
 pub fn plus(input: Input) -> IResult<Plus> { token(TokenKind::Plus, input) }
 pub fn minus(input: Input) -> IResult<Minus> { token(TokenKind::Minus, input) }
 pub fn star(input: Input) -> IResult<Star> { token(TokenKind::Star, input) }

@@ -56,6 +56,9 @@ pub enum TokenKind {
     #[token("/")] Slash,
 
     #[token("!")] Bang,
+    #[token("&&")] AndAnd,
+    #[token("||")] OrOr,
+
     #[token("=")] Eq,
     #[token("==")] EqEq,
     #[token("!=")] BangEq,

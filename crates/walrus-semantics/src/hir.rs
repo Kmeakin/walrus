@@ -164,6 +164,8 @@ pub enum Unop {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Binop {
+    Or,
+    And,
     Add,
     Sub,
     Mul,
@@ -175,8 +177,6 @@ pub enum Binop {
     LessEq,
     Greater,
     GreaterEq,
-    And,
-    Or,
 }
 
 impl From<syntax::Unop> for Unop {
@@ -191,6 +191,8 @@ impl From<syntax::Unop> for Unop {
 impl From<syntax::Binop> for Binop {
     fn from(op: syntax::Binop) -> Self {
         match op {
+            syntax::Binop::Or(_) => Self::Or,
+            syntax::Binop::And(_) => Self::And,
             syntax::Binop::Add(_) => Self::Add,
             syntax::Binop::Sub(_) => Self::Sub,
             syntax::Binop::Mul(_) => Self::Mul,
