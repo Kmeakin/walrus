@@ -1,4 +1,4 @@
-use super::{unify::InferenceTable, InferType, Type, TypeApp, TypeCtor};
+use super::{unify::InferenceTable, InferType, Type};
 use crate::{
     diagnostic::Diagnostic,
     hir::{
@@ -277,7 +277,31 @@ impl Ctx {
         }
     }
 
-    fn infer_binop_expr(&mut self, op: BinOp, lhs: ExprId, rhs: ExprId) -> Type { todo!() }
+    fn infer_binop_expr(&mut self, op: BinOp, lhs: ExprId, rhs: ExprId) -> Type {
+        let lhs_ty = self.infer_expr(&Type::Unknown, lhs);
+        let rhs_ty = self.infer_expr(&lhs_ty, rhs);
+        match op {
+            BinOp::Assign => todo!("Assignment not yet supported"),
+            BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div => {
+                if !lhs_ty.is_num() {
+                    todo!("Operator not supported on this type")
+                };
+                lhs_ty
+            }
+            BinOp::Eq | BinOp::NotEq => {
+                if !lhs_ty.is_eq() {
+                    todo!("Operator not supported on this type")
+                };
+                Type::BOOL
+            }
+            BinOp::Less | BinOp::LessEq | BinOp::Greater | BinOp::GreaterEq => {
+                if !lhs_ty.is_cmp() {
+                    todo!("Operator not supported on this type")
+                };
+                Type::BOOL
+            }
+        }
+    }
 
     fn infer_loop_expr(&mut self, expected: &Type, expr: ExprId) -> Type {
         let expr = self.module.data[expr].clone();

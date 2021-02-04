@@ -49,6 +49,32 @@ impl Type {
         }
     }
 
+    pub fn is_num(&self) -> bool {
+        match self {
+            _ => [Self::INT, Self::FLOAT].contains(self),
+        }
+    }
+
+    pub fn is_eq(&self) -> bool {
+        match self {
+            Type::App(TypeApp {
+                ctor: TypeCtor::Tuple,
+                params,
+            }) => params.iter().all(Self::is_num),
+            _ => [Self::BOOL, Self::INT, Self::FLOAT, Self::CHAR].contains(self),
+        }
+    }
+
+    pub fn is_cmp(&self) -> bool {
+        match self {
+            Type::App(TypeApp {
+                ctor: TypeCtor::Tuple,
+                params,
+            }) => params.iter().all(Self::is_num),
+            _ => [Self::INT, Self::FLOAT].contains(self),
+        }
+    }
+
     fn walk_mut(&mut self, f: &mut impl FnMut(&mut Self)) {
         f(self);
         match self {
