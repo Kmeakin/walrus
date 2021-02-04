@@ -259,12 +259,9 @@ impl Ctx {
                 Type::tuple(tys)
             }
         };
-        if !self.unify(expected, &ty) {
-            todo!("Type mismatch")
-        }
         let ty = self.propagate_type_as_far_as_possible(&ty);
         self.set_pat_ty(id, ty.clone());
-        ty
+        self.try_to_unify_and_propagate_as_far_as_possible(expected, &ty)
     }
 
     fn infer_expr(&mut self, expected: &Type, id: ExprId) -> Type {

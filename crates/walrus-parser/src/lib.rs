@@ -13,9 +13,10 @@
     clippy::module_name_repetitions,
     clippy::must_use_candidate,
     clippy::similar_names,
+    clippy::single_match_else,
     clippy::wildcard_imports,
-    elided_lifetimes_in_paths,
-    dead_code
+    dead_code,
+    elided_lifetimes_in_paths
 )]
 #![feature(box_syntax)]
 
