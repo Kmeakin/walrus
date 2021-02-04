@@ -1,5 +1,7 @@
+use either::Either;
+
 use crate::{
-    hir::{ExprId, Var},
+    hir::{BinOp, ExprId, PatId, TypeId, Var},
     scopes::Binding,
     ty::Type,
 };
@@ -27,12 +29,36 @@ pub enum Diagnostic {
     },
     UnboundVar {
         var: Var,
-        expr: ExprId,
+        id: Either<ExprId, TypeId>,
+        binding: Option<Binding>,
     },
     IfBranchMismatch {
         then_branch: ExprId,
         else_branch: ExprId,
         then_ty: Type,
         else_ty: Type,
+    },
+    ReturnNotInFn(ExprId),
+    BreakNotInLoop(ExprId),
+    TypeMismatch {
+        id: Either<ExprId, PatId>,
+        expected: Type,
+        got: Type,
+    },
+    CalledNonFn {
+        expr: ExprId,
+        ty: Type,
+    },
+    ArgCountMismatch {
+        expr: ExprId,
+        ty: Type,
+        expected: usize,
+        got: usize,
+    },
+    InferenceFail(Either<ExprId, PatId>),
+    CannotApplyBinop {
+        lhs_type: Type,
+        op: BinOp,
+        rhs_type: Type,
     },
 }

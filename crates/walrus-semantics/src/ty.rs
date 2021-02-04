@@ -1,6 +1,5 @@
-use crate::scopes::BuiltinType;
-
 use self::unify::TypeVarId;
+use crate::scopes::BuiltinType;
 
 mod infer;
 mod unify;

@@ -53,6 +53,14 @@ impl<T, V> ArenaMap<Idx<T>, V> {
             .enumerate()
             .filter_map(|(idx, o)| Some((idx.into(), o.as_ref()?)))
     }
+
+    /// Returns an iterator over the arena indexes and values in the map.
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = (Idx<T>, &mut V)> {
+        self.data
+            .iter_mut()
+            .enumerate()
+            .filter_map(|(idx, o)| Some((idx.into(), o.as_mut()?)))
+    }
 }
 
 impl<T, V> Default for ArenaMap<Idx<T>, V> {

@@ -1,6 +1,5 @@
-use crate::diagnostic::LitError;
-
 use super::*;
+use crate::diagnostic::LitError;
 use ordered_float::OrderedFloat;
 
 pub fn lower(syntax: &syntax::SourceFile) -> Module {
