@@ -52,7 +52,7 @@ fn continue_expr(input: Input) -> IResult<Expr> {
     let (input, kw_continue) = kw_continue.parse(input)?;
     Ok((input, Expr::Continue(ContinueExpr { kw_continue })))
 }
-fn assign_op(input: Input) -> IResult<BinaryOp> { eq.map(BinaryOp::Assign).parse(input) }
+fn assign_op(input: Input) -> IResult<Binop> { eq.map(Binop::Assign).parse(input) }
 fn assign_expr(input: Input) -> IResult<Expr> {
     let (input, lhs) = cmp_expr.parse(input)?;
     let (input, op) = assign_op.parse(input)?;
@@ -66,13 +66,13 @@ fn assign_expr(input: Input) -> IResult<Expr> {
         }),
     ))
 }
-fn cmp_op(input: Input) -> IResult<BinaryOp> {
-    (eq_eq.map(BinaryOp::Eq))
-        .or(bang_eq.map(BinaryOp::NotEq))
-        .or(less.map(BinaryOp::Less))
-        .or(less_eq.map(BinaryOp::LessEq))
-        .or(greater.map(BinaryOp::Greater))
-        .or(greater_eq.map(BinaryOp::GreaterEq))
+fn cmp_op(input: Input) -> IResult<Binop> {
+    (eq_eq.map(Binop::Eq))
+        .or(bang_eq.map(Binop::NotEq))
+        .or(less.map(Binop::Less))
+        .or(less_eq.map(Binop::LessEq))
+        .or(greater.map(Binop::Greater))
+        .or(greater_eq.map(Binop::GreaterEq))
         .parse(input)
 }
 fn cmp_expr(input: Input) -> IResult<Expr> {
@@ -86,9 +86,9 @@ fn cmp_expr(input: Input) -> IResult<Expr> {
     })
     .parse(input)
 }
-fn add_op(input: Input) -> IResult<BinaryOp> {
-    (plus.map(BinaryOp::Add))
-        .or(minus.map(BinaryOp::Sub))
+fn add_op(input: Input) -> IResult<Binop> {
+    (plus.map(Binop::Add))
+        .or(minus.map(Binop::Sub))
         .parse(input)
 }
 fn add_expr(input: Input) -> IResult<Expr> {
@@ -102,9 +102,9 @@ fn add_expr(input: Input) -> IResult<Expr> {
     })
     .parse(input)
 }
-fn mul_op(input: Input) -> IResult<BinaryOp> {
-    (star.map(BinaryOp::Mul))
-        .or(slash.map(BinaryOp::Div))
+fn mul_op(input: Input) -> IResult<Binop> {
+    (star.map(Binop::Mul))
+        .or(slash.map(Binop::Div))
         .parse(input)
 }
 fn mul_expr(input: Input) -> IResult<Expr> {
@@ -118,10 +118,8 @@ fn mul_expr(input: Input) -> IResult<Expr> {
     })
     .parse(input)
 }
-fn prefix_op(input: Input) -> IResult<UnaryOp> {
-    (plus.map(UnaryOp::Add))
-        .or(minus.map(UnaryOp::Sub))
-        .parse(input)
+fn prefix_op(input: Input) -> IResult<Unop> {
+    (plus.map(Unop::Add)).or(minus.map(Unop::Sub)).parse(input)
 }
 fn prefix_expr(input: Input) -> IResult<Expr> {
     pair(prefix_op, prefix_expr)

@@ -30,18 +30,18 @@ pub struct ArgList(pub Paren<Punctuated0<Expr, Comma>>);
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct BinaryExpr {
     pub lhs: Box<Expr>,
-    pub op: BinaryOp,
+    pub op: Binop,
     pub rhs: Box<Expr>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct UnaryExpr {
-    pub op: UnaryOp,
+    pub op: Unop,
     pub expr: Box<Expr>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum BinaryOp {
+pub enum Binop {
     Add(Plus),
     Sub(Minus),
     Mul(Star),
@@ -56,7 +56,7 @@ pub enum BinaryOp {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum UnaryOp {
+pub enum Unop {
     Add(Plus),
     Sub(Minus),
 }

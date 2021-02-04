@@ -119,12 +119,12 @@ pub enum Expr {
         field: Field,
     },
     Unop {
-        op: UnOp,
+        op: Unop,
         expr: ExprId,
     },
     Binop {
         lhs: ExprId,
-        op: BinOp,
+        op: Binop,
         rhs: ExprId,
     },
     Call {
@@ -156,14 +156,14 @@ pub enum Field {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum UnOp {
+pub enum Unop {
     Add,
     Sub,
     Not,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum BinOp {
+pub enum Binop {
     Add,
     Sub,
     Mul,
@@ -179,28 +179,28 @@ pub enum BinOp {
     Or,
 }
 
-impl From<syntax::UnaryOp> for UnOp {
-    fn from(op: syntax::UnaryOp) -> Self {
+impl From<syntax::Unop> for Unop {
+    fn from(op: syntax::Unop) -> Self {
         match op {
-            syntax::UnaryOp::Add(_) => Self::Add,
-            syntax::UnaryOp::Sub(_) => Self::Sub,
+            syntax::Unop::Add(_) => Self::Add,
+            syntax::Unop::Sub(_) => Self::Sub,
         }
     }
 }
-impl From<syntax::BinaryOp> for BinOp {
-    fn from(op: syntax::BinaryOp) -> Self {
+impl From<syntax::Binop> for Binop {
+    fn from(op: syntax::Binop) -> Self {
         match op {
-            syntax::BinaryOp::Add(_) => Self::Add,
-            syntax::BinaryOp::Sub(_) => Self::Sub,
-            syntax::BinaryOp::Mul(_) => Self::Mul,
-            syntax::BinaryOp::Div(_) => Self::Div,
-            syntax::BinaryOp::Assign(_) => Self::Assign,
-            syntax::BinaryOp::Eq(_) => Self::Eq,
-            syntax::BinaryOp::NotEq(_) => Self::NotEq,
-            syntax::BinaryOp::Less(_) => Self::Less,
-            syntax::BinaryOp::LessEq(_) => Self::LessEq,
-            syntax::BinaryOp::Greater(_) => Self::Greater,
-            syntax::BinaryOp::GreaterEq(_) => Self::GreaterEq,
+            syntax::Binop::Add(_) => Self::Add,
+            syntax::Binop::Sub(_) => Self::Sub,
+            syntax::Binop::Mul(_) => Self::Mul,
+            syntax::Binop::Div(_) => Self::Div,
+            syntax::Binop::Assign(_) => Self::Assign,
+            syntax::Binop::Eq(_) => Self::Eq,
+            syntax::Binop::NotEq(_) => Self::NotEq,
+            syntax::Binop::Less(_) => Self::Less,
+            syntax::Binop::LessEq(_) => Self::LessEq,
+            syntax::Binop::Greater(_) => Self::Greater,
+            syntax::Binop::GreaterEq(_) => Self::GreaterEq,
         }
     }
 }

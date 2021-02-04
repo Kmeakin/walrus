@@ -2,8 +2,8 @@ use super::{unify::InferenceTable, *};
 use crate::{
     diagnostic::Diagnostic,
     hir::{
-        self, BinOp, Decl, Expr, ExprId, Field, FnDefId, Lit, Module, Param, Pat, PatId, Stmt,
-        TypeId, UnOp, Var,
+        self, Binop, Decl, Expr, ExprId, Field, FnDefId, Lit, Module, Param, Pat, PatId, Stmt,
+        TypeId, Unop, Var,
     },
     scopes::{Binding, Scopes},
 };
@@ -438,13 +438,13 @@ impl Ctx {
         }
     }
 
-    fn infer_unop_expr(&mut self, op: UnOp, lhs: ExprId) -> Type {
+    fn infer_unop_expr(&mut self, op: Unop, lhs: ExprId) -> Type {
         let lhs_expectation = op.lhs_expectation();
         let lhs_type = self.infer_expr(&lhs_expectation, lhs);
         op.return_type(lhs_type)
     }
 
-    fn infer_binop_expr(&mut self, op: BinOp, lhs: ExprId, rhs: ExprId) -> Type {
+    fn infer_binop_expr(&mut self, op: Binop, lhs: ExprId, rhs: ExprId) -> Type {
         let lhs_expectation = op.lhs_expectation();
         let lhs_type = self.infer_expr(&lhs_expectation, lhs);
         let rhs_expectation = op.rhs_expectation(lhs_type.clone());
@@ -536,7 +536,7 @@ impl Lit {
     }
 }
 
-impl UnOp {
+impl Unop {
     const fn lhs_expectation(self) -> Type {
         match self {
             Self::Add | Self::Sub => Type::Unknown,
@@ -551,7 +551,7 @@ impl UnOp {
         }
     }
 }
-impl BinOp {
+impl Binop {
     #![allow(clippy::match_same_arms)]
 
     const fn lhs_expectation(self) -> Type {

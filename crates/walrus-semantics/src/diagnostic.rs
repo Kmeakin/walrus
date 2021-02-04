@@ -1,5 +1,5 @@
 use crate::{
-    hir::{BinOp, ExprId, Field, PatId, TypeId, Var},
+    hir::{Binop, ExprId, Field, PatId, TypeId, Var},
     scopes::Binding,
     ty::Type,
 };
@@ -57,7 +57,7 @@ pub enum Diagnostic {
     InferenceFail(Either<ExprId, PatId>),
     CannotApplyBinop {
         lhs_type: Type,
-        op: BinOp,
+        op: Binop,
         rhs_type: Type,
     },
     NoSuchField {
