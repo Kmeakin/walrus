@@ -123,14 +123,14 @@ impl Ctx {
 
     fn resolve_var_type(&mut self, var: Var, id: TypeId) -> Type {
         let scope = self.scopes.scope_of_type(id);
-        let binding = self.scopes.lookup_in_scope(scope, &var);
+        let binding = self.scopes.lookup_in_scope(scope, &var).copied();
         match binding {
-            Some(Binding::BuiltinType(ty)) => Type::from(*ty),
+            Some(Binding::BuiltinType(ty)) => Type::from(ty),
             _ => {
                 self.result.diagnostics.push(Diagnostic::UnboundVar {
-                    var: var.clone(),
                     id: Right(id),
-                    binding: binding.copied(),
+                    var,
+                    binding,
                 });
                 Type::Unknown
             }
@@ -139,15 +139,15 @@ impl Ctx {
 
     fn resolve_var_expr(&mut self, var: Var, id: ExprId) -> Type {
         let scope = self.scopes.scope_of_expr(id);
-        let binding = self.scopes.lookup_in_scope(scope, &var);
+        let binding = self.scopes.lookup_in_scope(scope, &var).copied();
         match binding {
-            Some(Binding::Local(pat_id)) => self.result.type_of_pat[*pat_id].clone(),
-            Some(Binding::Fn(fn_id)) => Type::from(self.result.type_of_fn[*fn_id].clone()),
+            Some(Binding::Local(pat_id)) => self.result.type_of_pat[pat_id].clone(),
+            Some(Binding::Fn(fn_id)) => Type::from(self.result.type_of_fn[fn_id].clone()),
             _ => {
                 self.result.diagnostics.push(Diagnostic::UnboundVar {
-                    var: var.clone(),
                     id: Left(id),
-                    binding: binding.copied(),
+                    var,
+                    binding,
                 });
                 Type::Unknown
             }
