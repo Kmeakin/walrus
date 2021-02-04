@@ -44,6 +44,7 @@ pub fn semicolon(input: Input) -> IResult<Semicolon> { token(TokenKind::Semicolo
 pub fn thin_arrow(input: Input) -> IResult<ThinArrow> { token(TokenKind::ThinArrow, input) }
 pub fn underscore(input: Input) -> IResult<Underscore> { token(TokenKind::Underscore, input) }
 
+pub fn bang(input: Input) -> IResult<Bang> { token(TokenKind::Bang, input) }
 pub fn plus(input: Input) -> IResult<Plus> { token(TokenKind::Plus, input) }
 pub fn minus(input: Input) -> IResult<Minus> { token(TokenKind::Minus, input) }
 pub fn star(input: Input) -> IResult<Star> { token(TokenKind::Star, input) }

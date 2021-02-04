@@ -55,6 +55,7 @@ pub enum TokenKind {
     #[token("*")] Star,
     #[token("/")] Slash,
 
+    #[token("!")] Bang,
     #[token("=")] Eq,
     #[token("==")] EqEq,
     #[token("!=")] BangEq,
@@ -133,5 +134,5 @@ mod tests {
     test_lex!(escaped_char, r"'\n'");
     test_lex!(unicode_char, r"'\u0a'");
     test_lex!(symbols, "() {} . , ; : -> => _");
-    test_lex!(operators, "+ - * / = == != < <= > >=");
+    test_lex!(operators, "+ - * / ! = == != < <= > >=");
 }

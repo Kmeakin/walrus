@@ -80,6 +80,7 @@ token!(ThinArrow);
 token!(FatArrow);
 token!(Underscore);
 
+token!(Bang);
 token!(Plus);
 token!(Minus);
 token!(Star);

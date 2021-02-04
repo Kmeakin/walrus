@@ -4,6 +4,9 @@ use nom::{
     sequence::pair,
 };
 
+// See `https://doc.rust-lang.org/reference/expressions.html#expression-precedence`
+// for expression precedence
+
 pub fn expr(input: Input) -> IResult<Expr> {
     lambda_expr
         .or(return_expr)
@@ -108,8 +111,8 @@ fn mul_op(input: Input) -> IResult<Binop> {
         .parse(input)
 }
 fn mul_expr(input: Input) -> IResult<Expr> {
-    let (input, init) = prefix_expr.parse(input)?;
-    fold_many0(pair(mul_op, prefix_expr), init, |lhs, (op, rhs)| {
+    let (input, init) = unary_expr.parse(input)?;
+    fold_many0(pair(mul_op, unary_expr), init, |lhs, (op, rhs)| {
         Expr::Binary(BinaryExpr {
             lhs: box lhs,
             op,
@@ -118,11 +121,14 @@ fn mul_expr(input: Input) -> IResult<Expr> {
     })
     .parse(input)
 }
-fn prefix_op(input: Input) -> IResult<Unop> {
-    (plus.map(Unop::Add)).or(minus.map(Unop::Sub)).parse(input)
+fn unary_op(input: Input) -> IResult<Unop> {
+    bang.map(Unop::Not)
+        .or(plus.map(Unop::Add))
+        .or(minus.map(Unop::Sub))
+        .parse(input)
 }
-fn prefix_expr(input: Input) -> IResult<Expr> {
-    pair(prefix_op, prefix_expr)
+fn unary_expr(input: Input) -> IResult<Expr> {
+    pair(unary_op, unary_expr)
         .map(|(op, expr)| Expr::Unary(UnaryExpr { op, expr: box expr }))
         .or(suffix_expr)
         .parse(input)

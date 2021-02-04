@@ -157,9 +157,9 @@ pub enum Field {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Unop {
+    Not,
     Add,
     Sub,
-    Not,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -182,6 +182,7 @@ pub enum Binop {
 impl From<syntax::Unop> for Unop {
     fn from(op: syntax::Unop) -> Self {
         match op {
+            syntax::Unop::Not(_) => Self::Not,
             syntax::Unop::Add(_) => Self::Add,
             syntax::Unop::Sub(_) => Self::Sub,
         }
