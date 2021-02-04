@@ -7,7 +7,7 @@ use crate::{
     },
     scopes::{Binding, Scopes},
 };
-use la_arena::ArenaMap;
+use arena::ArenaMap;
 
 pub fn infer(module: Module, scopes: Scopes) -> InferenceResult {
     let mut ctx = Ctx::new(module, scopes);

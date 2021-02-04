@@ -7,10 +7,10 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+arena = { path = "../arena" }
 walrus-syntax = { path = "../walrus-syntax" }
 walrus-parser = { path = "../walrus-parser" }
 
-la-arena = "0.2.0"
 ordered-float = "2.0.1"
 smol_str = "0.1.17"
 ena = "0.14.0"

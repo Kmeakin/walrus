@@ -2,7 +2,7 @@ use crate::{
     diagnostic::Diagnostic,
     hir::{Decl, Expr, ExprId, FnDefId, Module, Param, Pat, PatId, Stmt, Type, TypeId, Var},
 };
-use la_arena::{Arena, ArenaMap, Idx};
+use arena::{Arena, ArenaMap, Idx};
 use std::collections::HashMap;
 
 pub fn scopes(module: &Module) -> Scopes {

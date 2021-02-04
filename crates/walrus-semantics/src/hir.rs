@@ -1,5 +1,5 @@
 use crate::{diagnostic::Diagnostic, syntax};
-use la_arena::{Arena, ArenaMap, Idx};
+use arena::{Arena, ArenaMap, Idx};
 use ordered_float::OrderedFloat;
 use smol_str::SmolStr;
 use std::{fmt, ops::Index};
