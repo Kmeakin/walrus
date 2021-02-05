@@ -20,6 +20,7 @@
 )]
 #![feature(format_args_capture)]
 
+mod builtins;
 mod diagnostic;
 mod hir;
 mod scopes;

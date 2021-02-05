@@ -1,4 +1,8 @@
-use crate::{diagnostic::Diagnostic, hir::*};
+use crate::{
+    builtins::{self, Builtin},
+    diagnostic::Diagnostic,
+    hir::*,
+};
 use arena::{Arena, ArenaMap, Idx};
 use std::collections::HashMap;
 
@@ -20,43 +24,18 @@ pub struct Scopes {
     pub diagnostics: Vec<Diagnostic>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Scope {
     pub parent: Option<ScopeId>,
     pub bindings: Bindings,
-}
-
-impl Default for Scope {
-    fn default() -> Self {
-        Self {
-            parent: None,
-            bindings: [
-                (Var::new("Bool"), Binding::BuiltinType(BuiltinType::Bool)),
-                (Var::new("Int"), Binding::BuiltinType(BuiltinType::Int)),
-                (Var::new("Float"), Binding::BuiltinType(BuiltinType::Float)),
-                (Var::new("Char"), Binding::BuiltinType(BuiltinType::Char)),
-            ]
-            .iter()
-            .cloned()
-            .collect(),
-        }
-    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Binding {
     Local(PatId),
     Fn(FnDefId),
-    BuiltinType(BuiltinType),
     Struct(StructDefId),
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum BuiltinType {
-    Bool,
-    Int,
-    Float,
-    Char,
+    Builtin(Builtin),
 }
 
 impl Scopes {
@@ -64,9 +43,11 @@ impl Scopes {
         std::iter::successors(Some(scope), move |&scope| self.scopes[scope].parent)
     }
 
-    pub fn lookup_in_scope(&self, scope: ScopeId, var: &Var) -> Option<&Binding> {
+    pub fn lookup_in_scope(&self, scope: ScopeId, var: &Var) -> Option<Binding> {
         self.scope_chain(scope)
             .find_map(|scope| self.scopes[scope].bindings.get(var))
+            .copied()
+            .or_else(|| builtins::lookup(var).map(|builtin| Binding::Builtin(builtin)))
     }
 
     pub fn scope_of_expr(&self, id: ExprId) -> ScopeId { self.scope_of_expr[id] }

@@ -1,5 +1,4 @@
 use self::unify::TypeVarId;
-use crate::scopes::BuiltinType;
 
 mod infer;
 mod unify;
@@ -66,17 +65,6 @@ impl Type {
             *ty_mut = f(ty);
         });
         self
-    }
-}
-
-impl From<BuiltinType> for Type {
-    fn from(ty: BuiltinType) -> Self {
-        match ty {
-            BuiltinType::Bool => Self::BOOL,
-            BuiltinType::Int => Self::INT,
-            BuiltinType::Float => Self::FLOAT,
-            BuiltinType::Char => Self::CHAR,
-        }
     }
 }
 

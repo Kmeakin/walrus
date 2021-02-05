@@ -21,6 +21,7 @@ pub struct Var(SmolStr);
 
 impl Var {
     pub fn new(s: impl Into<SmolStr>) -> Self { Self(s.into()) }
+    pub fn as_str(&self) -> &str { &self.0 }
 }
 
 impl fmt::Debug for Var {

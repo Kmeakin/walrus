@@ -1,5 +1,6 @@
 use super::{unify::InferenceTable, Type, *};
 use crate::{
+    builtins::Builtin,
     diagnostic::Diagnostic,
     hir,
     hir::*,
@@ -121,9 +122,9 @@ impl Ctx {
 
     fn resolve_var_type(&mut self, var: Var, id: TypeId) -> Type {
         let scope = self.scopes.scope_of_type(id);
-        let binding = self.scopes.lookup_in_scope(scope, &var).copied();
+        let binding = self.scopes.lookup_in_scope(scope, &var);
         match binding {
-            Some(Binding::BuiltinType(ty)) => Type::from(ty),
+            Some(Binding::Builtin(Builtin::Type(ty))) => ty.into(),
             _ => {
                 self.result.diagnostics.push(Diagnostic::UnboundVar {
                     id: Right(id),
@@ -137,10 +138,11 @@ impl Ctx {
 
     fn resolve_var_expr(&mut self, var: Var, id: ExprId) -> Type {
         let scope = self.scopes.scope_of_expr(id);
-        let binding = self.scopes.lookup_in_scope(scope, &var).copied();
+        let binding = self.scopes.lookup_in_scope(scope, &var);
         match binding {
-            Some(Binding::Local(pat_id)) => self.result.type_of_pat[pat_id].clone(),
-            Some(Binding::Fn(fn_id)) => Type::from(self.result.type_of_fn[fn_id].clone()),
+            Some(Binding::Local(id)) => self.result.type_of_pat[id].clone(),
+            Some(Binding::Fn(id)) => self.result.type_of_fn[id].clone().into(),
+            Some(Binding::Builtin(Builtin::Value(value))) => value.ty(),
             _ => {
                 self.result.diagnostics.push(Diagnostic::UnboundVar {
                     id: Left(id),
