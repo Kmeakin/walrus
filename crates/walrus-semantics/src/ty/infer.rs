@@ -4,7 +4,7 @@ use crate::{
     diagnostic::Diagnostic,
     hir,
     hir::*,
-    scopes::{Binding, Scopes},
+    scopes::{Denotation, Scopes},
 };
 use arena::ArenaMap;
 use either::{Either, Either::*};
@@ -120,34 +120,36 @@ impl Ctx {
         }
     }
 
-    fn resolve_var_type(&mut self, var: Var, id: TypeId) -> Type {
+    fn resolve_var_type(&mut self, var_id: VarId, id: TypeId) -> Type {
+        let var = &self.module.data[var_id];
         let scope = self.scopes.scope_of_type(id);
-        let binding = self.scopes.lookup_in_scope(scope, &var);
-        match binding {
-            Some(Binding::Builtin(Builtin::Type(ty))) => ty.into(),
+        let denotation = self.scopes.lookup_in_scope(scope, var);
+        match denotation {
+            Some(Denotation::Builtin(Builtin::Type(ty))) => ty.into(),
             _ => {
                 self.result.diagnostics.push(Diagnostic::UnboundVar {
                     id: Right(id),
-                    var,
-                    binding,
+                    var: var_id,
+                    denotation,
                 });
                 Type::Unknown
             }
         }
     }
 
-    fn resolve_var_expr(&mut self, var: Var, id: ExprId) -> Type {
+    fn resolve_var_expr(&mut self, var_id: VarId, id: ExprId) -> Type {
+        let var = &self.module.data[var_id];
         let scope = self.scopes.scope_of_expr(id);
-        let binding = self.scopes.lookup_in_scope(scope, &var);
-        match binding {
-            Some(Binding::Local(id)) => self.result.type_of_pat[id].clone(),
-            Some(Binding::Fn(id)) => self.result.type_of_fn[id].clone().into(),
-            Some(Binding::Builtin(Builtin::Value(value))) => value.ty(),
+        let denotation = self.scopes.lookup_in_scope(scope, var);
+        match denotation {
+            Some(Denotation::Local(id)) => self.result.type_of_pat[id].clone(),
+            Some(Denotation::Fn(id)) => self.result.type_of_fn[id].clone().into(),
+            Some(Denotation::Builtin(Builtin::Value(value))) => value.ty(),
             _ => {
                 self.result.diagnostics.push(Diagnostic::UnboundVar {
                     id: Left(id),
-                    var,
-                    binding,
+                    var: var_id,
+                    denotation,
                 });
                 Type::Unknown
             }

@@ -9,9 +9,9 @@ mod walk;
 
 pub use self::lower::lower;
 
+pub type VarId = Idx<Var>;
 pub type FnDefId = Idx<FnDef>;
 pub type StructDefId = Idx<StructDef>;
-pub type StructFieldId = Idx<StructField>;
 pub type ExprId = Idx<Expr>;
 pub type TypeId = Idx<Type>;
 pub type PatId = Idx<Pat>;
@@ -45,14 +45,17 @@ pub struct Module {
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ModuleData {
+    pub vars: Arena<Var>,
     pub fn_defs: Arena<FnDef>,
     pub struct_defs: Arena<StructDef>,
-    pub struct_fields: Arena<StructField>,
     pub exprs: Arena<Expr>,
     pub types: Arena<Type>,
     pub pats: Arena<Pat>,
 }
-
+impl Index<VarId> for ModuleData {
+    type Output = Var;
+    fn index(&self, id: VarId) -> &Self::Output { &self.vars[id] }
+}
 impl Index<FnDefId> for ModuleData {
     type Output = FnDef;
     fn index(&self, id: FnDefId) -> &Self::Output { &self.fn_defs[id] }
@@ -60,10 +63,6 @@ impl Index<FnDefId> for ModuleData {
 impl Index<StructDefId> for ModuleData {
     type Output = StructDef;
     fn index(&self, id: StructDefId) -> &Self::Output { &self.struct_defs[id] }
-}
-impl Index<StructFieldId> for ModuleData {
-    type Output = StructField;
-    fn index(&self, id: StructFieldId) -> &Self::Output { &self.struct_fields[id] }
 }
 impl Index<ExprId> for ModuleData {
     type Output = Expr;
@@ -80,9 +79,9 @@ impl Index<PatId> for ModuleData {
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ModuleSource {
+    pub vars: ArenaMap<VarId, syntax::Var>,
     pub fn_defs: ArenaMap<FnDefId, syntax::FnDef>,
     pub struct_defs: ArenaMap<StructDefId, syntax::StructDef>,
-    pub struct_fields: ArenaMap<StructFieldId, syntax::StructField>,
     pub exprs: ArenaMap<ExprId, syntax::Expr>,
     pub types: ArenaMap<TypeId, syntax::Type>,
     pub pats: ArenaMap<PatId, syntax::Pat>,
@@ -95,10 +94,6 @@ impl Index<FnDefId> for ModuleSource {
 impl Index<StructDefId> for ModuleSource {
     type Output = syntax::StructDef;
     fn index(&self, id: StructDefId) -> &Self::Output { &self.struct_defs[id] }
-}
-impl Index<StructFieldId> for ModuleSource {
-    type Output = syntax::StructField;
-    fn index(&self, id: StructFieldId) -> &Self::Output { &self.struct_fields[id] }
 }
 impl Index<ExprId> for ModuleSource {
     type Output = syntax::Expr;
@@ -121,7 +116,7 @@ pub enum Decl {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct FnDef {
-    pub name: Var,
+    pub name: VarId,
     pub params: Vec<Param>,
     pub ret_type: Option<TypeId>,
     pub expr: ExprId,
@@ -129,13 +124,13 @@ pub struct FnDef {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct StructDef {
-    pub name: Var,
-    pub fields: Vec<StructFieldId>,
+    pub name: VarId,
+    pub fields: Vec<StructField>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct StructField {
-    pub name: Var,
+    pub name: VarId,
     pub ty: TypeId,
 }
 
@@ -148,7 +143,7 @@ pub struct Param {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Expr {
     Lit(Lit),
-    Var(Var),
+    Var(VarId),
     Tuple(Vec<ExprId>),
     Field {
         expr: ExprId,
@@ -264,14 +259,14 @@ pub enum Lit {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Pat {
-    Var(Var),
+    Var(VarId),
     Ignore,
     Tuple(Vec<PatId>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Type {
-    Var(Var),
+    Var(VarId),
     Infer,
     Tuple(Vec<TypeId>),
     Fn { params: Vec<TypeId>, ret: TypeId },

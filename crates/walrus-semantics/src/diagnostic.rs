@@ -1,6 +1,6 @@
 use crate::{
-    hir::{Binop, ExprId, Field, PatId, TypeId, Var},
-    scopes::Binding,
+    hir::{Binop, ExprId, Field, PatId, TypeId, Var, VarId},
+    scopes::Denotation,
     ty::Type,
 };
 use either::Either;
@@ -17,14 +17,14 @@ pub enum LitError {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Diagnostic {
     BadLit(LitError),
-    DuplicateBinding {
-        first: Binding,
-        second: Binding,
+    DuplicateVar {
+        first: VarId,
+        second: VarId,
     },
     UnboundVar {
-        var: Var,
+        var: VarId,
         id: Either<ExprId, TypeId>,
-        binding: Option<Binding>,
+        denotation: Option<Denotation>,
     },
     IfBranchMismatch {
         then_branch: ExprId,
