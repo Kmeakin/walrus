@@ -11,6 +11,7 @@ pub use self::lower::lower;
 
 pub type FnDefId = Idx<FnDef>;
 pub type StructDefId = Idx<StructDef>;
+pub type StructFieldId = Idx<StructField>;
 pub type ExprId = Idx<Expr>;
 pub type TypeId = Idx<Type>;
 pub type PatId = Idx<Pat>;
@@ -45,6 +46,7 @@ pub struct Module {
 pub struct ModuleData {
     pub fn_defs: Arena<FnDef>,
     pub struct_defs: Arena<StructDef>,
+    pub struct_fields: Arena<StructField>,
     pub exprs: Arena<Expr>,
     pub types: Arena<Type>,
     pub pats: Arena<Pat>,
@@ -57,6 +59,10 @@ impl Index<FnDefId> for ModuleData {
 impl Index<StructDefId> for ModuleData {
     type Output = StructDef;
     fn index(&self, id: StructDefId) -> &Self::Output { &self.struct_defs[id] }
+}
+impl Index<StructFieldId> for ModuleData {
+    type Output = StructField;
+    fn index(&self, id: StructFieldId) -> &Self::Output { &self.struct_fields[id] }
 }
 impl Index<ExprId> for ModuleData {
     type Output = Expr;
@@ -73,8 +79,9 @@ impl Index<PatId> for ModuleData {
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ModuleSource {
-    pub struct_defs: ArenaMap<StructDefId, syntax::StructDef>,
     pub fn_defs: ArenaMap<FnDefId, syntax::FnDef>,
+    pub struct_defs: ArenaMap<StructDefId, syntax::StructDef>,
+    pub struct_fields: ArenaMap<StructFieldId, syntax::StructField>,
     pub exprs: ArenaMap<ExprId, syntax::Expr>,
     pub types: ArenaMap<TypeId, syntax::Type>,
     pub pats: ArenaMap<PatId, syntax::Pat>,
@@ -87,6 +94,10 @@ impl Index<FnDefId> for ModuleSource {
 impl Index<StructDefId> for ModuleSource {
     type Output = syntax::StructDef;
     fn index(&self, id: StructDefId) -> &Self::Output { &self.struct_defs[id] }
+}
+impl Index<StructFieldId> for ModuleSource {
+    type Output = syntax::StructField;
+    fn index(&self, id: StructFieldId) -> &Self::Output { &self.struct_fields[id] }
 }
 impl Index<ExprId> for ModuleSource {
     type Output = syntax::Expr;
@@ -118,7 +129,7 @@ pub struct FnDef {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct StructDef {
     pub name: Var,
-    pub fields: Vec<StructField>,
+    pub fields: Vec<StructFieldId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

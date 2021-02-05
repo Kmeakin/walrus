@@ -132,8 +132,8 @@ impl Scopes {
                     self.insert_binding(&mut bindings, &fn_def.name, Binding::Fn(*id))
                 }
                 Decl::Struct(id) => {
-                    let fn_def = &module.data[*id];
-                    self.insert_binding(&mut bindings, &fn_def.name, Binding::Struct(*id))
+                    let struct_def = &module.data[*id];
+                    self.insert_binding(&mut bindings, &struct_def.name, Binding::Struct(*id))
                 }
             }
         }
@@ -168,7 +168,7 @@ impl Scopes {
         })
     }
 
-    fn struct_def_scope(&mut self, module: &Module, id: StructDefId) { todo!() }
+    fn struct_def_scope(&mut self, module: &Module, id: StructDefId) {}
 
     fn expr_scope(&mut self, module: &Module, id: ExprId) {
         self.set_scope_of_expr(id, self.scope);

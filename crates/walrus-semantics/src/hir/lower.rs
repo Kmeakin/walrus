@@ -42,6 +42,16 @@ impl Ctx {
         id
     }
 
+    fn alloc_struct_field(
+        &mut self,
+        syntax: syntax::StructField,
+        hir: StructField,
+    ) -> StructFieldId {
+        let id = self.data.struct_fields.alloc(hir);
+        self.source.struct_fields.insert(id, syntax);
+        id
+    }
+
     fn alloc_expr(&mut self, syntax: syntax::Expr, hir: Expr) -> ExprId {
         let id = self.data.exprs.alloc(hir);
         self.source.exprs.insert(id, syntax);
@@ -109,11 +119,13 @@ impl Ctx {
         self.alloc_struct_def(syntax.clone(), hir)
     }
 
-    fn lower_struct_field(&mut self, syntax: &syntax::StructField) -> StructField {
-        StructField {
+    fn lower_struct_field(&mut self, syntax: &syntax::StructField) -> StructFieldId {
+        let hir = StructField {
             name: syntax.name.clone().into(),
             ty: self.lower_type(&syntax.ty),
-        }
+        };
+
+        self.alloc_struct_field(syntax.clone(), hir)
     }
 
     fn lower_type(&mut self, syntax: &syntax::Type) -> TypeId {

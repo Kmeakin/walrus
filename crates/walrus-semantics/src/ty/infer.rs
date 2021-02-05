@@ -1,10 +1,8 @@
-use super::{unify::InferenceTable, *};
+use super::{unify::InferenceTable, Type, *};
 use crate::{
     diagnostic::Diagnostic,
-    hir::{
-        self, Binop, Decl, Expr, ExprId, Field, FnDefId, Lit, Module, Param, Pat, PatId, Stmt,
-        TypeId, Unop, Var,
-    },
+    hir,
+    hir::*,
     scopes::{Binding, Scopes},
 };
 use arena::ArenaMap;
