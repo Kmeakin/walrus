@@ -1,6 +1,6 @@
 use super::{unify::InferenceTable, Type, *};
 use crate::{
-    builtins::Builtin,
+    builtins::{Builtin, BuiltinKind},
     diagnostic::Diagnostic,
     hir,
     hir::*,
@@ -125,7 +125,7 @@ impl Ctx {
         let scope = self.scopes.scope_of_type(id);
         let denotation = self.scopes.lookup_in_scope(scope, var);
         match denotation {
-            Some(Denotation::Builtin(Builtin::Type(ty))) => ty.into(),
+            Some(Denotation::Builtin(b)) if b.kind() == BuiltinKind::Type => b.ty(),
             _ => {
                 self.result.diagnostics.push(Diagnostic::UnboundVar {
                     id: Right(id),
@@ -144,7 +144,7 @@ impl Ctx {
         match denotation {
             Some(Denotation::Local(id)) => self.result.type_of_pat[id].clone(),
             Some(Denotation::Fn(id)) => self.result.type_of_fn[id].clone().into(),
-            Some(Denotation::Builtin(Builtin::Value(value))) => value.ty(),
+            Some(Denotation::Builtin(b)) if b.kind() == BuiltinKind::Value => b.ty(),
             _ => {
                 self.result.diagnostics.push(Diagnostic::UnboundVar {
                     id: Left(id),

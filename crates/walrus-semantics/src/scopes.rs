@@ -49,7 +49,7 @@ impl Scopes {
         self.scope_chain(scope)
             .find_map(|scope| self.scopes[scope].denotations.get(var))
             .copied()
-            .or_else(|| builtins::lookup(var).map(|builtin| Denotation::Builtin(builtin)))
+            .or_else(|| Builtin::lookup(var).map(|builtin| Denotation::Builtin(builtin)))
     }
 
     pub fn scope_of_expr(&self, id: ExprId) -> ScopeId { self.scope_of_expr[id] }
