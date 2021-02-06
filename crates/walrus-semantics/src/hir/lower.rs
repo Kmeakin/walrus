@@ -121,11 +121,10 @@ impl Ctx {
     }
 
     fn lower_struct_field(&mut self, syntax: &syntax::StructField) -> StructField {
-        let hir = StructField {
+        StructField {
             name: self.lower_var(syntax.name.clone()),
             ty: self.lower_type(&syntax.ty),
-        };
-        hir
+        }
     }
 
     fn lower_type(&mut self, syntax: &syntax::Type) -> TypeId {

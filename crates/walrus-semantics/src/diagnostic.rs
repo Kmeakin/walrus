@@ -1,5 +1,5 @@
 use crate::{
-    hir::{Binop, ExprId, Field, PatId, TypeId, Var, VarId},
+    hir::{Binop, ExprId, Field, PatId, TypeId, VarId},
     scopes::Denotation,
     ty::Type,
 };

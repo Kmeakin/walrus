@@ -1,8 +1,4 @@
-use crate::{
-    builtins::{self, Builtin},
-    diagnostic::Diagnostic,
-    hir::*,
-};
+use crate::{builtins::Builtin, diagnostic::Diagnostic, hir::*};
 use arena::{Arena, ArenaMap, Idx};
 use std::collections::HashMap;
 
@@ -49,7 +45,7 @@ impl Scopes {
         self.scope_chain(scope)
             .find_map(|scope| self.scopes[scope].denotations.get(var))
             .copied()
-            .or_else(|| Builtin::lookup(var).map(|builtin| Denotation::Builtin(builtin)))
+            .or_else(|| Builtin::lookup(var).map(Denotation::Builtin))
     }
 
     pub fn scope_of_expr(&self, id: ExprId) -> ScopeId { self.scope_of_expr[id] }
@@ -214,7 +210,7 @@ impl Scopes {
             Expr::Lambda { params, expr } => {
                 let mut vars = Vars::new();
                 for param in params {
-                    self.param_scope(module, &mut vars, &param)
+                    self.param_scope(module, &mut vars, param)
                 }
                 self.expr_scope(module, *expr)
             }

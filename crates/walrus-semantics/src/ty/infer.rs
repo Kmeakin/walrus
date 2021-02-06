@@ -1,6 +1,6 @@
 use super::{unify::InferenceTable, Type, *};
 use crate::{
-    builtins::{Builtin, BuiltinKind},
+    builtins::BuiltinKind,
     diagnostic::Diagnostic,
     hir,
     hir::*,

@@ -16,13 +16,13 @@ macro_rules! builtins {
         }
 
         impl Builtin {
-            pub fn name(self) -> &'static str {
+            pub const fn name(self) -> &'static str {
                 match self {
                     $(Self::$id => $name),*
                 }
             }
 
-            pub fn kind(self) -> BuiltinKind {
+            pub const fn kind(self) -> BuiltinKind {
                 match self {
                     $(Self::$id => $kind),*
                 }
@@ -34,15 +34,15 @@ macro_rules! builtins {
                 }
             }
 
-            pub fn lookup(var:&Var) -> Option<Builtin>{
+            pub fn lookup(var: &Var) -> Option<Self>{
                 let builtin = match var.as_str() {
-                    $($name => Builtin::$id),*,
+                    $($name => Self::$id),*,
                     _ => return None,
                 };
                 Some(builtin)
             }
 
-            pub fn all() -> &'static [Self] {
+            pub const fn all() -> &'static [Self] {
                 &[$(Self::$id),*]
             }
         }
