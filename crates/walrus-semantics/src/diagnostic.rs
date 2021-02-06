@@ -16,6 +16,7 @@ pub enum LitError {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Diagnostic {
+    UnnecessarySemicolon(crate::syntax::Semicolon),
     BadLit(LitError),
     DuplicateVar {
         first: VarId,

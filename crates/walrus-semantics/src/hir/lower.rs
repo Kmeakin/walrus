@@ -168,7 +168,11 @@ impl Ctx {
                 ty: ascription.as_ref().map(|a| self.lower_type(&a.ty)),
                 expr: self.lower_expr(expr),
             },
-            syntax::Stmt::Semicolon(_) => return None,
+            syntax::Stmt::Semicolon(semicolon) => {
+                self.diagnostics
+                    .push(Diagnostic::UnnecessarySemicolon(*semicolon));
+                return None;
+            }
         };
         Some(stmt)
     }
