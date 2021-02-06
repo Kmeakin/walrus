@@ -4,17 +4,29 @@ expression: got
 ---
 Ok(
     (
-        [
-            1..2@Dot ".",
-            2..3@Ident "y",
-        ],
-        Var(
-            Var(
-                Ident {
-                    span: 0..1,
-                    text: "x",
+        [],
+        Field(
+            FieldExpr {
+                base: Var(
+                    Var(
+                        Ident {
+                            span: 0..1,
+                            text: "x",
+                        },
+                    ),
+                ),
+                dot: Dot {
+                    span: 1..2,
                 },
-            ),
+                field: Named(
+                    Var(
+                        Ident {
+                            span: 2..3,
+                            text: "y",
+                        },
+                    ),
+                ),
+            },
         ),
     ),
 )

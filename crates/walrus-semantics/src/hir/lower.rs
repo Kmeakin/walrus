@@ -216,6 +216,7 @@ impl Ctx {
                 expr: self.lower_expr(&expr.base),
                 field: match &expr.field {
                     syntax::Field::Tuple(int) => Field::Tuple(self.lower_int(&int.text, 10)),
+                    syntax::Field::Named(var) => Field::Named(self.lower_var(var.clone())),
                 },
             },
             syntax::Expr::Struct(expr) => Expr::Struct {

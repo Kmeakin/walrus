@@ -32,6 +32,64 @@ InferenceResult {
                 params: [],
             },
         ),
+        4: App(
+            TypeApp {
+                ctor: Int,
+                params: [],
+            },
+        ),
+        5: App(
+            TypeApp {
+                ctor: Struct(
+                    0,
+                ),
+                params: [],
+            },
+        ),
+        6: App(
+            TypeApp {
+                ctor: Bool,
+                params: [],
+            },
+        ),
+        7: App(
+            TypeApp {
+                ctor: Tuple,
+                params: [
+                    App(
+                        TypeApp {
+                            ctor: Int,
+                            params: [],
+                        },
+                    ),
+                    App(
+                        TypeApp {
+                            ctor: Bool,
+                            params: [],
+                        },
+                    ),
+                ],
+            },
+        ),
+        8: App(
+            TypeApp {
+                ctor: Tuple,
+                params: [
+                    App(
+                        TypeApp {
+                            ctor: Int,
+                            params: [],
+                        },
+                    ),
+                    App(
+                        TypeApp {
+                            ctor: Bool,
+                            params: [],
+                        },
+                    ),
+                ],
+            },
+        ),
     },
     type_of_type: {
         0: App(
@@ -48,6 +106,27 @@ InferenceResult {
         ),
         2: App(
             TypeApp {
+                ctor: Tuple,
+                params: [
+                    App(
+                        TypeApp {
+                            ctor: Int,
+                            params: [],
+                        },
+                    ),
+                    App(
+                        TypeApp {
+                            ctor: Bool,
+                            params: [],
+                        },
+                    ),
+                ],
+            },
+        ),
+    },
+    type_of_pat: {
+        0: App(
+            TypeApp {
                 ctor: Struct(
                     0,
                 ),
@@ -55,16 +134,26 @@ InferenceResult {
             },
         ),
     },
-    type_of_pat: {},
     type_of_fn: {
         0: FnType {
             params: [],
             ret: App(
                 TypeApp {
-                    ctor: Struct(
-                        0,
-                    ),
-                    params: [],
+                    ctor: Tuple,
+                    params: [
+                        App(
+                            TypeApp {
+                                ctor: Int,
+                                params: [],
+                            },
+                        ),
+                        App(
+                            TypeApp {
+                                ctor: Bool,
+                                params: [],
+                            },
+                        ),
+                    ],
                 },
             ),
         },

@@ -2,7 +2,10 @@ use super::*;
 use nom::multi::many0;
 
 pub fn source_file(input: Input) -> IResult<SourceFile> {
-    many0(decl).map(|decls| SourceFile { decls }).parse(input)
+    many0(decl)
+        .map(|decls| SourceFile { decls })
+        .all_consuming()
+        .parse(input)
 }
 
 pub fn var(input: Input) -> IResult<Var> { (ident.map(Var)).parse(input) }

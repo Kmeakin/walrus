@@ -185,7 +185,11 @@ enum Suffix {
 fn arg_list(input: Input) -> IResult<ArgList> {
     paren(punctuated0(expr, comma)).map(ArgList).parse(input)
 }
-fn field(input: Input) -> IResult<Field> { dec_int.map(Field::Tuple).parse(input) }
+fn field(input: Input) -> IResult<Field> {
+    (dec_int.map(Field::Tuple))
+        .or(var.map(Field::Named))
+        .parse(input)
+}
 fn suffix(input: Input) -> IResult<Suffix> {
     (arg_list.map(Suffix::Call))
         .or(pair(dot, field).map(|(dot, field)| Suffix::Field(dot, field)))

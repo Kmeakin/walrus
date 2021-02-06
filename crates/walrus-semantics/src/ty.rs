@@ -203,13 +203,13 @@ fn g() -> _ {1}
     );
 
     test_infer!(
-        struct_,
+        struct_constructor,
         r#"
 struct Foo {
     x: Int,
     y: Bool,
 }
-fn f() -> _ { Foo { x: 1, y: false} }
+fn f() -> _ { Foo { x: 0, y: false } }
 "#,
         Type::struct_(StructDefId::new(0))
     );
@@ -226,9 +226,12 @@ struct Foo {
     x: Int,
     y: Bool,
 }
-fn f() -> _ { Foo { x: 1, y: false} }
+fn f() -> _ {
+    let foo = Foo { x: 0, y: false };
+    (foo.x, foo.y)
+}
 "#,
-        Type::struct_(StructDefId::new(0))
+        Type::tuple(vec![Type::INT, Type::BOOL])
     );
 
     test_infer!(

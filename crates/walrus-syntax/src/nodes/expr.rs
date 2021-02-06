@@ -74,6 +74,7 @@ pub struct FieldExpr {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Field {
     Tuple(DecInt),
+    Named(Var),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
