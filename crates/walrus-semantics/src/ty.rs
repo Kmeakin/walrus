@@ -24,7 +24,7 @@ impl Type {
     pub const fn new0(ctor: TypeCtor) -> Self { Self::App(TypeApp::new0(ctor)) }
     pub fn function(params: Vec<Self>, ret: Self) -> Self { Self::App(TypeApp::func(params, ret)) }
     pub fn tuple(tys: Vec<Self>) -> Self { Self::App(TypeApp::tuple(tys)) }
-    pub fn struct_(id: StructDefId) -> Self { Self::App(TypeApp::struct_(id)) }
+    pub const fn struct_(id: StructDefId) -> Self { Self::App(TypeApp::struct_(id)) }
     pub fn as_tuple(&self) -> Option<&[Self]> {
         match self {
             Self::App(TypeApp {
@@ -95,7 +95,7 @@ impl TypeApp {
             params: tys,
         }
     }
-    pub fn struct_(id: StructDefId) -> Self { Self::new0(TypeCtor::Struct(id)) }
+    pub const fn struct_(id: StructDefId) -> Self { Self::new0(TypeCtor::Struct(id)) }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
