@@ -17,6 +17,14 @@ InferenceResult {
             },
         ),
     },
+    type_of_type: {
+        0: App(
+            TypeApp {
+                ctor: Float,
+                params: [],
+            },
+        ),
+    },
     type_of_pat: {},
     type_of_fn: {
         0: FnType {

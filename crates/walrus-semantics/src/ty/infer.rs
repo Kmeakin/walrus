@@ -18,9 +18,18 @@ pub fn infer(module: Module, scopes: Scopes) -> InferenceResult {
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct InferenceResult {
     pub type_of_expr: ArenaMap<ExprId, Type>,
+    pub type_of_type: ArenaMap<TypeId, Type>,
     pub type_of_pat: ArenaMap<PatId, Type>,
     pub type_of_fn: ArenaMap<FnDefId, FnType>,
     pub diagnostics: Vec<Diagnostic>,
+}
+
+/// An id representing any "thing" whose type is infered.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum InferenceId {
+    Expr(ExprId),
+    Type(TypeId),
+    Pat(PatId),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -60,7 +69,19 @@ impl Ctx {
             let was_unknown = ty == &Type::Unknown;
             *ty = self.propagate_type_completely(ty);
             if !was_unknown && ty == &Type::Unknown {
-                result.diagnostics.push(Diagnostic::InferenceFail(Left(id)))
+                result
+                    .diagnostics
+                    .push(Diagnostic::InferenceFail(InferenceId::Expr(id)))
+            }
+        }
+
+        for (id, ty) in result.type_of_type.iter_mut() {
+            let was_unknown = ty == &Type::Unknown;
+            *ty = self.propagate_type_completely(ty);
+            if !was_unknown && ty == &Type::Unknown {
+                result
+                    .diagnostics
+                    .push(Diagnostic::InferenceFail(InferenceId::Type(id)))
             }
         }
 
@@ -70,7 +91,7 @@ impl Ctx {
             if !was_unknown && ty == &Type::Unknown {
                 result
                     .diagnostics
-                    .push(Diagnostic::InferenceFail(Right(id)))
+                    .push(Diagnostic::InferenceFail(InferenceId::Pat(id)))
             }
         }
 
@@ -97,9 +118,10 @@ impl Ctx {
         ret
     }
 
-    fn set_expr_ty(&mut self, expr: ExprId, ty: Type) { self.result.type_of_expr.insert(expr, ty); }
-    fn set_pat_ty(&mut self, pat: PatId, ty: Type) { self.result.type_of_pat.insert(pat, ty); }
-    fn set_fn_ty(&mut self, fn_def: FnDefId, ty: FnType) {
+    fn set_expr_type(&mut self, id: ExprId, ty: Type) { self.result.type_of_expr.insert(id, ty); }
+    fn set_pat_type(&mut self, id: PatId, ty: Type) { self.result.type_of_pat.insert(id, ty); }
+    fn set_type_type(&mut self, id: TypeId, ty: Type) { self.result.type_of_type.insert(id, ty); }
+    fn set_fn_type(&mut self, fn_def: FnDefId, ty: FnType) {
         self.result.type_of_fn.insert(fn_def, ty);
     }
 
@@ -107,7 +129,7 @@ impl Ctx {
 
     fn resolve_type(&mut self, id: TypeId) -> Type {
         let ty = self.module.data[id].clone();
-        match ty {
+        let ty = match ty {
             hir::Type::Infer => self.new_type_var(),
             hir::Type::Tuple(tys) => {
                 Type::tuple(tys.iter().map(|ty| self.resolve_type(*ty)).collect())
@@ -117,7 +139,10 @@ impl Ctx {
                 self.resolve_type(ret),
             ),
             hir::Type::Var(var) => self.resolve_var_type(var, id),
-        }
+        };
+        let ty = self.propagate_type_as_far_as_possible(&ty);
+        self.set_type_type(id, ty.clone());
+        ty
     }
 
     fn resolve_var_type(&mut self, var_id: VarId, id: TypeId) -> Type {
@@ -225,8 +250,15 @@ impl Ctx {
 
     fn infer_decl(&mut self, decl: Decl) {
         match decl {
-            Decl::Fn(fn_id) => self.infer_fn_decl(fn_id),
-            Decl::Struct(_) => todo!(),
+            Decl::Struct(id) => self.infer_struct_decl(id),
+            Decl::Fn(id) => self.infer_fn_decl(id),
+        }
+    }
+
+    fn infer_struct_decl(&mut self, id: StructDefId) {
+        let struct_decl = self.module.data[id].clone();
+        for field in struct_decl.fields {
+            self.resolve_type(field.ty);
         }
     }
 
@@ -240,13 +272,15 @@ impl Ctx {
         let ret = fn_decl
             .ret_type
             .map_or(Type::UNIT, |ty| self.resolve_type(ty));
-        self.set_fn_ty(fn_id, FnType { params, ret });
+        self.set_fn_type(fn_id, FnType { params, ret });
     }
 
     fn infer_decl_body(&mut self, decl: Decl) {
         match decl {
-            Decl::Fn(fn_id) => self.infer_fn_body(fn_id),
-            Decl::Struct(_) => todo!(),
+            Decl::Struct(_) => {}
+            Decl::Fn(fn_id) => {
+                self.infer_fn_body(fn_id);
+            }
         };
     }
 
@@ -301,7 +335,7 @@ impl Ctx {
             }
         };
         let ty = self.propagate_type_as_far_as_possible(&ty);
-        self.set_pat_ty(id, ty.clone());
+        self.set_pat_type(id, ty.clone());
         self.try_to_unify_and_propagate_as_far_as_possible(Right(id), expected, &ty)
     }
 
@@ -328,7 +362,7 @@ impl Ctx {
             Expr::Block { stmts, expr } => self.infer_block_expr(expected, &stmts, expr),
         };
         let ty = self.propagate_type_as_far_as_possible(&ty);
-        self.set_expr_ty(id, ty.clone());
+        self.set_expr_type(id, ty.clone());
         self.try_to_unify_and_propagate_as_far_as_possible(Left(id), expected, &ty)
     }
 
@@ -423,7 +457,39 @@ impl Ctx {
                 ref params,
             }) => match field {
                 Field::Tuple(idx) if (idx as usize) < params.len() => params[idx as usize].clone(),
-                _ => {
+                Field::Tuple(_) | Field::Named(_) => {
+                    self.result.diagnostics.push(Diagnostic::NoSuchField {
+                        expr: base,
+                        ty: base_type,
+                        field,
+                    });
+                    Type::Unknown
+                }
+            },
+            Type::App(TypeApp {
+                ctor: TypeCtor::Struct(id),
+                ref params,
+            }) => match field {
+                Field::Named(name) => {
+                    let field_name = &self.module.data[name];
+                    let struct_def = &self.module.data[id];
+                    let target = struct_def
+                        .fields
+                        .iter()
+                        .find(|field| &self.module.data[field.name] == field_name);
+                    match target {
+                        Some(field) => self.result.type_of_type[field.ty].clone(),
+                        None => {
+                            self.result.diagnostics.push(Diagnostic::NoSuchField {
+                                expr: base,
+                                ty: base_type,
+                                field,
+                            });
+                            Type::Unknown
+                        }
+                    }
+                }
+                Field::Tuple(_) => {
                     self.result.diagnostics.push(Diagnostic::NoSuchField {
                         expr: base,
                         ty: base_type,

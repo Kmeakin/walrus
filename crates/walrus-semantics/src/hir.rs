@@ -86,7 +86,10 @@ pub struct ModuleSource {
     pub types: ArenaMap<TypeId, syntax::Type>,
     pub pats: ArenaMap<PatId, syntax::Pat>,
 }
-
+impl Index<VarId> for ModuleSource {
+    type Output = syntax::Var;
+    fn index(&self, id: VarId) -> &Self::Output { &self.vars[id] }
+}
 impl Index<FnDefId> for ModuleSource {
     type Output = syntax::FnDef;
     fn index(&self, id: FnDefId) -> &Self::Output { &self.fn_defs[id] }
@@ -184,6 +187,7 @@ pub enum Expr {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Field {
     Tuple(u32),
+    Named(VarId),
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]

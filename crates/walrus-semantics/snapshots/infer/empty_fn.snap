@@ -11,6 +11,7 @@ InferenceResult {
             },
         ),
     },
+    type_of_type: {},
     type_of_pat: {},
     type_of_fn: {
         0: FnType {

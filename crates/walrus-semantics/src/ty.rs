@@ -1,9 +1,10 @@
 use self::unify::TypeVarId;
+use crate::hir::StructDefId;
 
 mod infer;
 mod unify;
 
-pub use self::infer::infer;
+pub use self::infer::{infer, InferenceId, InferenceResult};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Type {
@@ -104,6 +105,7 @@ pub enum TypeCtor {
     Never,
     Tuple,
     Fn,
+    Struct(StructDefId),
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]

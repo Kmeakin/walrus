@@ -23,6 +23,14 @@ InferenceResult {
             },
         ),
     },
+    type_of_type: {
+        0: App(
+            TypeApp {
+                ctor: Int,
+                params: [],
+            },
+        ),
+    },
     type_of_pat: {
         0: App(
             TypeApp {

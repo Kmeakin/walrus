@@ -1,4 +1,11 @@
 use crate::{hir::Var, ty::Type};
+use std::fmt;
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum BuiltinKind {
+    Type,
+    Value,
+}
 
 macro_rules! builtins {
     (
@@ -82,8 +89,6 @@ builtins! {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum BuiltinKind {
-    Type,
-    Value,
+impl fmt::Display for Builtin {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "{}", self.name()) }
 }

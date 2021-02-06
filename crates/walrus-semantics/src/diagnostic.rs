@@ -1,7 +1,7 @@
 use crate::{
     hir::{Binop, ExprId, Field, PatId, TypeId, VarId},
     scopes::Denotation,
-    ty::Type,
+    ty::{InferenceId, Type},
 };
 use either::Either;
 use std::num::{ParseFloatError, ParseIntError};
@@ -26,6 +26,12 @@ pub enum Diagnostic {
         id: Either<ExprId, TypeId>,
         denotation: Option<Denotation>,
     },
+    TypeMismatch {
+        id: Either<ExprId, PatId>,
+        expected: Type,
+        got: Type,
+    },
+    InferenceFail(InferenceId),
     IfBranchMismatch {
         then_branch: ExprId,
         else_branch: ExprId,
@@ -34,11 +40,6 @@ pub enum Diagnostic {
     },
     ReturnNotInFn(ExprId),
     BreakNotInLoop(ExprId),
-    TypeMismatch {
-        id: Either<ExprId, PatId>,
-        expected: Type,
-        got: Type,
-    },
     CalledNonFn {
         expr: ExprId,
         ty: Type,
@@ -49,7 +50,6 @@ pub enum Diagnostic {
         expected: usize,
         got: usize,
     },
-    InferenceFail(Either<ExprId, PatId>),
     CannotApplyBinop {
         lhs_type: Type,
         op: Binop,
