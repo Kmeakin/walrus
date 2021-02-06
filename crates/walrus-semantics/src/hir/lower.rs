@@ -218,6 +218,18 @@ impl Ctx {
                     syntax::Field::Tuple(int) => Field::Tuple(self.lower_int(&int.text, 10)),
                 },
             },
+            syntax::Expr::Struct(expr) => Expr::Struct {
+                name: self.lower_var(expr.name.clone()),
+                fields: expr
+                    .fields
+                    .inner
+                    .iter()
+                    .map(|field| StructExprField {
+                        name: self.lower_var(field.name.clone()),
+                        val: self.lower_expr(&field.val),
+                    })
+                    .collect(),
+            },
             syntax::Expr::If(expr) => self.lower_if_expr(expr),
             syntax::Expr::Return(expr) => {
                 Expr::Return(expr.expr.as_ref().map(|expr| self.lower_expr(expr)))

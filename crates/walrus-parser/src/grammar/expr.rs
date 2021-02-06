@@ -9,6 +9,16 @@ use nom::{
 
 pub fn expr(input: Input) -> IResult<Expr> {
     lambda_expr
+        .or(struct_expr)
+        .or(return_expr)
+        .or(break_expr)
+        .or(continue_expr)
+        .or(assign_expr)
+        .or(cmp_expr)
+        .parse(input)
+}
+pub fn expr_no_struct(input: Input) -> IResult<Expr> {
+    lambda_expr
         .or(return_expr)
         .or(break_expr)
         .or(continue_expr)
@@ -28,6 +38,17 @@ fn lambda_expr(input: Input) -> IResult<Expr> {
             expr: box expr,
         }),
     ))
+}
+fn struct_expr(input: Input) -> IResult<Expr> {
+    let (input, name) = var.parse(input)?;
+    let (input, fields) = curly(punctuated0(struct_expr_field, comma)).parse(input)?;
+    Ok((input, Expr::Struct(StructExpr { name, fields })))
+}
+fn struct_expr_field(input: Input) -> IResult<StructExprField> {
+    let (input, name) = var.parse(input)?;
+    let (input, colon) = colon.parse(input)?;
+    let (input, val) = expr.parse(input)?;
+    Ok((input, StructExprField { name, colon, val }))
 }
 fn return_expr(input: Input) -> IResult<Expr> {
     let (input, kw_return) = kw_return.parse(input)?;
@@ -201,7 +222,7 @@ fn paren_expr(input: Input) -> IResult<Expr> { paren(expr).map(Expr::Paren).pars
 fn tuple_expr(input: Input) -> IResult<Expr> { tuple(expr).map(Expr::Tuple).parse(input) }
 fn if_expr(input: Input) -> IResult<Expr> {
     let (input, kw_if) = kw_if.parse(input)?;
-    let (input, test_expr) = expr.parse(input)?;
+    let (input, test_expr) = expr_no_struct.parse(input)?;
     let (input, then_branch) = block_expr.parse(input)?;
     let (input, else_branch) = else_expr.opt().parse(input)?;
     Ok((

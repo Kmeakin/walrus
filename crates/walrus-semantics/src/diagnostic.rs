@@ -65,4 +65,9 @@ pub enum Diagnostic {
         expr: ExprId,
         ty: Type,
     },
+    MissingField {
+        expr: ExprId,
+        field: Field,
+        ty: Type,
+    },
 }

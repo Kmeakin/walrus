@@ -11,6 +11,7 @@ pub enum Expr {
     Binary(BinaryExpr),
     Call(CallExpr),
     Field(FieldExpr),
+    Struct(StructExpr),
     If(IfExpr),
     Return(ReturnExpr),
     Break(BreakExpr),
@@ -73,6 +74,19 @@ pub struct FieldExpr {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Field {
     Tuple(DecInt),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct StructExpr {
+    pub name: Var,
+    pub fields: Curly<Punctuated0<StructExprField, Comma>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct StructExprField {
+    pub name: Var,
+    pub colon: Colon,
+    pub val: Expr,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

@@ -138,19 +138,20 @@ impl Ctx {
                 params.iter().map(|ty| self.resolve_type(*ty)).collect(),
                 self.resolve_type(ret),
             ),
-            hir::Type::Var(var) => self.resolve_var_type(var, id),
+            hir::Type::Var(var) => self.resolve_var_type(id, var),
         };
         let ty = self.propagate_type_as_far_as_possible(&ty);
         self.set_type_type(id, ty.clone());
         ty
     }
 
-    fn resolve_var_type(&mut self, var_id: VarId, id: TypeId) -> Type {
+    fn resolve_var_type(&mut self, id: TypeId, var_id: VarId) -> Type {
         let var = &self.module.data[var_id];
         let scope = self.scopes.scope_of_type(id);
         let denotation = self.scopes.lookup_in_scope(scope, var);
         match denotation {
             Some(Denotation::Builtin(b)) if b.kind() == BuiltinKind::Type => b.ty(),
+            Some(Denotation::Struct(id)) => Type::struct_(id),
             _ => {
                 self.result.diagnostics.push(Diagnostic::UnboundVar {
                     id: Right(id),
@@ -162,7 +163,7 @@ impl Ctx {
         }
     }
 
-    fn resolve_var_expr(&mut self, var_id: VarId, id: ExprId) -> Type {
+    fn resolve_var_expr(&mut self, id: ExprId, var_id: VarId) -> Type {
         let var = &self.module.data[var_id];
         let scope = self.scopes.scope_of_expr(id);
         let denotation = self.scopes.lookup_in_scope(scope, var);
@@ -343,8 +344,9 @@ impl Ctx {
         let expr = self.module.data[id].clone();
         let ty = match expr {
             Expr::Lit(lit) => lit.ty(),
-            Expr::Var(var) => self.resolve_var_expr(var, id),
+            Expr::Var(var) => self.resolve_var_expr(id, var),
             Expr::Tuple(exprs) => self.infer_tuple_expr(expected, &exprs),
+            Expr::Struct { name, fields } => self.infer_struct_expr(id, name, &fields),
             Expr::If {
                 test,
                 then_branch,
@@ -375,6 +377,64 @@ impl Ctx {
             .map(|(expr, expected)| self.infer_expr(expected, *expr))
             .collect();
         Type::tuple(tys)
+    }
+
+    fn infer_struct_expr(
+        &mut self,
+        parent_expr: ExprId,
+        name: VarId,
+        fields: &[StructExprField],
+    ) -> Type {
+        let var = &self.module.data[name];
+        let scope = self.scopes.scope_of_expr(parent_expr);
+        let denotation = self.scopes.lookup_in_scope(scope, var);
+        match denotation {
+            Some(Denotation::Struct(id)) => {
+                let struct_def = self.module.data[id].clone();
+                let struct_type = Type::struct_(id);
+                for field in fields {
+                    let name = &self.module.data[field.name];
+                    let target_field = struct_def
+                        .fields
+                        .iter()
+                        .find(|f| &self.module.data[f.name] == name);
+                    match target_field {
+                        None => self.result.diagnostics.push(Diagnostic::NoSuchField {
+                            expr: parent_expr,
+                            field: Field::Named(field.name),
+                            ty: struct_type.clone(),
+                        }),
+                        Some(target_field) => {
+                            let expected = self.result.type_of_type[target_field.ty].clone();
+                            self.infer_expr(&expected, field.val);
+                        }
+                    }
+                }
+                for field in struct_def.fields {
+                    let name = &self.module.data[field.name];
+                    let provided_field = fields.iter().find(|f| &self.module.data[f.name] == name);
+                    match provided_field {
+                        Some(_) => {}
+                        None => {
+                            self.result.diagnostics.push(Diagnostic::MissingField {
+                                expr: parent_expr,
+                                field: Field::Named(field.name),
+                                ty: struct_type.clone(),
+                            });
+                        }
+                    }
+                }
+                struct_type
+            }
+            _ => {
+                self.result.diagnostics.push(Diagnostic::UnboundVar {
+                    id: Left(parent_expr),
+                    var: name,
+                    denotation,
+                });
+                Type::Unknown
+            }
+        }
     }
 
     fn infer_if_expr(

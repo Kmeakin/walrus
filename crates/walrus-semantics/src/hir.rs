@@ -152,6 +152,10 @@ pub enum Expr {
         expr: ExprId,
         field: Field,
     },
+    Struct {
+        name: VarId,
+        fields: Vec<StructExprField>,
+    },
     Unop {
         op: Unop,
         expr: ExprId,
@@ -182,6 +186,12 @@ pub enum Expr {
         params: Vec<Param>,
         expr: ExprId,
     },
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct StructExprField {
+    pub name: VarId,
+    pub val: ExprId,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]

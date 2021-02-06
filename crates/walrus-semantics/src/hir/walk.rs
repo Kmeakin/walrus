@@ -5,6 +5,7 @@ impl Expr {
         match self {
             Self::Lit(_) | Self::Var(_) | Self::Continue => {}
             Self::Tuple(exprs) => exprs.iter().for_each(|expr| f(*expr)),
+            Self::Struct { fields, .. } => fields.iter().for_each(|field| f(field.val)),
             Self::Field { expr, .. }
             | Self::Unop { expr, .. }
             | Self::Lambda { expr, .. }
