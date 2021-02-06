@@ -9,7 +9,7 @@ pub struct Idx<T> {
 }
 
 impl<T> Idx<T> {
-    pub(crate) fn new(raw: u32) -> Self {
+    pub fn new(raw: u32) -> Self {
         Self {
             raw,
             _ty: PhantomData,

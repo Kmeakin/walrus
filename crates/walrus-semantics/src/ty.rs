@@ -191,6 +191,45 @@ fn g() -> _ {1}
         r#"fn f() -> _ {(1,false)}"#,
         Type::tuple(vec![Type::INT, Type::BOOL])
     );
+    test_infer!(
+        tuple_destructure,
+        r#"fn f() -> _ {let (x, y) = (1, false); (y, x)}"#,
+        Type::tuple(vec![Type::BOOL, Type::INT])
+    );
+    test_infer!(
+        tuple_field,
+        r#"fn f() -> _ {let x = (1, false); (x.1, x.0)}"#,
+        Type::tuple(vec![Type::BOOL, Type::INT])
+    );
+
+    test_infer!(
+        struct_,
+        r#"
+struct Foo {
+    x: Int,
+    y: Bool,
+}
+fn f() -> _ { Foo { x: 1, y: false} }
+"#,
+        Type::struct_(StructDefId::new(0))
+    );
+    // TODO
+    // test_infer!(
+    //     struct_destructure,
+    //     r#"fn f() -> _ {let (x, y) = (1, false); (y, x)}"#,
+    //     Type::struct_(vec![Type::BOOL, Type::INT])
+    // );
+    test_infer!(
+        struct_field,
+        r#"
+struct Foo {
+    x: Int,
+    y: Bool,
+}
+fn f() -> _ { Foo { x: 1, y: false} }
+"#,
+        Type::struct_(StructDefId::new(0))
+    );
 
     test_infer!(
         lambda,
