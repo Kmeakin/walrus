@@ -63,4 +63,10 @@ mod tests {
 
     test_parse!(empty_file, source_file, r#""#);
     test_parse!(empty_fn, source_file, r#"fn f() {}"#);
+    test_parse!(empty_struct, source_file, r#"struct Foo {}"#);
+    test_parse!(
+        struct_with_fields,
+        source_file,
+        r#"struct Foo {x: Int, y: Float}"#
+    );
 }

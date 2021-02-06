@@ -351,7 +351,8 @@ mod tests {
     test_parse!(nested_prefix_expr, expr, r#"--2"#);
     test_parse!(call_expr, expr, r#"f()"#);
     test_parse!(nested_call_expr, expr, r#"f()()"#);
-    test_parse!(field_expr, expr, r#"x._0"#);
+    test_parse!(tuple_field_expr, expr, r#"x.0"#);
+    test_parse!(named_field_expr, expr, r#"x.y"#);
     test_parse!(nested_field_expr, expr, r#"x._0._0"#);
     test_parse!(mixed_expr, expr, r#"-1+2"#);
     test_parse!(lambda_expr, expr, r#"() => 1"#);
@@ -365,4 +366,5 @@ mod tests {
     test_parse!(continue_expr, expr, r#"continue"#);
     test_parse!(block_expr, expr, r#"{x; y; z}"#);
     test_parse!(block_expr2, expr, r#"{if true {} loop {} {} x}"#);
+    test_parse!(struct_expr, expr, r#"Foo {x: 1, y: 2}"#);
 }

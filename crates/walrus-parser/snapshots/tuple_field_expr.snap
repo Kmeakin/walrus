@@ -1,0 +1,30 @@
+---
+source: crates/walrus-parser/src/grammar.rs
+expression: got
+---
+Ok(
+    (
+        [],
+        Field(
+            FieldExpr {
+                base: Var(
+                    Var(
+                        Ident {
+                            span: 0..1,
+                            text: "x",
+                        },
+                    ),
+                ),
+                dot: Dot {
+                    span: 1..2,
+                },
+                field: Tuple(
+                    DecInt {
+                        span: 2..3,
+                        text: "0",
+                    },
+                ),
+            },
+        ),
+    ),
+)

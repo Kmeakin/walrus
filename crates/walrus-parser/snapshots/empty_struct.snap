@@ -1,0 +1,39 @@
+---
+source: crates/walrus-parser/src/grammar.rs
+expression: got
+---
+Ok(
+    (
+        [],
+        SourceFile {
+            decls: [
+                Struct(
+                    StructDef {
+                        kw_struct: KwStruct {
+                            span: 0..6,
+                        },
+                        name: Var(
+                            Ident {
+                                span: 7..10,
+                                text: "Foo",
+                            },
+                        ),
+                        fields: Delimited {
+                            open: LCurly {
+                                span: 11..12,
+                            },
+                            inner: Punctuated0 {
+                                first: None,
+                                tail: [],
+                                trail: None,
+                            },
+                            close: RCurly {
+                                span: 12..13,
+                            },
+                        },
+                    },
+                ),
+            ],
+        },
+    ),
+)

@@ -1,0 +1,81 @@
+---
+source: crates/walrus-parser/src/grammar.rs
+expression: got
+---
+Ok(
+    (
+        [],
+        Struct(
+            StructExpr {
+                name: Var(
+                    Ident {
+                        span: 0..3,
+                        text: "Foo",
+                    },
+                ),
+                fields: Delimited {
+                    open: LCurly {
+                        span: 4..5,
+                    },
+                    inner: Punctuated0 {
+                        first: Some(
+                            StructExprField {
+                                name: Var(
+                                    Ident {
+                                        span: 5..6,
+                                        text: "x",
+                                    },
+                                ),
+                                colon: Colon {
+                                    span: 6..7,
+                                },
+                                val: Lit(
+                                    Int(
+                                        Dec(
+                                            DecInt {
+                                                span: 8..9,
+                                                text: "1",
+                                            },
+                                        ),
+                                    ),
+                                ),
+                            },
+                        ),
+                        tail: [
+                            (
+                                Comma {
+                                    span: 9..10,
+                                },
+                                StructExprField {
+                                    name: Var(
+                                        Ident {
+                                            span: 11..12,
+                                            text: "y",
+                                        },
+                                    ),
+                                    colon: Colon {
+                                        span: 12..13,
+                                    },
+                                    val: Lit(
+                                        Int(
+                                            Dec(
+                                                DecInt {
+                                                    span: 14..15,
+                                                    text: "2",
+                                                },
+                                            ),
+                                        ),
+                                    ),
+                                },
+                            ),
+                        ],
+                        trail: None,
+                    },
+                    close: RCurly {
+                        span: 15..16,
+                    },
+                },
+            },
+        ),
+    ),
+)

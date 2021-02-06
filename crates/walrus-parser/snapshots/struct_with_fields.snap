@@ -1,0 +1,84 @@
+---
+source: crates/walrus-parser/src/grammar.rs
+expression: got
+---
+Ok(
+    (
+        [],
+        SourceFile {
+            decls: [
+                Struct(
+                    StructDef {
+                        kw_struct: KwStruct {
+                            span: 0..6,
+                        },
+                        name: Var(
+                            Ident {
+                                span: 7..10,
+                                text: "Foo",
+                            },
+                        ),
+                        fields: Delimited {
+                            open: LCurly {
+                                span: 11..12,
+                            },
+                            inner: Punctuated0 {
+                                first: Some(
+                                    StructField {
+                                        name: Var(
+                                            Ident {
+                                                span: 12..13,
+                                                text: "x",
+                                            },
+                                        ),
+                                        colon: Colon {
+                                            span: 13..14,
+                                        },
+                                        ty: Var(
+                                            Var(
+                                                Ident {
+                                                    span: 15..18,
+                                                    text: "Int",
+                                                },
+                                            ),
+                                        ),
+                                    },
+                                ),
+                                tail: [
+                                    (
+                                        Comma {
+                                            span: 18..19,
+                                        },
+                                        StructField {
+                                            name: Var(
+                                                Ident {
+                                                    span: 20..21,
+                                                    text: "y",
+                                                },
+                                            ),
+                                            colon: Colon {
+                                                span: 21..22,
+                                            },
+                                            ty: Var(
+                                                Var(
+                                                    Ident {
+                                                        span: 23..28,
+                                                        text: "Float",
+                                                    },
+                                                ),
+                                            ),
+                                        },
+                                    ),
+                                ],
+                                trail: None,
+                            },
+                            close: RCurly {
+                                span: 28..29,
+                            },
+                        },
+                    },
+                ),
+            ],
+        },
+    ),
+)
