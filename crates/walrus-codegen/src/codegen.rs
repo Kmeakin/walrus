@@ -111,7 +111,7 @@ impl<'ctx> Compiler<'ctx> {
     fn tuple_type(&self, tys: &[Type]) -> StructType<'ctx> {
         self.llvm.struct_type(
             &tys.iter().map(|ty| self.value_type(ty)).collect::<Vec<_>>(),
-            true,
+            false,
         )
     }
 
@@ -127,6 +127,15 @@ impl<'ctx> Compiler<'ctx> {
 
         for (id, _) in self.hir.fn_defs.iter() {
             self.codegen_fn(&mut vars, id)
+        }
+
+        match self.module.verify() {
+            Err(e) => {
+                eprintln!("{}", self.module.print_to_string().to_string());
+                eprintln!("{}", e.to_string());
+                panic!()
+            }
+            _ => {}
         }
 
         self.module
@@ -160,12 +169,23 @@ impl<'ctx> Compiler<'ctx> {
         self.builder.build_return(Some(&body));
     }
 
-    fn codegen_local_var(&self, vars: &mut Vars, id: PatId, val: BasicValueEnum) {
+    fn codegen_local_var(&self, vars: &mut Vars<'ctx>, id: PatId, val: BasicValueEnum) {
         let pat = &self.hir[id];
+        let pat_type = &self.types[id];
         match pat {
-            hir::Pat::Ignore | hir::Pat::Var(_) => {
+            hir::Pat::Var(var) => {
+                let name = format!("{}.alloca", self.hir[*var]);
+                let alloca = self.builder.build_alloca(self.value_type(&pat_type), &name);
+                vars.locals.insert(id, alloca);
+                self.builder.build_store(vars[id], val);
+            }
+            hir::Pat::Ignore => {
                 // `Pat::Ignore` still evaluates its arguments, for side effects
                 // eg `let _ = print(5);`
+                let alloca = self
+                    .builder
+                    .build_alloca(self.value_type(&pat_type), "_.alloca");
+                vars.locals.insert(id, alloca);
                 self.builder.build_store(vars[id], val);
             }
             hir::Pat::Tuple(pats) => pats.iter().enumerate().for_each(|(idx, id)| {
@@ -223,7 +243,7 @@ impl<'ctx> Compiler<'ctx> {
         }
     }
 
-    fn codegen_unit(&self) -> BasicValueEnum { self.llvm.const_struct(&[], true).into() }
+    fn codegen_unit(&self) -> BasicValueEnum { self.llvm.const_struct(&[], false).into() }
 
     fn codegen_lit(&self, lit: Lit) -> BasicValueEnum {
         match lit {
@@ -240,10 +260,30 @@ impl<'ctx> Compiler<'ctx> {
         let scope = self.scopes.scope_of_expr(expr);
         let denotation = self.scopes.lookup_in_scope(scope, var);
         match denotation {
-            Some(Denotation::Local(id)) => {
-                self.builder.build_load(vars[id], &format!("{var}.load"))
+            Some(Denotation::Local(id)) => self.builder.build_load(vars[id], var.as_str()),
+            Some(Denotation::Fn(id)) => {
+                let fn_def = &self.hir[id];
+                let fn_name = &self.hir[fn_def.name];
+                let code_ptr = vars[id].as_global_value().as_pointer_value();
+                let closure_type = self.types[expr].as_fn().unwrap();
+                let closure_alloca = self.builder.build_alloca(
+                    self.closure_type(&closure_type),
+                    &format!("{fn_name}.closure.alloca"),
+                );
+                let code_gep = self
+                    .builder
+                    .build_struct_gep(closure_alloca, 0, &format!("{fn_name}.closure.code"))
+                    .unwrap();
+                self.builder.build_store(code_gep, code_ptr);
+
+                let env_gep = self
+                    .builder
+                    .build_struct_gep(closure_alloca, 1, &format!("{fn_name}.closure.env"))
+                    .unwrap();
+                let null_ptr = self.void_ptr_type().const_zero();
+                self.builder.build_store(env_gep, null_ptr);
+                self.builder.build_load(closure_alloca, fn_name.as_str())
             }
-            Some(Denotation::Fn(id)) => todo!(),
             Some(Denotation::Builtin(b)) => todo!(),
             _ => unreachable!(),
         }
@@ -262,11 +302,11 @@ impl<'ctx> Compiler<'ctx> {
             let value = self.codegen_expr(vars, *expr);
             let gep = self
                 .builder
-                .build_struct_gep(tuple_alloca, idx as u32, &format!("tuple.{idx}.gep"))
+                .build_struct_gep(tuple_alloca, idx as u32, &format!("tuple.{idx}"))
                 .unwrap();
             self.builder.build_store(gep, value);
         }
-        self.builder.build_load(tuple_alloca, "tuple.load")
+        self.builder.build_load(tuple_alloca, "tuple")
     }
 
     fn codegen_struct(
@@ -295,7 +335,7 @@ impl<'ctx> Compiler<'ctx> {
                 .build_struct_gep(
                     struct_alloca,
                     idx as u32,
-                    &format!("{struct_name}.{field_name}.gep"),
+                    &format!("{struct_name}.{field_name}"),
                 )
                 .unwrap();
             let (_, value) = init_exprs
@@ -304,8 +344,7 @@ impl<'ctx> Compiler<'ctx> {
                 .unwrap();
             self.builder.build_store(gep, *value);
         }
-        self.builder
-            .build_load(struct_alloca, &format!("{struct_name}.load"))
+        self.builder.build_load(struct_alloca, struct_name.as_str())
     }
 
     fn codegen_field(&self, vars: &mut Vars<'ctx>, expr: ExprId, field: Field) -> BasicValueEnum {
@@ -484,5 +523,68 @@ mod tests {
         settings.bind(|| assert_display_snapshot!(llvm_module.print_to_string().to_string()));
     }
 
-    test_codegen_and_run!(empty_fn, r#"fn main() {}"#, ());
+    test_codegen_and_run!(empty_fn, r#"fn main() -> _ {}"#, ());
+    test_codegen_and_run!(lit_true, r#"fn main() -> _ { true }"#, true);
+    test_codegen_and_run!(lit_false, r#"fn main() -> _ { false }"#, false);
+    test_codegen_and_run!(lit_int, r#"fn main() -> _ { 1 }"#, 1_i32);
+    test_codegen_and_run!(lit_float, r#"fn main() -> _ { 1.234 }"#, 1.234_f32);
+    test_codegen_and_run!(lit_char, r#"fn main() -> _ { 'a' }"#, 'a');
+
+    test_codegen_and_run!(tuple0, r#"fn main() -> _ { () }"#, ());
+    test_codegen_and_run!(tuple1, r#"fn main() -> _ { (1,) }"#, (1_i32,));
+    // TODO: fails
+    #[cfg(FALSE)]
+    test_codegen_and_run!(tuple2, r#"fn main() -> _ { (1,2) }"#, (1_i32, 2_i32));
+    #[cfg(FALSE)]
+    test_codegen_and_run!(
+        tuple3,
+        r#"fn main() -> _ { (1,2,3) }"#,
+        (1_i32, 2_i32, 3_i32)
+    );
+    #[cfg(FALSE)]
+    test_codegen_and_run!(
+        tuple4,
+        r#"fn main() -> _ { (1,2,3,4) }"#,
+        (1_i32, 2_i32, 3_i32, 4_i32)
+    );
+
+    test_codegen_and_run!(
+        if_then_else_true,
+        r#"fn main() -> _ { if true {1} else {0} }"#,
+        1_i32
+    );
+    test_codegen_and_run!(
+        if_then_else_false,
+        r#"fn main() -> _ { if false {1} else {0} }"#,
+        0_i32
+    );
+
+    test_codegen_and_run!(if_then_true, r#"fn main() -> _ { if true {1} }"#, ());
+    test_codegen_and_run!(if_then_false, r#"fn main() -> _ { if false {1} }"#, ());
+
+    test_codegen_and_run!(let_var, r#"fn main() -> _ { let x = 5; x }"#, 5_i32);
+    test_codegen_and_run!(
+        let_tuple2,
+        r#"fn main() -> _ { let (x, y) = (5, 6); x }"#,
+        5_i32
+    );
+    test_codegen_and_run!(
+        let_tuple4,
+        r#"
+fn main() -> _ {
+    let (a, b, c, d) = (9, 8, 7, 6);
+    let (x,(y, z), w) = (d, (c, b), a);
+    x
+}"#,
+        6_i32
+    );
+
+    test_codegen_and_run!(
+        id_fn,
+        r#"
+fn main() -> _ { id(5) }
+fn id(x: _) -> _ {x}
+"#,
+        5_i32
+    );
 }

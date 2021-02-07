@@ -9,6 +9,8 @@ target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16
 
 define {} @main(i8* %main.env) {
 main.entry:
-  ret {} zeroinitializer
+  %tuple.alloca = alloca {}, align 8
+  %tuple = load {}, {}* %tuple.alloca, align 1
+  ret {} %tuple
 }
 
