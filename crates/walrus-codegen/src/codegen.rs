@@ -1,15 +1,15 @@
+#![allow(clippy::cast_possible_truncation)]
+
 use arena::ArenaMap;
 use inkwell::{
     builder::Builder,
     context::Context,
     module::Module,
     types::{BasicType, BasicTypeEnum, FunctionType, StructType},
-    values::{
-        BasicValue, BasicValueEnum, FloatValue, FunctionValue, IntMathValue, IntValue, PointerValue,
-    },
+    values::{BasicValue, BasicValueEnum, FloatValue, FunctionValue, IntValue, PointerValue},
     AddressSpace, FloatPredicate, IntPredicate,
 };
-use std::{cell::RefCell, collections::HashMap, ops::Index};
+use std::ops::Index;
 use walrus_semantics::{
     hir::{self, Binop, Expr, ExprId, Field, FnDefId, Lit, PatId, StructExprField, Unop, VarId},
     scopes::{self, Denotation},
@@ -61,17 +61,16 @@ impl<'ctx> Compiler<'ctx> {
         };
         match ctor {
             ty::Ctor::Bool => self.llvm.bool_type().into(),
-            ty::Ctor::Int => self.llvm.i32_type().into(),
+            ty::Ctor::Int | ty::Ctor::Char => self.llvm.i32_type().into(),
             ty::Ctor::Float => self.llvm.f32_type().into(),
-            ty::Ctor::Char => self.llvm.i32_type().into(),
             ty::Ctor::Tuple => {
                 let field_types = params
                     .iter()
-                    .map(|ty| self.value_type(&ty))
+                    .map(|ty| self.value_type(ty))
                     .collect::<Vec<_>>();
                 self.llvm.struct_type(&field_types, false).into()
             }
-            ty::Ctor::Fn => self.closure_type(ty.as_fn().unwrap()),
+            ty::Ctor::Fn => self.closure_type(&ty.as_fn().unwrap()),
             ty::Ctor::Never => todo!(),
             ty::Ctor::Struct(id) => {
                 let struct_def = &self.hir[*id];
@@ -80,7 +79,7 @@ impl<'ctx> Compiler<'ctx> {
                     .iter()
                     .map(|field| {
                         let field_type = &self.types[field.ty];
-                        self.value_type(&field_type)
+                        self.value_type(field_type)
                     })
                     .collect::<Vec<_>>();
                 self.llvm.struct_type(&field_types, false).into()
@@ -90,20 +89,18 @@ impl<'ctx> Compiler<'ctx> {
 
     fn fn_type(&self, ty: &FnType) -> FunctionType {
         let FnType { params, ret } = ty;
-        self.value_type(ret)
-            .fn_type(
-                &std::iter::once(self.void_ptr_type())
-                    .chain(params.iter().map(|ty| self.value_type(ty)))
-                    .collect::<Vec<_>>(),
-                false,
-            )
-            .clone()
+        self.value_type(ret).fn_type(
+            &std::iter::once(self.void_ptr_type())
+                .chain(params.iter().map(|ty| self.value_type(ty)))
+                .collect::<Vec<_>>(),
+            false,
+        )
     }
 
-    fn closure_type(&self, ty: FnType) -> BasicTypeEnum {
+    fn closure_type(&self, ty: &FnType) -> BasicTypeEnum {
         let struct_type = self.llvm.struct_type(
             &[
-                self.fn_type(&ty).ptr_type(AddressSpace::Generic).into(),
+                self.fn_type(ty).ptr_type(AddressSpace::Generic).into(),
                 self.void_ptr_type(),
             ],
             false,
@@ -125,9 +122,10 @@ impl<'ctx> Compiler<'ctx> {
             let fn_type = self.fn_type(&self.types[id]);
             let name = self.hir[func.name].as_str();
             let llvm_fn = self.module.add_function(name, fn_type, None);
+            vars.fns.insert(id, llvm_fn);
         }
 
-        for (id, func) in self.hir.fn_defs.iter() {
+        for (id, _) in self.hir.fn_defs.iter() {
             self.codegen_fn(&mut vars, id)
         }
 
@@ -231,16 +229,16 @@ impl<'ctx> Compiler<'ctx> {
         match lit {
             Lit::Bool(false) => self.llvm.bool_type().const_int(0, false).into(),
             Lit::Bool(true) => self.llvm.bool_type().const_int(1, false).into(),
-            Lit::Int(val) => self.llvm.i32_type().const_int(val as u64, false).into(),
-            Lit::Float(val) => self.llvm.f32_type().const_float(val.0 as f64).into(),
-            Lit::Char(val) => self.llvm.i32_type().const_int(val as u64, false).into(),
+            Lit::Int(val) => self.llvm.i32_type().const_int(val.into(), false).into(),
+            Lit::Float(val) => self.llvm.f32_type().const_float(val.0.into()).into(),
+            Lit::Char(val) => self.llvm.i32_type().const_int(val.into(), false).into(),
         }
     }
 
     fn codegen_var(&'ctx self, vars: &Vars<'ctx>, expr: ExprId, var: VarId) -> BasicValueEnum {
         let var = &self.hir[var];
         let scope = self.scopes.scope_of_expr(expr);
-        let denotation = self.scopes.lookup_in_scope(scope, &var);
+        let denotation = self.scopes.lookup_in_scope(scope, var);
         match denotation {
             Some(Denotation::Local(id)) => {
                 self.builder.build_load(vars[id], &format!("{var}.load"))
@@ -282,7 +280,7 @@ impl<'ctx> Compiler<'ctx> {
         let struct_name = &self.hir[struct_def.name];
 
         let struct_type = &self.types[expr];
-        let struct_type = self.value_type(&struct_type);
+        let struct_type = self.value_type(struct_type);
         let init_exprs = fields
             .iter()
             .map(|field| (&self.hir[field.name], self.codegen_expr(vars, field.val)))
@@ -300,10 +298,9 @@ impl<'ctx> Compiler<'ctx> {
                     &format!("{struct_name}.{field_name}.gep"),
                 )
                 .unwrap();
-            let value = init_exprs
+            let (_, value) = init_exprs
                 .iter()
                 .find(|(name, _)| name == &field_name)
-                .map(|(_, value)| value)
                 .unwrap();
             self.builder.build_store(gep, *value);
         }
@@ -382,7 +379,7 @@ impl<'ctx> Compiler<'ctx> {
                 self.builder.position_at_end(end_bb);
                 let phi = self
                     .builder
-                    .build_phi(self.value_type(&then_type), "if.merge");
+                    .build_phi(self.value_type(then_type), "if.merge");
                 phi.add_incoming(&[(&then_value, then_bb), (&else_value, else_bb)]);
                 phi.as_basic_value()
             }

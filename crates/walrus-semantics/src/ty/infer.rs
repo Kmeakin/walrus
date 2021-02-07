@@ -505,7 +505,7 @@ impl Ctx {
                 if args.len() != params.len() {
                     self.result.diagnostics.push(Diagnostic::ArgCountMismatch {
                         expr: func,
-                        ty: func_ty.clone(),
+                        ty: func_ty,
                         expected: params.len(),
                         got: args.len(),
                     });
@@ -513,7 +513,7 @@ impl Ctx {
                 for (arg, param) in args.iter().zip(params.iter()) {
                     self.infer_expr(param, *arg);
                 }
-                ret.clone()
+                ret
             }
         }
     }
@@ -537,7 +537,7 @@ impl Ctx {
             },
             Type::App {
                 ctor: Ctor::Struct(id),
-                ref params,
+                ..
             } => match field {
                 Field::Named(name) => {
                     let field_name = &self.module.data[name];

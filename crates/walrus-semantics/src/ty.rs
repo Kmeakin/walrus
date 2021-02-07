@@ -37,7 +37,8 @@ impl Type {
             params: vec![],
         }
     }
-    pub fn function(params: Vec<Self>, ret: Self) -> Self {
+    pub fn function(mut params: Vec<Self>, ret: Self) -> Self {
+        params.push(ret);
         Self::App {
             ctor: Ctor::Fn,
             params,
@@ -79,9 +80,9 @@ impl Type {
             _ => None,
         }
     }
-    pub fn as_struct(&self) -> Option<StructDefId> {
+    pub const fn as_struct(&self) -> Option<StructDefId> {
         match self {
-            Type::App {
+            Self::App {
                 ctor: Ctor::Struct(id),
                 ..
             } => Some(*id),
@@ -92,7 +93,7 @@ impl Type {
     fn walk_mut(&mut self, f: &mut impl FnMut(&mut Self)) {
         f(self);
         match self {
-            Self::App { ctor, params } => {
+            Self::App { params, .. } => {
                 for t in params {
                     t.walk_mut(f);
                 }
