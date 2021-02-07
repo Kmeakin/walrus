@@ -460,21 +460,23 @@ impl<'ctx> Compiler<'ctx> {
             (Binop::Div, Ctor::Float) => self.float_op(vars, l, r, Builder::build_float_div),
             (Binop::Div, _) => unreachable!("`/` only allowed on Int or Float"),
 
-            (Binop::Less, Ctor::Int) => self.int_cmp(vars, l, r, IntPredicate::SLT),
+            (Binop::Less, Ctor::Int | Ctor::Char) => self.int_cmp(vars, l, r, IntPredicate::SLT),
             (Binop::Less, Ctor::Float) => self.float_cmp(vars, l, r, FloatPredicate::OLT),
-            (Binop::Less, _) => unreachable!("`<` only allowed on Int or Float"),
+            (Binop::Less, _) => unreachable!("`<` only allowed on Int, Char or Float"),
 
-            (Binop::LessEq, Ctor::Int) => self.int_cmp(vars, l, r, IntPredicate::SLE),
+            (Binop::LessEq, Ctor::Int | Ctor::Char) => self.int_cmp(vars, l, r, IntPredicate::SLE),
             (Binop::LessEq, Ctor::Float) => self.float_cmp(vars, l, r, FloatPredicate::OLE),
-            (Binop::LessEq, _) => unreachable!("`<=` only allowed on Int or Float"),
+            (Binop::LessEq, _) => unreachable!("`<=` only allowed on Int, Char or Float"),
 
-            (Binop::Greater, Ctor::Int) => self.int_cmp(vars, l, r, IntPredicate::SGT),
+            (Binop::Greater, Ctor::Int | Ctor::Char) => self.int_cmp(vars, l, r, IntPredicate::SGT),
             (Binop::Greater, Ctor::Float) => self.float_cmp(vars, l, r, FloatPredicate::OGT),
-            (Binop::Greater, _) => unreachable!("`>` only allowed on Int or Float"),
+            (Binop::Greater, _) => unreachable!("`>` only allowed on Int, Char or Float"),
 
-            (Binop::GreaterEq, Ctor::Int) => self.int_cmp(vars, l, r, IntPredicate::SGE),
+            (Binop::GreaterEq, Ctor::Int | Ctor::Char) => {
+                self.int_cmp(vars, l, r, IntPredicate::SGE)
+            }
             (Binop::GreaterEq, Ctor::Float) => self.float_cmp(vars, l, r, FloatPredicate::OGE),
-            (Binop::GreaterEq, _) => unreachable!("`>=` only allowed on Int or Float"),
+            (Binop::GreaterEq, _) => unreachable!("`>=` only allowed on Int, Char or Float"),
             _ => todo!(),
         }
     }
