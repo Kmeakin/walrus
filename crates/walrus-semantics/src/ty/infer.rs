@@ -1,3 +1,5 @@
+use std::ops::Index;
+
 use super::{unify::InferenceTable, Type, *};
 use crate::{
     builtins::BuiltinKind,
@@ -24,22 +26,29 @@ pub struct InferenceResult {
     pub diagnostics: Vec<Diagnostic>,
 }
 
+impl Index<ExprId> for InferenceResult {
+    type Output = Type;
+    fn index(&self, id: ExprId) -> &Self::Output { &self.type_of_expr[id] }
+}
+impl Index<TypeId> for InferenceResult {
+    type Output = Type;
+    fn index(&self, id: TypeId) -> &Self::Output { &self.type_of_type[id] }
+}
+impl Index<PatId> for InferenceResult {
+    type Output = Type;
+    fn index(&self, id: PatId) -> &Self::Output { &self.type_of_pat[id] }
+}
+impl Index<FnDefId> for InferenceResult {
+    type Output = FnType;
+    fn index(&self, id: FnDefId) -> &Self::Output { &self.type_of_fn[id] }
+}
+
 /// An id representing any "thing" whose type is infered.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum InferenceId {
     Expr(ExprId),
     Type(TypeId),
     Pat(PatId),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct FnType {
-    pub params: Vec<Type>,
-    pub ret: Type,
-}
-
-impl From<FnType> for Type {
-    fn from(func: FnType) -> Self { Self::function(func.params, func.ret) }
 }
 
 struct Ctx {
@@ -66,9 +75,9 @@ impl Ctx {
     fn finish(mut self) -> InferenceResult {
         let mut result = std::mem::take(&mut self.result);
         for (id, ty) in result.type_of_expr.iter_mut() {
-            let was_unknown = ty == &Type::Unknown;
+            let was_unknown = ty == &Type::Unknown(());
             *ty = self.propagate_type_completely(ty);
-            if !was_unknown && ty == &Type::Unknown {
+            if !was_unknown && ty == &Type::Unknown(()) {
                 result
                     .diagnostics
                     .push(Diagnostic::InferenceFail(InferenceId::Expr(id)))
@@ -76,9 +85,9 @@ impl Ctx {
         }
 
         for (id, ty) in result.type_of_type.iter_mut() {
-            let was_unknown = ty == &Type::Unknown;
+            let was_unknown = ty == &Type::Unknown(());
             *ty = self.propagate_type_completely(ty);
-            if !was_unknown && ty == &Type::Unknown {
+            if !was_unknown && ty == &Type::Unknown(()) {
                 result
                     .diagnostics
                     .push(Diagnostic::InferenceFail(InferenceId::Type(id)))
@@ -86,9 +95,9 @@ impl Ctx {
         }
 
         for (id, ty) in result.type_of_pat.iter_mut() {
-            let was_unknown = ty == &Type::Unknown;
+            let was_unknown = ty == &Type::Unknown(());
             *ty = self.propagate_type_completely(ty);
-            if !was_unknown && ty == &Type::Unknown {
+            if !was_unknown && ty == &Type::Unknown(()) {
                 result
                     .diagnostics
                     .push(Diagnostic::InferenceFail(InferenceId::Pat(id)))
@@ -158,7 +167,7 @@ impl Ctx {
                     var: var_id,
                     denotation,
                 });
-                Type::Unknown
+                Type::Unknown(())
             }
         }
     }
@@ -177,7 +186,7 @@ impl Ctx {
                     var: var_id,
                     denotation,
                 });
-                Type::Unknown
+                Type::Unknown(())
             }
         }
     }
@@ -289,7 +298,7 @@ impl Ctx {
         let fn_decl = self.module.data[fn_id].clone();
         let fn_type = self.result.type_of_fn[fn_id].clone();
         let body_type = self.with_fn_type(fn_type.clone(), |this| {
-            this.infer_expr(&Type::Unknown, fn_decl.expr)
+            this.infer_expr(&Type::Unknown(()), fn_decl.expr)
         });
         self.try_to_unify_and_propagate_as_far_as_possible(
             Left(fn_decl.expr),
@@ -326,7 +335,9 @@ impl Ctx {
             Pat::Var(_) | Pat::Ignore => expected.clone(),
             Pat::Tuple(pats) => {
                 let expectations = expected.as_tuple().unwrap_or(&[]);
-                let expectations = expectations.iter().chain(std::iter::repeat(&Type::Unknown));
+                let expectations = expectations
+                    .iter()
+                    .chain(std::iter::repeat(&Type::Unknown(())));
                 let tys = pats
                     .iter()
                     .zip(expectations)
@@ -370,7 +381,9 @@ impl Ctx {
 
     fn infer_tuple_expr(&mut self, expected: &Type, exprs: &[ExprId]) -> Type {
         let expectations = expected.as_tuple().unwrap_or(&[]);
-        let expectations = expectations.iter().chain(std::iter::repeat(&Type::Unknown));
+        let expectations = expectations
+            .iter()
+            .chain(std::iter::repeat(&Type::Unknown(())));
         let tys = exprs
             .iter()
             .zip(expectations)
@@ -432,7 +445,7 @@ impl Ctx {
                     var: name,
                     denotation,
                 });
-                Type::Unknown
+                Type::Unknown(())
             }
         }
     }
@@ -446,12 +459,12 @@ impl Ctx {
         let _test_ty = self.infer_expr(&Type::BOOL, test);
         match else_branch {
             None => {
-                self.infer_expr(&Type::Unknown, then_branch);
+                self.infer_expr(&Type::Unknown(()), then_branch);
                 Type::UNIT
             }
             Some(else_branch) => {
-                let then_ty = self.infer_expr(&Type::Unknown, then_branch);
-                let else_ty = self.infer_expr(&Type::Unknown, else_branch);
+                let then_ty = self.infer_expr(&Type::Unknown(()), then_branch);
+                let else_ty = self.infer_expr(&Type::Unknown(()), else_branch);
                 if self.unify(&then_ty, &else_ty) {
                     then_ty
                 } else {
@@ -461,7 +474,7 @@ impl Ctx {
                         then_ty,
                         else_ty,
                     });
-                    Type::Unknown
+                    Type::Unknown(())
                 }
             }
         }
@@ -483,16 +496,16 @@ impl Ctx {
     }
 
     fn infer_call_expr(&mut self, func: ExprId, args: &[ExprId]) -> Type {
-        let func_ty = self.infer_expr(&Type::Unknown, func);
+        let func_ty = self.infer_expr(&Type::Unknown(()), func);
         match func_ty.as_fn() {
             None => {
                 self.result.diagnostics.push(Diagnostic::CalledNonFn {
                     expr: func,
                     ty: func_ty,
                 });
-                Type::Unknown
+                Type::Unknown(())
             }
-            Some((params, ret)) => {
+            Some(FnType { params, ret }) => {
                 if args.len() != params.len() {
                     self.result.diagnostics.push(Diagnostic::ArgCountMismatch {
                         expr: func,
@@ -510,7 +523,7 @@ impl Ctx {
     }
 
     fn infer_field_expr(&mut self, base: ExprId, field: Field) -> Type {
-        let base_type = self.infer_expr(&Type::Unknown, base);
+        let base_type = self.infer_expr(&Type::Unknown(()), base);
         match base_type {
             Type::App(TypeApp {
                 ctor: TypeCtor::Tuple,
@@ -523,7 +536,7 @@ impl Ctx {
                         ty: base_type,
                         field,
                     });
-                    Type::Unknown
+                    Type::Unknown(())
                 }
             },
             Type::App(TypeApp {
@@ -545,7 +558,7 @@ impl Ctx {
                                 ty: base_type,
                                 field,
                             });
-                            Type::Unknown
+                            Type::Unknown(())
                         }
                     }
                 }
@@ -555,7 +568,7 @@ impl Ctx {
                         ty: base_type,
                         field,
                     });
-                    Type::Unknown
+                    Type::Unknown(())
                 }
             },
             _ => {
@@ -563,7 +576,7 @@ impl Ctx {
                     expr: base,
                     ty: base_type,
                 });
-                Type::Unknown
+                Type::Unknown(())
             }
         }
     }
@@ -578,7 +591,7 @@ impl Ctx {
         let lhs_expectation = op.lhs_expectation();
         let lhs_type = self.infer_expr(&lhs_expectation, lhs);
         let rhs_expectation = op.rhs_expectation(lhs_type.clone());
-        if lhs_type != Type::Unknown && rhs_expectation == Type::Unknown {
+        if lhs_type != Type::Unknown(()) && rhs_expectation == Type::Unknown(()) {
             self.result.diagnostics.push(Diagnostic::CannotApplyBinop {
                 lhs_type,
                 rhs_type: rhs_expectation.clone(),
@@ -597,7 +610,7 @@ impl Ctx {
     }
 
     fn infer_return_expr(&mut self, parent_expr: ExprId, expr: Option<ExprId>) -> Type {
-        let result_type = expr.map_or(Type::UNIT, |expr| self.infer_expr(&Type::Unknown, expr));
+        let result_type = expr.map_or(Type::UNIT, |expr| self.infer_expr(&Type::Unknown(()), expr));
         match self.fn_type.clone() {
             None => {
                 self.result
@@ -616,7 +629,7 @@ impl Ctx {
     }
 
     fn infer_break_expr(&mut self, parent_expr: ExprId, expr: Option<ExprId>) -> Type {
-        let result_type = expr.map_or(Type::UNIT, |expr| self.infer_expr(&Type::Unknown, expr));
+        let result_type = expr.map_or(Type::UNIT, |expr| self.infer_expr(&Type::Unknown(()), expr));
         match self.loop_type.as_mut() {
             None => {
                 self.result
@@ -643,7 +656,7 @@ impl Ctx {
     fn infer_block_expr(&mut self, expected: &Type, stmts: &[Stmt], expr: Option<ExprId>) -> Type {
         for stmt in stmts {
             match stmt {
-                Stmt::Expr(expr) => self.infer_expr(&Type::Unknown, *expr),
+                Stmt::Expr(expr) => self.infer_expr(&Type::Unknown(()), *expr),
                 Stmt::Let { pat, ty, expr } => self.infer_binding(*pat, *ty, Some(*expr)),
             };
         }
@@ -669,7 +682,7 @@ impl Lit {
 impl Unop {
     const fn lhs_expectation(self) -> Type {
         match self {
-            Self::Add | Self::Sub => Type::Unknown,
+            Self::Add | Self::Sub => Type::Unknown(()),
             Self::Not => Type::BOOL,
         }
     }
@@ -686,10 +699,10 @@ impl Binop {
 
     const fn lhs_expectation(self) -> Type {
         match self {
-            Self::Add | Self::Sub | Self::Mul | Self::Div => Type::Unknown,
-            Self::Assign => Type::Unknown,
-            Self::Eq | Self::NotEq => Type::Unknown,
-            Self::Less | Self::LessEq | Self::Greater | Self::GreaterEq => Type::Unknown,
+            Self::Add | Self::Sub | Self::Mul | Self::Div => Type::Unknown(()),
+            Self::Assign => Type::Unknown(()),
+            Self::Eq | Self::NotEq => Type::Unknown(()),
+            Self::Less | Self::LessEq | Self::Greater | Self::GreaterEq => Type::Unknown(()),
             Self::And | Self::Or => Type::BOOL,
         }
     }

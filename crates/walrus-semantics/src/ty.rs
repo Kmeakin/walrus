@@ -7,13 +7,23 @@ mod unify;
 pub use self::infer::{infer, InferenceId, InferenceResult};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Type {
-    Unknown,
-    App(TypeApp),
-    Infer(InferType),
+pub enum Type<Unknown = (), Infer = InferType> {
+    App(TypeApp<Unknown, Infer>),
+    Unknown(Unknown),
+    Infer(Infer),
 }
 
-impl Type {
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FnType<Unknown = (), Infer = InferType> {
+    pub params: Vec<Type<Unknown, Infer>>,
+    pub ret: Type<Unknown, Infer>,
+}
+
+impl<Unknown, Infer> From<FnType<Unknown, Infer>> for Type<Unknown, Infer> {
+    fn from(func: FnType<Unknown, Infer>) -> Self { Self::function(func.params, func.ret) }
+}
+
+impl<Unknown, Infer> Type<Unknown, Infer> {
     pub const UNIT: Self = Self::new0(TypeCtor::Tuple);
     pub const BOOL: Self = Self::new0(TypeCtor::Bool);
     pub const INT: Self = Self::new0(TypeCtor::Int);
@@ -34,17 +44,22 @@ impl Type {
             _ => None,
         }
     }
-    pub fn as_fn(&self) -> Option<(&[Self], &Self)> {
+    pub fn as_fn(&self) -> Option<FnType<Unknown, Infer>>
+    where
+        Unknown: Clone,
+        Infer: Clone,
+    {
         match self {
             Self::App(TypeApp {
                 ctor: TypeCtor::Fn,
                 params,
-            }) => Some(
-                params
-                    .split_last()
-                    .map(|(ret, params)| (params, ret))
-                    .unwrap(),
-            ),
+            }) => {
+                let (ret, params) = params.split_last().unwrap();
+                Some(FnType {
+                    params: params.to_vec(),
+                    ret: ret.clone(),
+                })
+            }
             _ => None,
         }
     }
@@ -57,13 +72,15 @@ impl Type {
                     t.walk_mut(f);
                 }
             }
-            Self::Infer(_) | Self::Unknown => {}
+            Self::Infer(_) | Self::Unknown(_) => {}
         }
     }
+}
 
+impl Type {
     fn fold(mut self, f: &mut impl FnMut(Self) -> Self) -> Self {
         self.walk_mut(&mut |ty_mut| {
-            let ty = std::mem::replace(ty_mut, Self::Unknown);
+            let ty = std::mem::replace(ty_mut, Self::Unknown(()));
             *ty_mut = f(ty);
         });
         self
@@ -71,25 +88,25 @@ impl Type {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TypeApp {
+pub struct TypeApp<Unknown = (), Infer = InferType> {
     pub ctor: TypeCtor,
-    pub params: Vec<Type>,
+    pub params: Vec<Type<Unknown, Infer>>,
 }
 
-impl TypeApp {
+impl<Unknown, Infer> TypeApp<Unknown, Infer> {
     pub const fn new0(ctor: TypeCtor) -> Self {
         Self {
             ctor,
             params: vec![],
         }
     }
-    pub fn func(params: Vec<Type>, ret: Type) -> Self {
+    pub fn func(params: Vec<Type<Unknown, Infer>>, ret: Type<Unknown, Infer>) -> Self {
         Self {
             ctor: TypeCtor::Fn,
             params: params.into_iter().chain(Some(ret)).collect(),
         }
     }
-    pub fn tuple(tys: Vec<Type>) -> Self {
+    pub fn tuple(tys: Vec<Type<Unknown, Infer>>) -> Self {
         Self {
             ctor: TypeCtor::Tuple,
             params: tys,
@@ -98,7 +115,7 @@ impl TypeApp {
     pub const fn struct_(id: StructDefId) -> Self { Self::new0(TypeCtor::Struct(id)) }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum TypeCtor {
     Bool,
     Int,
@@ -122,7 +139,7 @@ pub enum InferType {
 impl InferType {
     const fn fallback_value(self) -> Type {
         match self {
-            Self::Var(_) => Type::Unknown,
+            Self::Var(_) => Type::Unknown(()),
         }
     }
 

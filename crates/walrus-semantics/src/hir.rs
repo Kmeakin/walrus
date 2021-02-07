@@ -131,7 +131,7 @@ pub struct StructDef {
     pub fields: Vec<StructField>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct StructField {
     pub name: VarId,
     pub ty: TypeId,

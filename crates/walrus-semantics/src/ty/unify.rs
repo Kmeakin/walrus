@@ -156,7 +156,7 @@ impl InferenceTable {
                 let t2 = &t2.params;
                 t1.iter().zip(t2.iter()).all(|(t1, t2)| self.unify(t1, t2)) && t1.len() == t2.len()
             }
-            (Type::Unknown, _) | (_, Type::Unknown) => true,
+            (Type::Unknown(()), _) | (_, Type::Unknown(())) => true,
             (Type::Infer(InferType::Var(tv1)), Type::Infer(InferType::Var(tv2))) => {
                 self.var_unification_table.union(tv1, tv2);
                 true

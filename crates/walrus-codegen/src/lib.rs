@@ -20,10 +20,4 @@
 )]
 #![feature(format_args_capture, never_type, exhaustive_patterns)]
 
-mod builtins;
-mod diagnostic;
-pub mod hir;
-pub mod scopes;
-pub mod ty;
-
-pub(crate) use walrus_syntax as syntax;
+mod codegen;
