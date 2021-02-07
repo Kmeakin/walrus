@@ -7,53 +7,69 @@ mod unify;
 pub use self::infer::{infer, InferenceId, InferenceResult};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Type<Unknown = (), Infer = InferType> {
-    App(TypeApp<Unknown, Infer>),
-    Unknown(Unknown),
-    Infer(Infer),
+pub enum Type {
+    App { ctor: Ctor, params: Vec<Self> },
+    Unknown,
+    Infer(InferType),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct FnType<Unknown = (), Infer = InferType> {
-    pub params: Vec<Type<Unknown, Infer>>,
-    pub ret: Type<Unknown, Infer>,
+pub struct FnType {
+    pub params: Vec<Type>,
+    pub ret: Type,
 }
 
-impl<Unknown, Infer> From<FnType<Unknown, Infer>> for Type<Unknown, Infer> {
-    fn from(func: FnType<Unknown, Infer>) -> Self { Self::function(func.params, func.ret) }
+impl From<FnType> for Type {
+    fn from(func: FnType) -> Self { Self::function(func.params, func.ret) }
 }
 
-impl<Unknown, Infer> Type<Unknown, Infer> {
-    pub const UNIT: Self = Self::new0(TypeCtor::Tuple);
-    pub const BOOL: Self = Self::new0(TypeCtor::Bool);
-    pub const INT: Self = Self::new0(TypeCtor::Int);
-    pub const FLOAT: Self = Self::new0(TypeCtor::Float);
-    pub const CHAR: Self = Self::new0(TypeCtor::Char);
-    pub const NEVER: Self = Self::new0(TypeCtor::Never);
+impl Type {
+    pub const UNIT: Self = Self::new0(Ctor::Tuple);
+    pub const BOOL: Self = Self::new0(Ctor::Bool);
+    pub const INT: Self = Self::new0(Ctor::Int);
+    pub const FLOAT: Self = Self::new0(Ctor::Float);
+    pub const CHAR: Self = Self::new0(Ctor::Char);
+    pub const NEVER: Self = Self::new0(Ctor::Never);
 
-    pub const fn new0(ctor: TypeCtor) -> Self { Self::App(TypeApp::new0(ctor)) }
-    pub fn function(params: Vec<Self>, ret: Self) -> Self { Self::App(TypeApp::func(params, ret)) }
-    pub fn tuple(tys: Vec<Self>) -> Self { Self::App(TypeApp::tuple(tys)) }
-    pub const fn struct_(id: StructDefId) -> Self { Self::App(TypeApp::struct_(id)) }
+    pub const fn new0(ctor: Ctor) -> Self {
+        Self::App {
+            ctor,
+            params: vec![],
+        }
+    }
+    pub fn function(params: Vec<Self>, ret: Self) -> Self {
+        Self::App {
+            ctor: Ctor::Fn,
+            params,
+        }
+    }
+    pub fn tuple(tys: Vec<Self>) -> Self {
+        Self::App {
+            ctor: Ctor::Tuple,
+            params: tys,
+        }
+    }
+    pub const fn struct_(id: StructDefId) -> Self {
+        Self::App {
+            ctor: Ctor::Struct(id),
+            params: vec![],
+        }
+    }
     pub fn as_tuple(&self) -> Option<&[Self]> {
         match self {
-            Self::App(TypeApp {
-                ctor: TypeCtor::Tuple,
+            Self::App {
+                ctor: Ctor::Tuple,
                 params,
-            }) => Some(params),
+            } => Some(params),
             _ => None,
         }
     }
-    pub fn as_fn(&self) -> Option<FnType<Unknown, Infer>>
-    where
-        Unknown: Clone,
-        Infer: Clone,
-    {
+    pub fn as_fn(&self) -> Option<FnType> {
         match self {
-            Self::App(TypeApp {
-                ctor: TypeCtor::Fn,
+            Self::App {
+                ctor: Ctor::Fn,
                 params,
-            }) => {
+            } => {
                 let (ret, params) = params.split_last().unwrap();
                 Some(FnType {
                     params: params.to_vec(),
@@ -63,16 +79,25 @@ impl<Unknown, Infer> Type<Unknown, Infer> {
             _ => None,
         }
     }
+    pub fn as_struct(&self) -> Option<StructDefId> {
+        match self {
+            Type::App {
+                ctor: Ctor::Struct(id),
+                ..
+            } => Some(*id),
+            _ => None,
+        }
+    }
 
     fn walk_mut(&mut self, f: &mut impl FnMut(&mut Self)) {
         f(self);
         match self {
-            Self::App(ty) => {
-                for t in &mut ty.params {
+            Self::App { ctor, params } => {
+                for t in params {
                     t.walk_mut(f);
                 }
             }
-            Self::Infer(_) | Self::Unknown(_) => {}
+            Self::Infer(_) | Self::Unknown => {}
         }
     }
 }
@@ -80,43 +105,15 @@ impl<Unknown, Infer> Type<Unknown, Infer> {
 impl Type {
     fn fold(mut self, f: &mut impl FnMut(Self) -> Self) -> Self {
         self.walk_mut(&mut |ty_mut| {
-            let ty = std::mem::replace(ty_mut, Self::Unknown(()));
+            let ty = std::mem::replace(ty_mut, Self::Unknown);
             *ty_mut = f(ty);
         });
         self
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TypeApp<Unknown = (), Infer = InferType> {
-    pub ctor: TypeCtor,
-    pub params: Vec<Type<Unknown, Infer>>,
-}
-
-impl<Unknown, Infer> TypeApp<Unknown, Infer> {
-    pub const fn new0(ctor: TypeCtor) -> Self {
-        Self {
-            ctor,
-            params: vec![],
-        }
-    }
-    pub fn func(params: Vec<Type<Unknown, Infer>>, ret: Type<Unknown, Infer>) -> Self {
-        Self {
-            ctor: TypeCtor::Fn,
-            params: params.into_iter().chain(Some(ret)).collect(),
-        }
-    }
-    pub fn tuple(tys: Vec<Type<Unknown, Infer>>) -> Self {
-        Self {
-            ctor: TypeCtor::Tuple,
-            params: tys,
-        }
-    }
-    pub const fn struct_(id: StructDefId) -> Self { Self::new0(TypeCtor::Struct(id)) }
-}
-
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum TypeCtor {
+pub enum Ctor {
     Bool,
     Int,
     Float,
@@ -139,7 +136,7 @@ pub enum InferType {
 impl InferType {
     const fn fallback_value(self) -> Type {
         match self {
-            Self::Var(_) => Type::Unknown(()),
+            Self::Var(_) => Type::Unknown,
         }
     }
 

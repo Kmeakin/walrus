@@ -151,12 +151,22 @@ impl InferenceTable {
         let t1 = self.propagate_type_shallow(&t1.clone());
         let t2 = self.propagate_type_shallow(&t2.clone());
         match (t1, t2) {
-            (Type::App(t1), Type::App(t2)) if t1.ctor == t2.ctor => {
-                let t1 = &t1.params;
-                let t2 = &t2.params;
-                t1.iter().zip(t2.iter()).all(|(t1, t2)| self.unify(t1, t2)) && t1.len() == t2.len()
+            (
+                Type::App {
+                    ctor: ctor1,
+                    params: params1,
+                },
+                Type::App {
+                    ctor: ctor2,
+                    params: params2,
+                },
+            ) if ctor1 == ctor2 => {
+                params1.len() == params2.len()
+                    && (params1.iter())
+                        .zip(params2.iter())
+                        .all(|(t1, t2)| self.unify(t1, t2))
             }
-            (Type::Unknown(()), _) | (_, Type::Unknown(())) => true,
+            (Type::Unknown, _) | (_, Type::Unknown) => true,
             (Type::Infer(InferType::Var(tv1)), Type::Infer(InferType::Var(tv2))) => {
                 self.var_unification_table.union(tv1, tv2);
                 true
