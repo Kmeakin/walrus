@@ -348,59 +348,42 @@ impl<'ctx> Compiler<'ctx> {
         then_branch: ExprId,
         else_branch: Option<ExprId>,
     ) -> BasicValueEnum {
-        match else_branch {
-            Some(else_branch) => {
-                let then_type = &self.types[then_branch];
-                let else_type = &self.types[else_branch];
-                assert_eq!(then_type, else_type);
+        let bb = self.builder.get_insert_block().unwrap();
+        let end_bb = self.llvm.insert_basic_block_after(bb, "if.end");
+        let else_bb = self.llvm.insert_basic_block_after(bb, "if.else");
+        let then_bb = self.llvm.insert_basic_block_after(bb, "if.then");
+        let test_value = self.codegen_expr(vars, test);
+        self.builder
+            .build_conditional_branch(test_value.into_int_value(), then_bb, else_bb);
 
-                let bb = self.builder.get_insert_block().unwrap();
-                let end_bb = self.llvm.insert_basic_block_after(bb, "if.end");
-                let then_bb = self.llvm.insert_basic_block_after(bb, "if.then");
-                let else_bb = self.llvm.insert_basic_block_after(bb, "if.else");
-                let test_value = self.codegen_expr(vars, test);
-                self.builder.build_conditional_branch(
-                    test_value.into_int_value(),
-                    then_bb,
-                    else_bb,
-                );
-
-                // then branch
-                self.builder.position_at_end(then_bb);
-                let then_value = self.codegen_expr(vars, then_branch);
-                self.builder.build_unconditional_branch(end_bb);
-
-                // else branch
-                self.builder.position_at_end(else_bb);
-                let else_value = self.codegen_expr(vars, else_branch);
-                self.builder.build_unconditional_branch(end_bb);
-
-                // merge the 2 branches
-                self.builder.position_at_end(end_bb);
-                let phi = self
-                    .builder
-                    .build_phi(self.value_type(then_type), "if.merge");
-                phi.add_incoming(&[(&then_value, then_bb), (&else_value, else_bb)]);
-                phi.as_basic_value()
-            }
+        // then branch
+        self.builder.position_at_end(then_bb);
+        let then_value = match else_branch {
+            Some(_) => self.codegen_expr(vars, then_branch),
             None => {
-                let bb = self.builder.get_insert_block().unwrap();
-                let end_bb = self.llvm.insert_basic_block_after(bb, "if.end");
-                let then_bb = self.llvm.insert_basic_block_after(bb, "if.then");
-                let test_value = self.codegen_expr(vars, test);
-                self.builder
-                    .build_conditional_branch(test_value.into_int_value(), then_bb, end_bb);
-
-                // then branch
-                self.builder.position_at_end(then_bb);
-                let then_value = self.codegen_expr(vars, then_branch);
-                self.builder.build_unconditional_branch(end_bb);
-
-                // epilogue
-                self.builder.position_at_end(end_bb);
+                self.codegen_expr(vars, then_branch);
                 self.codegen_unit()
             }
-        }
+        };
+        self.builder.build_unconditional_branch(end_bb);
+
+        // else branch
+        self.builder.position_at_end(else_bb);
+        let else_value = match else_branch {
+            Some(else_branch) => self.codegen_expr(vars, else_branch),
+            None => self.codegen_unit(),
+        };
+        self.builder.build_unconditional_branch(end_bb);
+
+        // merge the 2 branches
+        self.builder.position_at_end(end_bb);
+        let ty = match else_branch {
+            Some(_) => self.value_type(&self.types[then_branch]),
+            None => self.tuple_type(&[]).into(),
+        };
+        let phi = self.builder.build_phi(ty, "if.merge");
+        phi.add_incoming(&[(&then_value, then_bb), (&else_value, else_bb)]);
+        phi.as_basic_value()
     }
 
     fn codegen_call(
