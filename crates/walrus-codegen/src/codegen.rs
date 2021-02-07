@@ -587,4 +587,13 @@ fn id(x: _) -> _ {x}
 "#,
         5_i32
     );
+
+    test_codegen_and_run!(
+        get_five_fn,
+        r#"
+fn main() -> _ {get_five()}
+fn get_five() -> _ {5}
+"#,
+        5_i64
+    );
 }
