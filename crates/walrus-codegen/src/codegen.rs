@@ -118,26 +118,26 @@ impl<'ctx> Compiler<'ctx> {
         )
     }
 
-    fn codegen_module(&'ctx self, module: &HirModule) -> &Module<'ctx> {
+    fn codegen_module(&'ctx self) -> &Module<'ctx> {
         let mut vars = Vars::default();
 
-        for (id, func) in module.hir.data.fn_defs.iter() {
-            let fn_type = self.fn_type(&module.types[id]);
-            let name = module.hir.data[func.name].as_str();
+        for (id, func) in self.hir.fn_defs.iter() {
+            let fn_type = self.fn_type(&self.types[id]);
+            let name = self.hir[func.name].as_str();
             let llvm_fn = self.module.add_function(name, fn_type, None);
         }
 
-        for (id, func) in module.hir.data.fn_defs.iter() {
-            self.codegen_fn(module, &mut vars, id)
+        for (id, func) in self.hir.fn_defs.iter() {
+            self.codegen_fn(&mut vars, id)
         }
 
         &self.module
     }
 
-    fn codegen_fn(&'ctx self, module: &HirModule, vars: &mut Vars<'ctx>, id: FnDefId) {
+    fn codegen_fn(&'ctx self, vars: &mut Vars<'ctx>, id: FnDefId) {
         let llvm_fn = vars[id];
-        let fn_def = &module.hir.data[id];
-        let name = &module.hir.data[fn_def.name];
+        let fn_def = &self.hir[id];
+        let name = &self.hir[fn_def.name];
         let bb = self
             .llvm
             .append_basic_block(llvm_fn, &format!("{name}.entry"));
@@ -155,21 +155,15 @@ impl<'ctx> Compiler<'ctx> {
             .enumerate()
             .for_each(|(idx, (llvm_param, hir_param))| {
                 llvm_param.set_name(&format!("{name}.params.{idx}"));
-                self.codegen_local_var(module, vars, hir_param.pat, llvm_param)
+                self.codegen_local_var(vars, hir_param.pat, llvm_param)
             });
 
-        let body = self.codegen_expr(module, vars, fn_def.expr);
+        let body = self.codegen_expr(vars, fn_def.expr);
         self.builder.build_return(Some(&body));
     }
 
-    fn codegen_local_var(
-        &'ctx self,
-        module: &HirModule,
-        vars: &mut Vars,
-        id: PatId,
-        val: BasicValueEnum,
-    ) {
-        let pat = &module.hir.data[id];
+    fn codegen_local_var(&'ctx self, vars: &mut Vars, id: PatId, val: BasicValueEnum) {
+        let pat = &self.hir[id];
         match pat {
             hir::Pat::Ignore | hir::Pat::Var(_) => {
                 // `Pat::Ignore` still evaluates its arguments, for side effects
@@ -185,51 +179,46 @@ impl<'ctx> Compiler<'ctx> {
                         &format!("tuple.{idx}"),
                     )
                     .unwrap();
-                self.codegen_local_var(module, vars, *id, val)
+                self.codegen_local_var(vars, *id, val)
             }),
         }
     }
 
-    fn codegen_expr(
-        &'ctx self,
-        module: &HirModule,
-        vars: &mut Vars<'ctx>,
-        id: ExprId,
-    ) -> BasicValueEnum {
-        let expr = &module.hir.data[id];
+    fn codegen_expr(&'ctx self, vars: &mut Vars<'ctx>, id: ExprId) -> BasicValueEnum {
+        let expr = &self.hir[id];
         match expr {
             Expr::Lit(lit) => self.codegen_lit(*lit),
-            Expr::Var(var) => self.codegen_var(module, vars, id, *var),
-            Expr::Tuple(exprs) => self.codegen_tuple(module, vars, id, exprs),
-            Expr::Struct { fields, .. } => self.codegen_struct(module, vars, id, fields),
-            Expr::Field { expr, field } => self.codegen_field(module, vars, *expr, *field),
+            Expr::Var(var) => self.codegen_var(vars, id, *var),
+            Expr::Tuple(exprs) => self.codegen_tuple(vars, id, exprs),
+            Expr::Struct { fields, .. } => self.codegen_struct(vars, id, fields),
+            Expr::Field { expr, field } => self.codegen_field(vars, *expr, *field),
             Expr::If {
                 test,
                 then_branch,
                 else_branch,
-            } => self.codegen_if(module, vars, *test, *then_branch, *else_branch),
+            } => self.codegen_if(vars, *test, *then_branch, *else_branch),
             Expr::Loop(_) => todo!(),
             Expr::Break(_) => todo!(),
             Expr::Return(_) => todo!(),
             Expr::Continue => todo!(),
-            Expr::Call { func, args } => self.codegen_call(module, vars, *func, args),
+            Expr::Call { func, args } => self.codegen_call(vars, *func, args),
             Expr::Lambda { params, expr } => todo!(),
-            Expr::Unop { op, expr } => self.codegen_unop(module, vars, *op, *expr),
-            Expr::Binop { lhs, op, rhs } => self.codegen_binop(module, vars, *lhs, *rhs, *op),
+            Expr::Unop { op, expr } => self.codegen_unop(vars, *op, *expr),
+            Expr::Binop { lhs, op, rhs } => self.codegen_binop(vars, *lhs, *rhs, *op),
             Expr::Block { stmts, expr } => {
                 for stmt in stmts {
                     match stmt {
                         hir::Stmt::Expr(expr) => {
-                            self.codegen_expr(module, vars, *expr);
+                            self.codegen_expr(vars, *expr);
                         }
                         hir::Stmt::Let { pat, expr, .. } => {
-                            let val = self.codegen_expr(module, vars, *expr);
-                            self.codegen_local_var(module, vars, *pat, val);
+                            let val = self.codegen_expr(vars, *expr);
+                            self.codegen_local_var(vars, *pat, val);
                         }
                     }
                 }
                 match expr {
-                    Some(expr) => self.codegen_expr(module, vars, *expr),
+                    Some(expr) => self.codegen_expr(vars, *expr),
                     None => self.codegen_unit(),
                 }
             }
@@ -248,16 +237,10 @@ impl<'ctx> Compiler<'ctx> {
         }
     }
 
-    fn codegen_var(
-        &'ctx self,
-        module: &HirModule,
-        vars: &Vars<'ctx>,
-        expr: ExprId,
-        var: VarId,
-    ) -> BasicValueEnum {
-        let var = &module.hir.data[var];
-        let scope = module.scopes.scope_of_expr(expr);
-        let denotation = module.scopes.lookup_in_scope(scope, &var);
+    fn codegen_var(&'ctx self, vars: &Vars<'ctx>, expr: ExprId, var: VarId) -> BasicValueEnum {
+        let var = &self.hir[var];
+        let scope = self.scopes.scope_of_expr(expr);
+        let denotation = self.scopes.lookup_in_scope(scope, &var);
         match denotation {
             Some(Denotation::Local(id)) => {
                 self.builder.build_load(vars[id], &format!("{var}.load"))
@@ -270,16 +253,15 @@ impl<'ctx> Compiler<'ctx> {
 
     fn codegen_tuple(
         &'ctx self,
-        module: &HirModule,
         vars: &mut Vars<'ctx>,
         expr: ExprId,
         exprs: &[ExprId],
     ) -> BasicValueEnum {
-        let types = module.types[expr].as_tuple().unwrap();
+        let types = self.types[expr].as_tuple().unwrap();
         let tuple_type = self.tuple_type(types);
         let tuple_alloca = self.builder.build_alloca(tuple_type, "tuple.alloca");
         for (idx, expr) in exprs.iter().enumerate() {
-            let value = self.codegen_expr(module, vars, *expr);
+            let value = self.codegen_expr(vars, *expr);
             let gep = self
                 .builder
                 .build_struct_gep(tuple_alloca, idx as u32, &format!("tuple.{idx}.gep"))
@@ -291,7 +273,6 @@ impl<'ctx> Compiler<'ctx> {
 
     fn codegen_struct(
         &'ctx self,
-        module: &HirModule,
         vars: &mut Vars<'ctx>,
         expr: ExprId,
         fields: &[StructExprField],
@@ -304,12 +285,7 @@ impl<'ctx> Compiler<'ctx> {
         let struct_type = self.value_type(&struct_type);
         let init_exprs = fields
             .iter()
-            .map(|field| {
-                (
-                    &self.hir[field.name],
-                    self.codegen_expr(module, vars, field.val),
-                )
-            })
+            .map(|field| (&self.hir[field.name], self.codegen_expr(vars, field.val)))
             .collect::<Vec<_>>();
         let struct_alloca = self
             .builder
@@ -337,26 +313,25 @@ impl<'ctx> Compiler<'ctx> {
 
     fn codegen_field(
         &'ctx self,
-        module: &HirModule,
         vars: &mut Vars<'ctx>,
         expr: ExprId,
         field: Field,
     ) -> BasicValueEnum {
-        let base_value = self.codegen_expr(module, vars, expr);
+        let base_value = self.codegen_expr(vars, expr);
         match field {
             Field::Tuple(idx) => self
                 .builder
                 .build_extract_value(base_value.into_struct_value(), idx, &format!("tuple.{idx}"))
                 .unwrap(),
             Field::Named(name) => {
-                let name = &module.hir.data[name];
-                let struct_id = module.types[expr].as_struct().unwrap();
-                let struct_def = &module.hir.data[struct_id];
-                let struct_name = &module.hir.data[struct_def.name];
+                let name = &self.hir[name];
+                let struct_id = self.types[expr].as_struct().unwrap();
+                let struct_def = &self.hir[struct_id];
+                let struct_name = &self.hir[struct_def.name];
                 let idx = struct_def
                     .fields
                     .iter()
-                    .position(|field| &module.hir.data[field.name] == name)
+                    .position(|field| &self.hir[field.name] == name)
                     .unwrap();
                 self.builder
                     .build_extract_value(
@@ -371,7 +346,6 @@ impl<'ctx> Compiler<'ctx> {
 
     fn codegen_if(
         &'ctx self,
-        module: &HirModule,
         vars: &mut Vars<'ctx>,
         test: ExprId,
         then_branch: ExprId,
@@ -379,15 +353,15 @@ impl<'ctx> Compiler<'ctx> {
     ) -> BasicValueEnum {
         match else_branch {
             Some(else_branch) => {
-                let then_type = &module.types[then_branch];
-                let else_type = &module.types[else_branch];
+                let then_type = &self.types[then_branch];
+                let else_type = &self.types[else_branch];
                 assert_eq!(then_type, else_type);
 
                 let bb = self.builder.get_insert_block().unwrap();
                 let end_bb = self.llvm.insert_basic_block_after(bb, "if.end");
                 let then_bb = self.llvm.insert_basic_block_after(bb, "if.then");
                 let else_bb = self.llvm.insert_basic_block_after(bb, "if.else");
-                let test_value = self.codegen_expr(module, vars, test);
+                let test_value = self.codegen_expr(vars, test);
                 self.builder.build_conditional_branch(
                     test_value.into_int_value(),
                     then_bb,
@@ -396,12 +370,12 @@ impl<'ctx> Compiler<'ctx> {
 
                 // then branch
                 self.builder.position_at_end(then_bb);
-                let then_value = self.codegen_expr(module, vars, then_branch);
+                let then_value = self.codegen_expr(vars, then_branch);
                 self.builder.build_unconditional_branch(end_bb);
 
                 // else branch
                 self.builder.position_at_end(else_bb);
-                let else_value = self.codegen_expr(module, vars, else_branch);
+                let else_value = self.codegen_expr(vars, else_branch);
                 self.builder.build_unconditional_branch(end_bb);
 
                 // merge the 2 branches
@@ -416,13 +390,13 @@ impl<'ctx> Compiler<'ctx> {
                 let bb = self.builder.get_insert_block().unwrap();
                 let end_bb = self.llvm.insert_basic_block_after(bb, "if.end");
                 let then_bb = self.llvm.insert_basic_block_after(bb, "if.then");
-                let test_value = self.codegen_expr(module, vars, test);
+                let test_value = self.codegen_expr(vars, test);
                 self.builder
                     .build_conditional_branch(test_value.into_int_value(), then_bb, end_bb);
 
                 // then branch
                 self.builder.position_at_end(then_bb);
-                let then_value = self.codegen_expr(module, vars, then_branch);
+                let then_value = self.codegen_expr(vars, then_branch);
                 self.builder.build_unconditional_branch(end_bb);
 
                 // epilogue
@@ -434,12 +408,11 @@ impl<'ctx> Compiler<'ctx> {
 
     fn codegen_call(
         &'ctx self,
-        module: &HirModule,
         vars: &mut Vars<'ctx>,
         func: ExprId,
         args: &[ExprId],
     ) -> BasicValueEnum {
-        let closure_value = self.codegen_expr(module, vars, func).into_struct_value();
+        let closure_value = self.codegen_expr(vars, func).into_struct_value();
         let code_ptr = self
             .builder
             .build_extract_value(closure_value, 0, "closure.code")
@@ -450,7 +423,7 @@ impl<'ctx> Compiler<'ctx> {
             .build_extract_value(closure_value, 1, "closure.env")
             .unwrap();
         let args = std::iter::once(env_ptr)
-            .chain(args.iter().map(|arg| self.codegen_expr(module, vars, *arg)))
+            .chain(args.iter().map(|arg| self.codegen_expr(vars, *arg)))
             .collect::<Vec<_>>();
         self.builder
             .build_call(code_ptr, &args, "call")
@@ -458,14 +431,8 @@ impl<'ctx> Compiler<'ctx> {
             .unwrap_left()
     }
 
-    fn codegen_unop(
-        &'ctx self,
-        module: &HirModule,
-        vars: &mut Vars<'ctx>,
-        op: Unop,
-        expr: ExprId,
-    ) -> BasicValueEnum {
-        let value = self.codegen_expr(module, vars, expr);
+    fn codegen_unop(&'ctx self, vars: &mut Vars<'ctx>, op: Unop, expr: ExprId) -> BasicValueEnum {
+        let value = self.codegen_expr(vars, expr);
         match op {
             Unop::Not => self
                 .builder
@@ -486,48 +453,47 @@ impl<'ctx> Compiler<'ctx> {
 
     fn codegen_binop(
         &'ctx self,
-        m: &HirModule,
         vars: &mut Vars<'ctx>,
         l: ExprId,
         r: ExprId,
         op: Binop,
     ) -> BasicValueEnum {
-        let (ctor, params) = match &m.types[l] {
+        let (ctor, params) = match &self.types[l] {
             Type::App { ctor, params } => (ctor, params),
             Type::Unknown | Type::Infer(_) => unreachable!(),
         };
 
         match (op, ctor) {
-            (Binop::Add, Ctor::Int) => self.int_op(m, vars, l, r, Builder::build_int_add),
-            (Binop::Add, Ctor::Float) => self.float_op(m, vars, l, r, Builder::build_float_add),
+            (Binop::Add, Ctor::Int) => self.int_op(vars, l, r, Builder::build_int_add),
+            (Binop::Add, Ctor::Float) => self.float_op(vars, l, r, Builder::build_float_add),
             (Binop::Add, _) => unreachable!("`+` only allowed on Int or Float"),
 
-            (Binop::Sub, Ctor::Int) => self.int_op(m, vars, l, r, Builder::build_int_sub),
-            (Binop::Sub, Ctor::Float) => self.float_op(m, vars, l, r, Builder::build_float_sub),
+            (Binop::Sub, Ctor::Int) => self.int_op(vars, l, r, Builder::build_int_sub),
+            (Binop::Sub, Ctor::Float) => self.float_op(vars, l, r, Builder::build_float_sub),
             (Binop::Sub, _) => unreachable!("`-` only allowed on Int or Float"),
 
-            (Binop::Mul, Ctor::Int) => self.int_op(m, vars, l, r, Builder::build_int_mul),
-            (Binop::Mul, Ctor::Float) => self.float_op(m, vars, l, r, Builder::build_float_mul),
+            (Binop::Mul, Ctor::Int) => self.int_op(vars, l, r, Builder::build_int_mul),
+            (Binop::Mul, Ctor::Float) => self.float_op(vars, l, r, Builder::build_float_mul),
             (Binop::Mul, _) => unreachable!("`*` only allowed on Int or Float"),
 
-            (Binop::Div, Ctor::Int) => self.int_op(m, vars, l, r, Builder::build_int_signed_div),
-            (Binop::Div, Ctor::Float) => self.float_op(m, vars, l, r, Builder::build_float_div),
+            (Binop::Div, Ctor::Int) => self.int_op(vars, l, r, Builder::build_int_signed_div),
+            (Binop::Div, Ctor::Float) => self.float_op(vars, l, r, Builder::build_float_div),
             (Binop::Div, _) => unreachable!("`/` only allowed on Int or Float"),
 
-            (Binop::Less, Ctor::Int) => self.int_cmp(m, vars, l, r, IntPredicate::SLT),
-            (Binop::Less, Ctor::Float) => self.float_cmp(m, vars, l, r, FloatPredicate::OLT),
+            (Binop::Less, Ctor::Int) => self.int_cmp(vars, l, r, IntPredicate::SLT),
+            (Binop::Less, Ctor::Float) => self.float_cmp(vars, l, r, FloatPredicate::OLT),
             (Binop::Less, _) => unreachable!("`<` only allowed on Int or Float"),
 
-            (Binop::LessEq, Ctor::Int) => self.int_cmp(m, vars, l, r, IntPredicate::SLE),
-            (Binop::LessEq, Ctor::Float) => self.float_cmp(m, vars, l, r, FloatPredicate::OLE),
+            (Binop::LessEq, Ctor::Int) => self.int_cmp(vars, l, r, IntPredicate::SLE),
+            (Binop::LessEq, Ctor::Float) => self.float_cmp(vars, l, r, FloatPredicate::OLE),
             (Binop::LessEq, _) => unreachable!("`<=` only allowed on Int or Float"),
 
-            (Binop::Greater, Ctor::Int) => self.int_cmp(m, vars, l, r, IntPredicate::SGT),
-            (Binop::Greater, Ctor::Float) => self.float_cmp(m, vars, l, r, FloatPredicate::OGT),
+            (Binop::Greater, Ctor::Int) => self.int_cmp(vars, l, r, IntPredicate::SGT),
+            (Binop::Greater, Ctor::Float) => self.float_cmp(vars, l, r, FloatPredicate::OGT),
             (Binop::Greater, _) => unreachable!("`>` only allowed on Int or Float"),
 
-            (Binop::GreaterEq, Ctor::Int) => self.int_cmp(m, vars, l, r, IntPredicate::SGE),
-            (Binop::GreaterEq, Ctor::Float) => self.float_cmp(m, vars, l, r, FloatPredicate::OGE),
+            (Binop::GreaterEq, Ctor::Int) => self.int_cmp(vars, l, r, IntPredicate::SGE),
+            (Binop::GreaterEq, Ctor::Float) => self.float_cmp(vars, l, r, FloatPredicate::OGE),
             (Binop::GreaterEq, _) => unreachable!("`>=` only allowed on Int or Float"),
             _ => todo!(),
         }
@@ -535,14 +501,13 @@ impl<'ctx> Compiler<'ctx> {
 
     fn int_op(
         &'ctx self,
-        module: &HirModule,
         vars: &mut Vars<'ctx>,
         lhs: ExprId,
         rhs: ExprId,
         op: fn(&Builder<'ctx>, IntValue<'ctx>, IntValue<'ctx>, &str) -> IntValue<'ctx>,
     ) -> BasicValueEnum {
-        let lhs = self.codegen_expr(module, vars, lhs);
-        let rhs = self.codegen_expr(module, vars, rhs);
+        let lhs = self.codegen_expr(vars, lhs);
+        let rhs = self.codegen_expr(vars, rhs);
         op(
             &self.builder,
             lhs.into_int_value(),
@@ -554,14 +519,13 @@ impl<'ctx> Compiler<'ctx> {
 
     fn float_op(
         &'ctx self,
-        module: &HirModule,
         vars: &mut Vars<'ctx>,
         lhs: ExprId,
         rhs: ExprId,
         op: fn(&Builder<'ctx>, FloatValue<'ctx>, FloatValue<'ctx>, &str) -> FloatValue<'ctx>,
     ) -> BasicValueEnum {
-        let lhs = self.codegen_expr(module, vars, lhs);
-        let rhs = self.codegen_expr(module, vars, rhs);
+        let lhs = self.codegen_expr(vars, lhs);
+        let rhs = self.codegen_expr(vars, rhs);
         op(
             &self.builder,
             lhs.into_float_value(),
@@ -573,14 +537,13 @@ impl<'ctx> Compiler<'ctx> {
 
     fn int_cmp(
         &'ctx self,
-        module: &HirModule,
         vars: &mut Vars<'ctx>,
         lhs: ExprId,
         rhs: ExprId,
         cmp: IntPredicate,
     ) -> BasicValueEnum {
-        let lhs = self.codegen_expr(module, vars, lhs);
-        let rhs = self.codegen_expr(module, vars, rhs);
+        let lhs = self.codegen_expr(vars, lhs);
+        let rhs = self.codegen_expr(vars, rhs);
         self.builder
             .build_int_compare(cmp, lhs.into_int_value(), rhs.into_int_value(), "")
             .into()
@@ -588,14 +551,13 @@ impl<'ctx> Compiler<'ctx> {
 
     fn float_cmp(
         &'ctx self,
-        module: &HirModule,
         vars: &mut Vars<'ctx>,
         lhs: ExprId,
         rhs: ExprId,
         cmp: FloatPredicate,
     ) -> BasicValueEnum {
-        let lhs = self.codegen_expr(module, vars, lhs);
-        let rhs = self.codegen_expr(module, vars, rhs);
+        let lhs = self.codegen_expr(vars, lhs);
+        let rhs = self.codegen_expr(vars, rhs);
         self.builder
             .build_float_compare(cmp, lhs.into_float_value(), rhs.into_float_value(), "")
             .into()
