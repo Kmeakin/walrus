@@ -8,6 +8,7 @@ edition = "2018"
 
 [dependencies]
 arena = { path = "../arena" }
+walrus-parser = { path = "../walrus-parser" }
 walrus-semantics = { path = "../walrus-semantics" }
 
 inkwell = { git = "https://github.com/TheDan64/inkwell", branch = "master", features = ["llvm11-0"] }

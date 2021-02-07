@@ -9,7 +9,7 @@ use inkwell::{
     values::{BasicValue, BasicValueEnum, FloatValue, FunctionValue, IntValue, PointerValue},
     AddressSpace, FloatPredicate, IntPredicate,
 };
-use std::ops::Index;
+use std::{ops::Index, rc::Rc};
 use walrus_semantics::{
     hir::{self, Binop, Expr, ExprId, Field, FnDefId, Lit, PatId, StructExprField, Unop, VarId},
     scopes::{self, Denotation},
@@ -30,8 +30,8 @@ pub struct Compiler<'ctx> {
     pub builder: Builder<'ctx>,
 
     pub hir: hir::ModuleData,
-    pub types: ty::InferenceResult,
     pub scopes: scopes::Scopes,
+    pub types: ty::InferenceResult,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -50,11 +50,11 @@ impl<'a> Index<FnDefId> for Vars<'a> {
 }
 
 impl<'ctx> Compiler<'ctx> {
-    fn void_ptr_type(&self) -> BasicTypeEnum {
+    fn void_ptr_type(&self) -> BasicTypeEnum<'ctx> {
         self.llvm.i8_type().ptr_type(AddressSpace::Generic).into()
     }
 
-    fn value_type(&self, ty: &Type) -> BasicTypeEnum {
+    fn value_type(&self, ty: &Type) -> BasicTypeEnum<'ctx> {
         let (ctor, params) = match ty {
             Type::App { ctor, params } => (ctor, params),
             _ => unreachable!(),
@@ -87,7 +87,7 @@ impl<'ctx> Compiler<'ctx> {
         }
     }
 
-    fn fn_type(&self, ty: &FnType) -> FunctionType {
+    fn fn_type(&self, ty: &FnType) -> FunctionType<'ctx> {
         let FnType { params, ret } = ty;
         self.value_type(ret).fn_type(
             &std::iter::once(self.void_ptr_type())
@@ -97,7 +97,7 @@ impl<'ctx> Compiler<'ctx> {
         )
     }
 
-    fn closure_type(&self, ty: &FnType) -> BasicTypeEnum {
+    fn closure_type(&self, ty: &FnType) -> BasicTypeEnum<'ctx> {
         let struct_type = self.llvm.struct_type(
             &[
                 self.fn_type(ty).ptr_type(AddressSpace::Generic).into(),
@@ -108,14 +108,14 @@ impl<'ctx> Compiler<'ctx> {
         struct_type.into()
     }
 
-    fn tuple_type(&self, tys: &[Type]) -> StructType {
+    fn tuple_type(&self, tys: &[Type]) -> StructType<'ctx> {
         self.llvm.struct_type(
             &tys.iter().map(|ty| self.value_type(ty)).collect::<Vec<_>>(),
             true,
         )
     }
 
-    fn codegen_module(&'ctx self) -> &Module<'ctx> {
+    fn codegen_module(self) -> Module<'ctx> {
         let mut vars = Vars::default();
 
         for (id, func) in self.hir.fn_defs.iter() {
@@ -129,10 +129,10 @@ impl<'ctx> Compiler<'ctx> {
             self.codegen_fn(&mut vars, id)
         }
 
-        &self.module
+        self.module
     }
 
-    fn codegen_fn(&'ctx self, vars: &mut Vars<'ctx>, id: FnDefId) {
+    fn codegen_fn(&self, vars: &mut Vars<'ctx>, id: FnDefId) {
         let llvm_fn = vars[id];
         let fn_def = &self.hir[id];
         let name = &self.hir[fn_def.name];
@@ -160,7 +160,7 @@ impl<'ctx> Compiler<'ctx> {
         self.builder.build_return(Some(&body));
     }
 
-    fn codegen_local_var(&'ctx self, vars: &mut Vars, id: PatId, val: BasicValueEnum) {
+    fn codegen_local_var(&self, vars: &mut Vars, id: PatId, val: BasicValueEnum) {
         let pat = &self.hir[id];
         match pat {
             hir::Pat::Ignore | hir::Pat::Var(_) => {
@@ -182,7 +182,7 @@ impl<'ctx> Compiler<'ctx> {
         }
     }
 
-    fn codegen_expr(&'ctx self, vars: &mut Vars<'ctx>, id: ExprId) -> BasicValueEnum {
+    fn codegen_expr(&self, vars: &mut Vars<'ctx>, id: ExprId) -> BasicValueEnum {
         let expr = &self.hir[id];
         match expr {
             Expr::Lit(lit) => self.codegen_lit(*lit),
@@ -197,12 +197,12 @@ impl<'ctx> Compiler<'ctx> {
             } => self.codegen_if(vars, *test, *then_branch, *else_branch),
             Expr::Loop(_) => todo!(),
             Expr::Break(_) => todo!(),
-            Expr::Return(_) => todo!(),
+            Expr::Return(expr) => self.codegen_return(vars, *expr),
             Expr::Continue => todo!(),
             Expr::Call { func, args } => self.codegen_call(vars, *func, args),
             Expr::Lambda { params, expr } => todo!(),
             Expr::Unop { op, expr } => self.codegen_unop(vars, *op, *expr),
-            Expr::Binop { lhs, op, rhs } => self.codegen_binop(vars, *lhs, *rhs, *op),
+            Expr::Binop { lhs, op, rhs } => todo!(),
             Expr::Block { stmts, expr } => {
                 for stmt in stmts {
                     match stmt {
@@ -223,9 +223,9 @@ impl<'ctx> Compiler<'ctx> {
         }
     }
 
-    fn codegen_unit(&'ctx self) -> BasicValueEnum { self.llvm.const_struct(&[], true).into() }
+    fn codegen_unit(&self) -> BasicValueEnum { self.llvm.const_struct(&[], true).into() }
 
-    fn codegen_lit(&'ctx self, lit: Lit) -> BasicValueEnum {
+    fn codegen_lit(&self, lit: Lit) -> BasicValueEnum {
         match lit {
             Lit::Bool(false) => self.llvm.bool_type().const_int(0, false).into(),
             Lit::Bool(true) => self.llvm.bool_type().const_int(1, false).into(),
@@ -235,7 +235,7 @@ impl<'ctx> Compiler<'ctx> {
         }
     }
 
-    fn codegen_var(&'ctx self, vars: &Vars<'ctx>, expr: ExprId, var: VarId) -> BasicValueEnum {
+    fn codegen_var(&self, vars: &Vars<'ctx>, expr: ExprId, var: VarId) -> BasicValueEnum {
         let var = &self.hir[var];
         let scope = self.scopes.scope_of_expr(expr);
         let denotation = self.scopes.lookup_in_scope(scope, var);
@@ -250,7 +250,7 @@ impl<'ctx> Compiler<'ctx> {
     }
 
     fn codegen_tuple(
-        &'ctx self,
+        &self,
         vars: &mut Vars<'ctx>,
         expr: ExprId,
         exprs: &[ExprId],
@@ -270,7 +270,7 @@ impl<'ctx> Compiler<'ctx> {
     }
 
     fn codegen_struct(
-        &'ctx self,
+        &self,
         vars: &mut Vars<'ctx>,
         expr: ExprId,
         fields: &[StructExprField],
@@ -308,12 +308,7 @@ impl<'ctx> Compiler<'ctx> {
             .build_load(struct_alloca, &format!("{struct_name}.load"))
     }
 
-    fn codegen_field(
-        &'ctx self,
-        vars: &mut Vars<'ctx>,
-        expr: ExprId,
-        field: Field,
-    ) -> BasicValueEnum {
+    fn codegen_field(&self, vars: &mut Vars<'ctx>, expr: ExprId, field: Field) -> BasicValueEnum {
         let base_value = self.codegen_expr(vars, expr);
         match field {
             Field::Tuple(idx) => self
@@ -342,7 +337,7 @@ impl<'ctx> Compiler<'ctx> {
     }
 
     fn codegen_if(
-        &'ctx self,
+        &self,
         vars: &mut Vars<'ctx>,
         test: ExprId,
         then_branch: ExprId,
@@ -386,12 +381,7 @@ impl<'ctx> Compiler<'ctx> {
         phi.as_basic_value()
     }
 
-    fn codegen_call(
-        &'ctx self,
-        vars: &mut Vars<'ctx>,
-        func: ExprId,
-        args: &[ExprId],
-    ) -> BasicValueEnum {
+    fn codegen_call(&self, vars: &mut Vars<'ctx>, func: ExprId, args: &[ExprId]) -> BasicValueEnum {
         let closure_value = self.codegen_expr(vars, func).into_struct_value();
         let code_ptr = self
             .builder
@@ -411,7 +401,17 @@ impl<'ctx> Compiler<'ctx> {
             .unwrap_left()
     }
 
-    fn codegen_unop(&'ctx self, vars: &mut Vars<'ctx>, op: Unop, expr: ExprId) -> BasicValueEnum {
+    fn codegen_return(&self, vars: &mut Vars<'ctx>, expr: Option<ExprId>) -> BasicValueEnum {
+        let value = match expr {
+            Some(expr) => self.codegen_expr(vars, expr),
+            None => self.codegen_unit(),
+        };
+        self.builder.build_return(Some(&value));
+        self.builder.build_unreachable();
+        self.codegen_unit()
+    }
+
+    fn codegen_unop(&self, vars: &mut Vars<'ctx>, op: Unop, expr: ExprId) -> BasicValueEnum {
         let value = self.codegen_expr(vars, expr);
         match op {
             Unop::Not => self
@@ -430,118 +430,59 @@ impl<'ctx> Compiler<'ctx> {
                 .into(),
         }
     }
+}
 
-    fn codegen_binop(
-        &'ctx self,
-        vars: &mut Vars<'ctx>,
-        l: ExprId,
-        r: ExprId,
-        op: Binop,
-    ) -> BasicValueEnum {
-        let (ctor, params) = match &self.types[l] {
-            Type::App { ctor, params } => (ctor, params),
-            Type::Unknown | Type::Infer(_) => unreachable!(),
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use inkwell::OptimizationLevel;
+    use insta::*;
+
+    macro_rules! test_codegen_and_run {
+        ($name:ident, $src:expr, $expected:expr) => {
+            #[test]
+            fn $name() { test_codegen_and_run(stringify!($name), $src, $expected); }
+        };
+    }
+
+    #[track_caller]
+    fn test_codegen_and_run<T>(name: &str, src: &str, expected: T)
+    where
+        T: PartialEq + std::fmt::Debug,
+    {
+        let syntax = walrus_parser::parse(src);
+        let hir = walrus_semantics::hir::lower(&syntax);
+        let scopes = walrus_semantics::scopes::scopes(&hir);
+        let types = walrus_semantics::ty::infer(hir.clone(), scopes.clone());
+
+        let llvm = Context::create();
+        let builder = llvm.create_builder();
+        let module = llvm.create_module("module");
+
+        let llvm_module = {
+            let compiler = Compiler {
+                llvm: &llvm,
+                module,
+                builder,
+
+                hir: hir.data,
+                scopes,
+                types,
+            };
+            compiler.codegen_module()
         };
 
-        match (op, ctor) {
-            (Binop::Add, Ctor::Int) => self.int_op(vars, l, r, Builder::build_int_add),
-            (Binop::Add, Ctor::Float) => self.float_op(vars, l, r, Builder::build_float_add),
-            (Binop::Add, _) => unreachable!("`+` only allowed on Int or Float"),
+        let exec_engine = llvm_module
+            .create_jit_execution_engine(OptimizationLevel::None)
+            .unwrap();
+        let f = unsafe { exec_engine.get_function::<unsafe extern "C" fn() -> T>("main") }.unwrap();
+        assert_eq!(unsafe { f.call() }, expected);
 
-            (Binop::Sub, Ctor::Int) => self.int_op(vars, l, r, Builder::build_int_sub),
-            (Binop::Sub, Ctor::Float) => self.float_op(vars, l, r, Builder::build_float_sub),
-            (Binop::Sub, _) => unreachable!("`-` only allowed on Int or Float"),
-
-            (Binop::Mul, Ctor::Int) => self.int_op(vars, l, r, Builder::build_int_mul),
-            (Binop::Mul, Ctor::Float) => self.float_op(vars, l, r, Builder::build_float_mul),
-            (Binop::Mul, _) => unreachable!("`*` only allowed on Int or Float"),
-
-            (Binop::Div, Ctor::Int) => self.int_op(vars, l, r, Builder::build_int_signed_div),
-            (Binop::Div, Ctor::Float) => self.float_op(vars, l, r, Builder::build_float_div),
-            (Binop::Div, _) => unreachable!("`/` only allowed on Int or Float"),
-
-            (Binop::Less, Ctor::Int | Ctor::Char) => self.int_cmp(vars, l, r, IntPredicate::SLT),
-            (Binop::Less, Ctor::Float) => self.float_cmp(vars, l, r, FloatPredicate::OLT),
-            (Binop::Less, _) => unreachable!("`<` only allowed on Int, Char or Float"),
-
-            (Binop::LessEq, Ctor::Int | Ctor::Char) => self.int_cmp(vars, l, r, IntPredicate::SLE),
-            (Binop::LessEq, Ctor::Float) => self.float_cmp(vars, l, r, FloatPredicate::OLE),
-            (Binop::LessEq, _) => unreachable!("`<=` only allowed on Int, Char or Float"),
-
-            (Binop::Greater, Ctor::Int | Ctor::Char) => self.int_cmp(vars, l, r, IntPredicate::SGT),
-            (Binop::Greater, Ctor::Float) => self.float_cmp(vars, l, r, FloatPredicate::OGT),
-            (Binop::Greater, _) => unreachable!("`>` only allowed on Int, Char or Float"),
-
-            (Binop::GreaterEq, Ctor::Int | Ctor::Char) => {
-                self.int_cmp(vars, l, r, IntPredicate::SGE)
-            }
-            (Binop::GreaterEq, Ctor::Float) => self.float_cmp(vars, l, r, FloatPredicate::OGE),
-            (Binop::GreaterEq, _) => unreachable!("`>=` only allowed on Int, Char or Float"),
-            _ => todo!(),
-        }
+        let mut settings = insta::Settings::new();
+        settings.set_snapshot_path("../snapshots");
+        settings.set_prepend_module_to_snapshot(false);
+        settings.bind(|| assert_display_snapshot!(llvm_module.print_to_string().to_string()));
     }
 
-    fn int_op(
-        &'ctx self,
-        vars: &mut Vars<'ctx>,
-        lhs: ExprId,
-        rhs: ExprId,
-        op: fn(&Builder<'ctx>, IntValue<'ctx>, IntValue<'ctx>, &str) -> IntValue<'ctx>,
-    ) -> BasicValueEnum {
-        let lhs = self.codegen_expr(vars, lhs);
-        let rhs = self.codegen_expr(vars, rhs);
-        op(
-            &self.builder,
-            lhs.into_int_value(),
-            rhs.into_int_value(),
-            "",
-        )
-        .into()
-    }
-
-    fn float_op(
-        &'ctx self,
-        vars: &mut Vars<'ctx>,
-        lhs: ExprId,
-        rhs: ExprId,
-        op: fn(&Builder<'ctx>, FloatValue<'ctx>, FloatValue<'ctx>, &str) -> FloatValue<'ctx>,
-    ) -> BasicValueEnum {
-        let lhs = self.codegen_expr(vars, lhs);
-        let rhs = self.codegen_expr(vars, rhs);
-        op(
-            &self.builder,
-            lhs.into_float_value(),
-            rhs.into_float_value(),
-            "",
-        )
-        .into()
-    }
-
-    fn int_cmp(
-        &'ctx self,
-        vars: &mut Vars<'ctx>,
-        lhs: ExprId,
-        rhs: ExprId,
-        cmp: IntPredicate,
-    ) -> BasicValueEnum {
-        let lhs = self.codegen_expr(vars, lhs);
-        let rhs = self.codegen_expr(vars, rhs);
-        self.builder
-            .build_int_compare(cmp, lhs.into_int_value(), rhs.into_int_value(), "")
-            .into()
-    }
-
-    fn float_cmp(
-        &'ctx self,
-        vars: &mut Vars<'ctx>,
-        lhs: ExprId,
-        rhs: ExprId,
-        cmp: FloatPredicate,
-    ) -> BasicValueEnum {
-        let lhs = self.codegen_expr(vars, lhs);
-        let rhs = self.codegen_expr(vars, rhs);
-        self.builder
-            .build_float_compare(cmp, lhs.into_float_value(), rhs.into_float_value(), "")
-            .into()
-    }
+    test_codegen_and_run!(empty_fn, r#"fn main() {}"#, ());
 }
