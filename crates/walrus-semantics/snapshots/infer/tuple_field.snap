@@ -1,193 +1,138 @@
 ---
 source: crates/walrus-semantics/src/ty.rs
 expression: types
+
 ---
 InferenceResult {
     type_of_expr: {
-        0: App(
-            TypeApp {
-                ctor: Int,
-                params: [],
-            },
-        ),
-        1: App(
-            TypeApp {
-                ctor: Bool,
-                params: [],
-            },
-        ),
-        2: App(
-            TypeApp {
-                ctor: Tuple,
-                params: [
-                    App(
-                        TypeApp {
-                            ctor: Int,
-                            params: [],
-                        },
-                    ),
-                    App(
-                        TypeApp {
-                            ctor: Bool,
-                            params: [],
-                        },
-                    ),
-                ],
-            },
-        ),
-        3: App(
-            TypeApp {
-                ctor: Tuple,
-                params: [
-                    App(
-                        TypeApp {
-                            ctor: Int,
-                            params: [],
-                        },
-                    ),
-                    App(
-                        TypeApp {
-                            ctor: Bool,
-                            params: [],
-                        },
-                    ),
-                ],
-            },
-        ),
-        4: App(
-            TypeApp {
-                ctor: Bool,
-                params: [],
-            },
-        ),
-        5: App(
-            TypeApp {
-                ctor: Tuple,
-                params: [
-                    App(
-                        TypeApp {
-                            ctor: Int,
-                            params: [],
-                        },
-                    ),
-                    App(
-                        TypeApp {
-                            ctor: Bool,
-                            params: [],
-                        },
-                    ),
-                ],
-            },
-        ),
-        6: App(
-            TypeApp {
-                ctor: Int,
-                params: [],
-            },
-        ),
-        7: App(
-            TypeApp {
-                ctor: Tuple,
-                params: [
-                    App(
-                        TypeApp {
-                            ctor: Bool,
-                            params: [],
-                        },
-                    ),
-                    App(
-                        TypeApp {
-                            ctor: Int,
-                            params: [],
-                        },
-                    ),
-                ],
-            },
-        ),
-        8: App(
-            TypeApp {
-                ctor: Tuple,
-                params: [
-                    App(
-                        TypeApp {
-                            ctor: Bool,
-                            params: [],
-                        },
-                    ),
-                    App(
-                        TypeApp {
-                            ctor: Int,
-                            params: [],
-                        },
-                    ),
-                ],
-            },
-        ),
+        0: App {
+            ctor: Int,
+            params: [],
+        },
+        1: App {
+            ctor: Bool,
+            params: [],
+        },
+        2: App {
+            ctor: Tuple,
+            params: [
+                App {
+                    ctor: Int,
+                    params: [],
+                },
+                App {
+                    ctor: Bool,
+                    params: [],
+                },
+            ],
+        },
+        3: App {
+            ctor: Tuple,
+            params: [
+                App {
+                    ctor: Int,
+                    params: [],
+                },
+                App {
+                    ctor: Bool,
+                    params: [],
+                },
+            ],
+        },
+        4: App {
+            ctor: Bool,
+            params: [],
+        },
+        5: App {
+            ctor: Tuple,
+            params: [
+                App {
+                    ctor: Int,
+                    params: [],
+                },
+                App {
+                    ctor: Bool,
+                    params: [],
+                },
+            ],
+        },
+        6: App {
+            ctor: Int,
+            params: [],
+        },
+        7: App {
+            ctor: Tuple,
+            params: [
+                App {
+                    ctor: Bool,
+                    params: [],
+                },
+                App {
+                    ctor: Int,
+                    params: [],
+                },
+            ],
+        },
+        8: App {
+            ctor: Tuple,
+            params: [
+                App {
+                    ctor: Bool,
+                    params: [],
+                },
+                App {
+                    ctor: Int,
+                    params: [],
+                },
+            ],
+        },
     },
     type_of_type: {
-        0: App(
-            TypeApp {
-                ctor: Tuple,
-                params: [
-                    App(
-                        TypeApp {
-                            ctor: Bool,
-                            params: [],
-                        },
-                    ),
-                    App(
-                        TypeApp {
-                            ctor: Int,
-                            params: [],
-                        },
-                    ),
-                ],
-            },
-        ),
+        0: App {
+            ctor: Tuple,
+            params: [
+                App {
+                    ctor: Bool,
+                    params: [],
+                },
+                App {
+                    ctor: Int,
+                    params: [],
+                },
+            ],
+        },
     },
     type_of_pat: {
-        0: App(
-            TypeApp {
-                ctor: Tuple,
-                params: [
-                    App(
-                        TypeApp {
-                            ctor: Int,
-                            params: [],
-                        },
-                    ),
-                    App(
-                        TypeApp {
-                            ctor: Bool,
-                            params: [],
-                        },
-                    ),
-                ],
-            },
-        ),
+        0: App {
+            ctor: Tuple,
+            params: [
+                App {
+                    ctor: Int,
+                    params: [],
+                },
+                App {
+                    ctor: Bool,
+                    params: [],
+                },
+            ],
+        },
     },
     type_of_fn: {
         0: FnType {
             params: [],
-            ret: App(
-                TypeApp {
-                    ctor: Tuple,
-                    params: [
-                        App(
-                            TypeApp {
-                                ctor: Bool,
-                                params: [],
-                            },
-                        ),
-                        App(
-                            TypeApp {
-                                ctor: Int,
-                                params: [],
-                            },
-                        ),
-                    ],
-                },
-            ),
+            ret: App {
+                ctor: Tuple,
+                params: [
+                    App {
+                        ctor: Bool,
+                        params: [],
+                    },
+                    App {
+                        ctor: Int,
+                        params: [],
+                    },
+                ],
+            },
         },
     },
     diagnostics: [],

@@ -1,27 +1,24 @@
 ---
 source: crates/walrus-semantics/src/ty.rs
 expression: types
+
 ---
 InferenceResult {
     type_of_expr: {
-        0: App(
-            TypeApp {
-                ctor: Tuple,
-                params: [],
-            },
-        ),
+        0: App {
+            ctor: Tuple,
+            params: [],
+        },
     },
     type_of_type: {},
     type_of_pat: {},
     type_of_fn: {
         0: FnType {
             params: [],
-            ret: App(
-                TypeApp {
-                    ctor: Tuple,
-                    params: [],
-                },
-            ),
+            ret: App {
+                ctor: Tuple,
+                params: [],
+            },
         },
     },
     diagnostics: [],

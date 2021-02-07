@@ -1,72 +1,57 @@
 ---
 source: crates/walrus-semantics/src/ty.rs
 expression: types
+
 ---
 InferenceResult {
     type_of_expr: {
-        0: App(
-            TypeApp {
-                ctor: Int,
-                params: [],
-            },
-        ),
-        1: App(
-            TypeApp {
-                ctor: Bool,
-                params: [],
-            },
-        ),
-        2: App(
-            TypeApp {
-                ctor: Struct(
-                    0,
-                ),
-                params: [],
-            },
-        ),
-        3: App(
-            TypeApp {
-                ctor: Struct(
-                    0,
-                ),
-                params: [],
-            },
-        ),
+        0: App {
+            ctor: Int,
+            params: [],
+        },
+        1: App {
+            ctor: Bool,
+            params: [],
+        },
+        2: App {
+            ctor: Struct(
+                0,
+            ),
+            params: [],
+        },
+        3: App {
+            ctor: Struct(
+                0,
+            ),
+            params: [],
+        },
     },
     type_of_type: {
-        0: App(
-            TypeApp {
-                ctor: Int,
-                params: [],
-            },
-        ),
-        1: App(
-            TypeApp {
-                ctor: Bool,
-                params: [],
-            },
-        ),
-        2: App(
-            TypeApp {
-                ctor: Struct(
-                    0,
-                ),
-                params: [],
-            },
-        ),
+        0: App {
+            ctor: Int,
+            params: [],
+        },
+        1: App {
+            ctor: Bool,
+            params: [],
+        },
+        2: App {
+            ctor: Struct(
+                0,
+            ),
+            params: [],
+        },
     },
     type_of_pat: {},
     type_of_fn: {
         0: FnType {
             params: [],
-            ret: App(
-                TypeApp {
-                    ctor: Struct(
-                        0,
-                    ),
-                    params: [],
-                },
-            ),
+            ret: App {
+                ctor: Struct(
+                    0,
+                ),
+                params: [],
+            },
         },
     },
     diagnostics: [],

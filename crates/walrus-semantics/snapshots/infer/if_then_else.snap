@@ -1,70 +1,53 @@
 ---
 source: crates/walrus-semantics/src/ty.rs
 expression: types
+
 ---
 InferenceResult {
     type_of_expr: {
-        0: App(
-            TypeApp {
-                ctor: Bool,
-                params: [],
-            },
-        ),
-        1: App(
-            TypeApp {
-                ctor: Int,
-                params: [],
-            },
-        ),
-        2: App(
-            TypeApp {
-                ctor: Int,
-                params: [],
-            },
-        ),
-        3: App(
-            TypeApp {
-                ctor: Int,
-                params: [],
-            },
-        ),
-        4: App(
-            TypeApp {
-                ctor: Int,
-                params: [],
-            },
-        ),
-        5: App(
-            TypeApp {
-                ctor: Int,
-                params: [],
-            },
-        ),
-        6: App(
-            TypeApp {
-                ctor: Int,
-                params: [],
-            },
-        ),
+        0: App {
+            ctor: Bool,
+            params: [],
+        },
+        1: App {
+            ctor: Int,
+            params: [],
+        },
+        2: App {
+            ctor: Int,
+            params: [],
+        },
+        3: App {
+            ctor: Int,
+            params: [],
+        },
+        4: App {
+            ctor: Int,
+            params: [],
+        },
+        5: App {
+            ctor: Int,
+            params: [],
+        },
+        6: App {
+            ctor: Int,
+            params: [],
+        },
     },
     type_of_type: {
-        0: App(
-            TypeApp {
-                ctor: Int,
-                params: [],
-            },
-        ),
+        0: App {
+            ctor: Int,
+            params: [],
+        },
     },
     type_of_pat: {},
     type_of_fn: {
         0: FnType {
             params: [],
-            ret: App(
-                TypeApp {
-                    ctor: Int,
-                    params: [],
-                },
-            ),
+            ret: App {
+                ctor: Int,
+                params: [],
+            },
         },
     },
     diagnostics: [],
