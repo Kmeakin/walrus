@@ -57,7 +57,7 @@ impl<'ctx> Compiler<'ctx> {
     fn value_type(&self, ty: &Type) -> BasicTypeEnum<'ctx> {
         let (ctor, params) = match ty {
             Type::App { ctor, params } => (ctor, params),
-            _ => unreachable!(),
+            _ => unreachable!(format!("{ty:?}")),
         };
         match ctor {
             ty::Ctor::Bool => self.llvm.bool_type().into(),
@@ -446,8 +446,7 @@ impl<'ctx> Compiler<'ctx> {
             None => self.codegen_unit(),
         };
         self.builder.build_return(Some(&value));
-        self.builder.build_unreachable();
-        self.codegen_unit()
+        self.llvm.i32_type().get_undef().into()
     }
 
     fn codegen_unop(&self, vars: &mut Vars<'ctx>, op: Unop, expr: ExprId) -> BasicValueEnum {
@@ -493,6 +492,10 @@ mod tests {
         let hir = walrus_semantics::hir::lower(&syntax);
         let scopes = walrus_semantics::scopes::scopes(&hir);
         let types = walrus_semantics::ty::infer(hir.clone(), scopes.clone());
+        dbg!(&syntax);
+        dbg!(&hir);
+        dbg!(&scopes);
+        dbg!(&types);
 
         let llvm = Context::create();
         let builder = llvm.create_builder();
@@ -595,5 +598,42 @@ fn main() -> _ {get_five()}
 fn get_five() -> _ {5}
 "#,
         5_i64
+    );
+
+    // TODO
+    #[cfg(FALSE)]
+    test_codegen_and_run!(
+        early_return,
+        r#"
+fn main() -> _ {
+    return 5;
+    6
+}
+"#,
+        5_i64
+    );
+
+    test_codegen_and_run!(
+        struct_construtor,
+        r#"
+struct Foo {x: Int}
+fn main() -> _ {
+    let foo = Foo {x:5};
+    foo
+}
+"#,
+        5_i32
+    );
+
+    test_codegen_and_run!(
+        struct_field,
+        r#"
+struct Foo {x: Int,y:Int}
+fn main() -> _ {
+    let foo = Foo {y:6, x:5};
+    foo.y
+}
+"#,
+        6_i32
     );
 }
