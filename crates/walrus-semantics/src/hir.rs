@@ -1,5 +1,6 @@
 use crate::{diagnostic::Diagnostic, syntax};
 use arena::{Arena, ArenaMap, Idx};
+use derive_more::Display;
 use ordered_float::OrderedFloat;
 use smol_str::SmolStr;
 use std::{fmt, ops::Index};
@@ -207,10 +208,9 @@ pub enum Unop {
     Sub,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Display, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Binop {
-    Or,
-    And,
+    Lazy(LazyBinop),
     Add,
     Sub,
     Mul,
@@ -222,6 +222,14 @@ pub enum Binop {
     LessEq,
     Greater,
     GreaterEq,
+}
+
+#[derive(Debug, Display, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum LazyBinop {
+    #[display(fmt = "or")]
+    Or,
+    #[display(fmt = "and")]
+    And,
 }
 
 impl From<syntax::Unop> for Unop {
@@ -236,8 +244,8 @@ impl From<syntax::Unop> for Unop {
 impl From<syntax::Binop> for Binop {
     fn from(op: syntax::Binop) -> Self {
         match op {
-            syntax::Binop::Or(_) => Self::Or,
-            syntax::Binop::And(_) => Self::And,
+            syntax::Binop::Or(_) => Self::Lazy(LazyBinop::Or),
+            syntax::Binop::And(_) => Self::Lazy(LazyBinop::And),
             syntax::Binop::Add(_) => Self::Add,
             syntax::Binop::Sub(_) => Self::Sub,
             syntax::Binop::Mul(_) => Self::Mul,

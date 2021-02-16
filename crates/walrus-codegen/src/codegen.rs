@@ -11,7 +11,10 @@ use inkwell::{
 };
 use std::{ops::Index, rc::Rc};
 use walrus_semantics::{
-    hir::{self, Binop, Expr, ExprId, Field, FnDefId, Lit, PatId, StructExprField, Unop, VarId},
+    hir::{
+        self, Binop, Expr, ExprId, Field, FnDefId, LazyBinop, Lit, PatId, StructExprField, Unop,
+        VarId,
+    },
     scopes::{self, Denotation},
     ty,
     ty::{Ctor, FnType, Type},
@@ -478,58 +481,49 @@ impl<'ctx> Compiler<'ctx> {
         Some(value)
     }
 
+    fn codegen_lazy_binop(
+        &self,
+        vars: &mut Vars<'ctx>,
+        lhs: ExprId,
+        op: LazyBinop,
+        rhs: ExprId,
+    ) -> Value {
+        let bool_type = self.llvm.bool_type();
+        let bb = self.builder.get_insert_block().unwrap();
+        let end_bb = self.llvm.insert_basic_block_after(bb, &format!("{op}.end"));
+        let else_bb = self
+            .llvm
+            .insert_basic_block_after(bb, &format!("{op}.else"));
+        let then_bb = self
+            .llvm
+            .insert_basic_block_after(bb, &format!("{op}.then"));
+        let lhs_value = self.codegen_expr(vars, lhs)?;
+        self.builder
+            .build_conditional_branch(lhs_value.into_int_value(), then_bb, else_bb);
+
+        // then branch
+        self.builder.position_at_end(then_bb);
+        self.builder.build_unconditional_branch(end_bb);
+
+        // else branch
+        self.builder.position_at_end(else_bb);
+        let rhs_value = self.codegen_expr(vars, rhs)?;
+        self.builder.build_unconditional_branch(end_bb);
+
+        // merge the 2 branches
+        self.builder.position_at_end(end_bb);
+        let phi = self.builder.build_phi(bool_type, &format!("{op}.merge"));
+        match op {
+            LazyBinop::Or => phi.add_incoming(&[(&lhs_value, then_bb), (&rhs_value, else_bb)]),
+            LazyBinop::And => phi.add_incoming(&[(&rhs_value, then_bb), (&lhs_value, else_bb)]),
+        }
+        phi.add_incoming(&[(&lhs_value, then_bb), (&rhs_value, else_bb)]);
+        Some(phi.as_basic_value())
+    }
+
     fn codegen_binop(&self, vars: &mut Vars<'ctx>, lhs: ExprId, op: Binop, rhs: ExprId) -> Value {
         let value = match op {
-            Binop::Or => {
-                let bool_type = self.llvm.bool_type();
-                let bb = self.builder.get_insert_block().unwrap();
-                let end_bb = self.llvm.insert_basic_block_after(bb, "or.end");
-                let else_bb = self.llvm.insert_basic_block_after(bb, "or.else");
-                let then_bb = self.llvm.insert_basic_block_after(bb, "or.then");
-                let lhs_value = self.codegen_expr(vars, lhs)?;
-                self.builder
-                    .build_conditional_branch(lhs_value.into_int_value(), then_bb, else_bb);
-
-                // then branch
-                self.builder.position_at_end(then_bb);
-                self.builder.build_unconditional_branch(end_bb);
-
-                // else branch
-                self.builder.position_at_end(else_bb);
-                let rhs_value = self.codegen_expr(vars, rhs)?;
-                self.builder.build_unconditional_branch(end_bb);
-
-                // merge the 2 branches
-                self.builder.position_at_end(end_bb);
-                let phi = self.builder.build_phi(bool_type, "or.merge");
-                phi.add_incoming(&[(&lhs_value, then_bb), (&rhs_value, else_bb)]);
-                phi.as_basic_value()
-            }
-            Binop::And => {
-                let bool_type = self.llvm.bool_type();
-                let bb = self.builder.get_insert_block().unwrap();
-                let end_bb = self.llvm.insert_basic_block_after(bb, "and.end");
-                let else_bb = self.llvm.insert_basic_block_after(bb, "and.else");
-                let then_bb = self.llvm.insert_basic_block_after(bb, "and.then");
-                let lhs_value = self.codegen_expr(vars, lhs)?;
-                self.builder
-                    .build_conditional_branch(lhs_value.into_int_value(), then_bb, else_bb);
-
-                // then branch
-                self.builder.position_at_end(then_bb);
-                self.builder.build_unconditional_branch(end_bb);
-
-                // else branch
-                self.builder.position_at_end(else_bb);
-                let rhs_value = self.codegen_expr(vars, rhs)?;
-                self.builder.build_unconditional_branch(end_bb);
-
-                // merge the 2 branches
-                self.builder.position_at_end(end_bb);
-                let phi = self.builder.build_phi(bool_type, "and.merge");
-                phi.add_incoming(&[(&rhs_value, then_bb), (&lhs_value, else_bb)]);
-                phi.as_basic_value()
-            }
+            Binop::Lazy(op) => return self.codegen_lazy_binop(vars, lhs, op, rhs),
             Binop::Add => todo!(),
             Binop::Sub => todo!(),
             Binop::Mul => todo!(),

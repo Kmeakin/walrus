@@ -710,7 +710,7 @@ impl Binop {
             Self::Assign => Type::Unknown,
             Self::Eq | Self::NotEq => Type::Unknown,
             Self::Less | Self::LessEq | Self::Greater | Self::GreaterEq => Type::Unknown,
-            Self::And | Self::Or => Type::BOOL,
+            Self::Lazy(LazyBinop::And | LazyBinop::Or) => Type::BOOL,
         }
     }
 
@@ -720,7 +720,7 @@ impl Binop {
             Self::Assign => lhs_type,
             Self::Eq | Self::NotEq => lhs_type,
             Self::Less | Self::LessEq | Self::Greater | Self::GreaterEq => lhs_type,
-            Self::And | Self::Or => Type::BOOL,
+            Self::Lazy(LazyBinop::And | LazyBinop::Or) => Type::BOOL,
         }
     }
 
@@ -734,7 +734,7 @@ impl Binop {
             | Self::LessEq
             | Self::Greater
             | Self::GreaterEq => Type::BOOL,
-            Self::And | Self::Or => Type::BOOL,
+            Self::Lazy(LazyBinop::And | LazyBinop::Or) => Type::BOOL,
         }
     }
 }

@@ -18,7 +18,7 @@
     dead_code,
     elided_lifetimes_in_paths
 )]
-#![feature(format_args_capture, never_type, exhaustive_patterns)]
+#![feature(format_args_capture, or_patterns)]
 
 mod builtins;
 mod diagnostic;
