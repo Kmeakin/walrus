@@ -1,6 +1,7 @@
 ---
 source: crates/walrus-lexer/src/token_kind.rs
 expression: got
+
 ---
 [
     0..1@Plus "+",
@@ -26,4 +27,8 @@ expression: got
     23..24@Greater ">",
     24..25@Whitespace " ",
     25..27@GreaterEq ">=",
+    27..28@Whitespace " ",
+    28..30@OrOr "||",
+    30..31@Whitespace " ",
+    31..33@AndAnd "&&",
 ]

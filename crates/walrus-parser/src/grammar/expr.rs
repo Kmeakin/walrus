@@ -14,7 +14,7 @@ pub fn expr(input: Input) -> IResult<Expr> {
         .or(break_expr)
         .or(continue_expr)
         .or(assign_expr)
-        .or(cmp_expr)
+        .or(or_expr)
         .parse(input)
 }
 pub fn expr_no_struct(input: Input) -> IResult<Expr> {

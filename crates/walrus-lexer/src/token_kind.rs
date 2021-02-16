@@ -138,5 +138,5 @@ mod tests {
     test_lex!(escaped_char, r"'\n'");
     test_lex!(unicode_char, r"'\u0a'");
     test_lex!(symbols, "() {} . , ; : -> => _");
-    test_lex!(operators, "+ - * / ! = == != < <= > >=");
+    test_lex!(operators, "+ - * / ! = == != < <= > >= || &&");
 }

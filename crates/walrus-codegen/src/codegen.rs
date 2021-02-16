@@ -225,7 +225,7 @@ impl<'ctx> Compiler<'ctx> {
             Expr::Call { func, args } => self.codegen_call(vars, *func, args),
             Expr::Lambda { params, expr } => todo!(),
             Expr::Unop { op, expr } => self.codegen_unop(vars, *op, *expr),
-            Expr::Binop { lhs, op, rhs } => todo!(),
+            Expr::Binop { lhs, op, rhs } => self.codegen_binop(vars, *lhs, *op, *rhs),
             Expr::Block { stmts, expr } => {
                 for stmt in stmts {
                     match stmt {
@@ -477,6 +477,73 @@ impl<'ctx> Compiler<'ctx> {
         };
         Some(value)
     }
+
+    fn codegen_binop(&self, vars: &mut Vars<'ctx>, lhs: ExprId, op: Binop, rhs: ExprId) -> Value {
+        let value = match op {
+            Binop::Or => {
+                let bool_type = self.llvm.bool_type();
+                let bb = self.builder.get_insert_block().unwrap();
+                let end_bb = self.llvm.insert_basic_block_after(bb, "or.end");
+                let else_bb = self.llvm.insert_basic_block_after(bb, "or.else");
+                let then_bb = self.llvm.insert_basic_block_after(bb, "or.then");
+                let lhs_value = self.codegen_expr(vars, lhs)?;
+                self.builder
+                    .build_conditional_branch(lhs_value.into_int_value(), then_bb, else_bb);
+
+                // then branch
+                self.builder.position_at_end(then_bb);
+                self.builder.build_unconditional_branch(end_bb);
+
+                // else branch
+                self.builder.position_at_end(else_bb);
+                let rhs_value = self.codegen_expr(vars, rhs)?;
+                self.builder.build_unconditional_branch(end_bb);
+
+                // merge the 2 branches
+                self.builder.position_at_end(end_bb);
+                let phi = self.builder.build_phi(bool_type, "or.merge");
+                phi.add_incoming(&[(&lhs_value, then_bb), (&rhs_value, else_bb)]);
+                phi.as_basic_value()
+            }
+            Binop::And => {
+                let bool_type = self.llvm.bool_type();
+                let bb = self.builder.get_insert_block().unwrap();
+                let end_bb = self.llvm.insert_basic_block_after(bb, "and.end");
+                let else_bb = self.llvm.insert_basic_block_after(bb, "and.else");
+                let then_bb = self.llvm.insert_basic_block_after(bb, "and.then");
+                let lhs_value = self.codegen_expr(vars, lhs)?;
+                self.builder
+                    .build_conditional_branch(lhs_value.into_int_value(), then_bb, else_bb);
+
+                // then branch
+                self.builder.position_at_end(then_bb);
+                self.builder.build_unconditional_branch(end_bb);
+
+                // else branch
+                self.builder.position_at_end(else_bb);
+                let rhs_value = self.codegen_expr(vars, rhs)?;
+                self.builder.build_unconditional_branch(end_bb);
+
+                // merge the 2 branches
+                self.builder.position_at_end(end_bb);
+                let phi = self.builder.build_phi(bool_type, "and.merge");
+                phi.add_incoming(&[(&rhs_value, then_bb), (&lhs_value, else_bb)]);
+                phi.as_basic_value()
+            }
+            Binop::Add => todo!(),
+            Binop::Sub => todo!(),
+            Binop::Mul => todo!(),
+            Binop::Div => todo!(),
+            Binop::Assign => todo!(),
+            Binop::Eq => todo!(),
+            Binop::NotEq => todo!(),
+            Binop::Less => todo!(),
+            Binop::LessEq => todo!(),
+            Binop::Greater => todo!(),
+            Binop::GreaterEq => todo!(),
+        };
+        Some(value)
+    }
 }
 
 #[cfg(test)]
@@ -631,6 +698,8 @@ fn main() -> _ {
         5_i64
     );
 
+    // TODO
+    #[cfg(FALSE)]
     test_codegen_and_run!(
         if_then_return,
         r#"
@@ -642,6 +711,8 @@ fn main() -> _ {
         1
     );
 
+    // TODO
+    #[cfg(FALSE)]
     test_codegen_and_run!(multi_expr_return, r#"fn main() -> _ { 1 + (return 2) }"#, 1);
 
     test_codegen_and_run!(
@@ -667,4 +738,7 @@ fn main() -> _ {
 "#,
         6_i32
     );
+
+    test_codegen_and_run!(binop_or, r#"fn main() -> _  {false || true}"#, true);
+    test_codegen_and_run!(binop_and, r#"fn main() -> _ {true && false}"#, false);
 }

@@ -275,7 +275,7 @@ fn f() -> _ {
     test_infer!(unary_add, r#"fn f() -> _ {+0}"#, Type::INT);
 
     test_infer!(cmp, r#"fn f() -> _ {0 == 1}"#, Type::BOOL);
-    test_infer!(loop_never, r#"fn f() -> _ { loop {} }"#, Type::NEVER);
+    test_infer!(loop_never, r#"fn f() -> Never { loop {} }"#, Type::NEVER);
     test_infer!(loop_unit, r#"fn f() -> _ { loop { break } }"#, Type::UNIT);
     test_infer!(loop_int, r#"fn f() -> _ { loop { break 1 } }"#, Type::INT);
 
