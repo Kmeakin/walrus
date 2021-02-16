@@ -49,6 +49,8 @@ impl<'a> Index<FnDefId> for Vars<'a> {
     fn index(&self, id: FnDefId) -> &Self::Output { &self.fns[id] }
 }
 
+type Value<'ctx> = Option<BasicValueEnum<'ctx>>;
+
 impl<'ctx> Compiler<'ctx> {
     fn void_ptr_type(&self) -> BasicTypeEnum<'ctx> {
         self.llvm.i8_type().ptr_type(AddressSpace::Generic).into()
@@ -71,7 +73,6 @@ impl<'ctx> Compiler<'ctx> {
                 self.llvm.struct_type(&field_types, false).into()
             }
             ty::Ctor::Fn => self.closure_type(&ty.as_fn().unwrap()),
-            ty::Ctor::Never => todo!(),
             ty::Ctor::Struct(id) => {
                 let struct_def = &self.hir[*id];
                 let field_types = struct_def
@@ -84,6 +85,7 @@ impl<'ctx> Compiler<'ctx> {
                     .collect::<Vec<_>>();
                 self.llvm.struct_type(&field_types, false).into()
             }
+            ty::Ctor::Never => todo!(),
         }
     }
 
@@ -165,8 +167,9 @@ impl<'ctx> Compiler<'ctx> {
                 self.codegen_local_var(vars, hir_param.pat, llvm_param)
             });
 
-        let body = self.codegen_expr(vars, fn_def.expr);
-        self.builder.build_return(Some(&body));
+        if let Some(value) = self.codegen_expr(vars, fn_def.expr) {
+            self.builder.build_return(Some(&value));
+        }
     }
 
     fn codegen_local_var(&self, vars: &mut Vars<'ctx>, id: PatId, val: BasicValueEnum) {
@@ -175,7 +178,7 @@ impl<'ctx> Compiler<'ctx> {
         match pat {
             hir::Pat::Var(var) => {
                 let name = format!("{}.alloca", self.hir[*var]);
-                let alloca = self.builder.build_alloca(self.value_type(&pat_type), &name);
+                let alloca = self.builder.build_alloca(self.value_type(pat_type), &name);
                 vars.locals.insert(id, alloca);
                 self.builder.build_store(vars[id], val);
             }
@@ -184,7 +187,7 @@ impl<'ctx> Compiler<'ctx> {
                 // eg `let _ = print(5);`
                 let alloca = self
                     .builder
-                    .build_alloca(self.value_type(&pat_type), "_.alloca");
+                    .build_alloca(self.value_type(pat_type), "_.alloca");
                 vars.locals.insert(id, alloca);
                 self.builder.build_store(vars[id], val);
             }
@@ -202,11 +205,11 @@ impl<'ctx> Compiler<'ctx> {
         }
     }
 
-    fn codegen_expr(&self, vars: &mut Vars<'ctx>, id: ExprId) -> BasicValueEnum {
+    fn codegen_expr(&self, vars: &mut Vars<'ctx>, id: ExprId) -> Value {
         let expr = &self.hir[id];
         match expr {
-            Expr::Lit(lit) => self.codegen_lit(*lit),
-            Expr::Var(var) => self.codegen_var(vars, id, *var),
+            Expr::Lit(lit) => Some(self.codegen_lit(*lit)),
+            Expr::Var(var) => Some(self.codegen_var(vars, id, *var)),
             Expr::Tuple(exprs) => self.codegen_tuple(vars, id, exprs),
             Expr::Struct { fields, .. } => self.codegen_struct(vars, id, fields),
             Expr::Field { expr, field } => self.codegen_field(vars, *expr, *field),
@@ -227,23 +230,25 @@ impl<'ctx> Compiler<'ctx> {
                 for stmt in stmts {
                     match stmt {
                         hir::Stmt::Expr(expr) => {
-                            self.codegen_expr(vars, *expr);
+                            self.codegen_expr(vars, *expr)?;
                         }
                         hir::Stmt::Let { pat, expr, .. } => {
-                            let val = self.codegen_expr(vars, *expr);
+                            let val = self.codegen_expr(vars, *expr)?;
                             self.codegen_local_var(vars, *pat, val);
                         }
                     }
                 }
                 match expr {
                     Some(expr) => self.codegen_expr(vars, *expr),
-                    None => self.codegen_unit(),
+                    None => Some(self.codegen_unit()),
                 }
             }
         }
     }
 
     fn codegen_unit(&self) -> BasicValueEnum { self.llvm.const_struct(&[], false).into() }
+
+    fn codegen_undef(&self) -> BasicValueEnum { self.llvm.i8_type().get_undef().into() }
 
     fn codegen_lit(&self, lit: Lit) -> BasicValueEnum {
         match lit {
@@ -289,24 +294,19 @@ impl<'ctx> Compiler<'ctx> {
         }
     }
 
-    fn codegen_tuple(
-        &self,
-        vars: &mut Vars<'ctx>,
-        expr: ExprId,
-        exprs: &[ExprId],
-    ) -> BasicValueEnum {
+    fn codegen_tuple(&self, vars: &mut Vars<'ctx>, expr: ExprId, exprs: &[ExprId]) -> Value {
         let types = self.types[expr].as_tuple().unwrap();
         let tuple_type = self.tuple_type(types);
         let tuple_alloca = self.builder.build_alloca(tuple_type, "tuple.alloca");
         for (idx, expr) in exprs.iter().enumerate() {
-            let value = self.codegen_expr(vars, *expr);
+            let value = self.codegen_expr(vars, *expr)?;
             let gep = self
                 .builder
                 .build_struct_gep(tuple_alloca, idx as u32, &format!("tuple.{idx}"))
                 .unwrap();
             self.builder.build_store(gep, value);
         }
-        self.builder.build_load(tuple_alloca, "tuple")
+        Some(self.builder.build_load(tuple_alloca, "tuple"))
     }
 
     fn codegen_struct(
@@ -314,7 +314,7 @@ impl<'ctx> Compiler<'ctx> {
         vars: &mut Vars<'ctx>,
         expr: ExprId,
         fields: &[StructExprField],
-    ) -> BasicValueEnum {
+    ) -> Value {
         let struct_id = self.types[expr].as_struct().unwrap();
         let struct_def = &self.hir[struct_id];
         let struct_name = &self.hir[struct_def.name];
@@ -342,14 +342,15 @@ impl<'ctx> Compiler<'ctx> {
                 .iter()
                 .find(|(name, _)| name == &field_name)
                 .unwrap();
-            self.builder.build_store(gep, *value);
+            let value = value;
+            self.builder.build_store(gep, (*value)?);
         }
-        self.builder.build_load(struct_alloca, struct_name.as_str())
+        Some(self.builder.build_load(struct_alloca, struct_name.as_str()))
     }
 
-    fn codegen_field(&self, vars: &mut Vars<'ctx>, expr: ExprId, field: Field) -> BasicValueEnum {
-        let base_value = self.codegen_expr(vars, expr);
-        match field {
+    fn codegen_field(&self, vars: &mut Vars<'ctx>, expr: ExprId, field: Field) -> Value {
+        let base_value = self.codegen_expr(vars, expr)?;
+        let value = match field {
             Field::Tuple(idx) => self
                 .builder
                 .build_extract_value(base_value.into_struct_value(), idx, &format!("tuple.{idx}"))
@@ -372,7 +373,8 @@ impl<'ctx> Compiler<'ctx> {
                     )
                     .unwrap()
             }
-        }
+        };
+        Some(value)
     }
 
     fn codegen_if(
@@ -381,19 +383,21 @@ impl<'ctx> Compiler<'ctx> {
         test: ExprId,
         then_branch: ExprId,
         else_branch: Option<ExprId>,
-    ) -> BasicValueEnum {
+    ) -> Value {
         let bb = self.builder.get_insert_block().unwrap();
         let end_bb = self.llvm.insert_basic_block_after(bb, "if.end");
         let else_bb = self.llvm.insert_basic_block_after(bb, "if.else");
         let then_bb = self.llvm.insert_basic_block_after(bb, "if.then");
-        let test_value = self.codegen_expr(vars, test);
+        let test_value = self.codegen_expr(vars, test)?;
         self.builder
             .build_conditional_branch(test_value.into_int_value(), then_bb, else_bb);
 
         // then branch
         self.builder.position_at_end(then_bb);
         let then_value = match else_branch {
-            Some(_) => self.codegen_expr(vars, then_branch),
+            Some(_) => self
+                .codegen_expr(vars, then_branch)
+                .unwrap_or_else(|| self.codegen_undef()),
             None => {
                 self.codegen_expr(vars, then_branch);
                 self.codegen_unit()
@@ -404,7 +408,9 @@ impl<'ctx> Compiler<'ctx> {
         // else branch
         self.builder.position_at_end(else_bb);
         let else_value = match else_branch {
-            Some(else_branch) => self.codegen_expr(vars, else_branch),
+            Some(else_branch) => self
+                .codegen_expr(vars, else_branch)
+                .unwrap_or_else(|| self.codegen_undef()),
             None => self.codegen_unit(),
         };
         self.builder.build_unconditional_branch(end_bb);
@@ -417,11 +423,11 @@ impl<'ctx> Compiler<'ctx> {
         };
         let phi = self.builder.build_phi(ty, "if.merge");
         phi.add_incoming(&[(&then_value, then_bb), (&else_value, else_bb)]);
-        phi.as_basic_value()
+        Some(phi.as_basic_value())
     }
 
-    fn codegen_call(&self, vars: &mut Vars<'ctx>, func: ExprId, args: &[ExprId]) -> BasicValueEnum {
-        let closure_value = self.codegen_expr(vars, func).into_struct_value();
+    fn codegen_call(&self, vars: &mut Vars<'ctx>, func: ExprId, args: &[ExprId]) -> Value {
+        let closure_value = self.codegen_expr(vars, func)?.into_struct_value();
         let code_ptr = self
             .builder
             .build_extract_value(closure_value, 0, "closure.code")
@@ -431,27 +437,29 @@ impl<'ctx> Compiler<'ctx> {
             .builder
             .build_extract_value(closure_value, 1, "closure.env")
             .unwrap();
-        let args = std::iter::once(env_ptr)
+        let args = &std::iter::once(Some(env_ptr))
             .chain(args.iter().map(|arg| self.codegen_expr(vars, *arg)))
-            .collect::<Vec<_>>();
-        self.builder
-            .build_call(code_ptr, &args, "call")
-            .try_as_basic_value()
-            .unwrap_left()
+            .collect::<Option<Vec<_>>>()?;
+        Some(
+            self.builder
+                .build_call(code_ptr, args, "call")
+                .try_as_basic_value()
+                .unwrap_left(),
+        )
     }
 
-    fn codegen_return(&self, vars: &mut Vars<'ctx>, expr: Option<ExprId>) -> BasicValueEnum {
+    fn codegen_return(&self, vars: &mut Vars<'ctx>, expr: Option<ExprId>) -> Value {
         let value = match expr {
-            Some(expr) => self.codegen_expr(vars, expr),
+            Some(expr) => self.codegen_expr(vars, expr)?,
             None => self.codegen_unit(),
         };
         self.builder.build_return(Some(&value));
-        self.llvm.i32_type().get_undef().into()
+        None
     }
 
-    fn codegen_unop(&self, vars: &mut Vars<'ctx>, op: Unop, expr: ExprId) -> BasicValueEnum {
-        let value = self.codegen_expr(vars, expr);
-        match op {
+    fn codegen_unop(&self, vars: &mut Vars<'ctx>, op: Unop, expr: ExprId) -> Value {
+        let value = self.codegen_expr(vars, expr)?;
+        let value = match op {
             Unop::Not => self
                 .builder
                 .build_int_compare(
@@ -461,12 +469,13 @@ impl<'ctx> Compiler<'ctx> {
                     "unary_not",
                 )
                 .into(),
-            Unop::Add => value,
             Unop::Sub => self
                 .builder
                 .build_int_neg(value.into_int_value(), "unary_neg")
                 .into(),
-        }
+            Unop::Add => value,
+        };
+        Some(value)
     }
 }
 
@@ -600,8 +609,6 @@ fn get_five() -> _ {5}
         5_i64
     );
 
-    // TODO
-    #[cfg(FALSE)]
     test_codegen_and_run!(
         early_return,
         r#"
@@ -612,6 +619,30 @@ fn main() -> _ {
 "#,
         5_i64
     );
+
+    test_codegen_and_run!(
+        multiple_return,
+        r#"
+fn main() -> _ {
+    return 5;
+    return 6;
+}
+"#,
+        5_i64
+    );
+
+    test_codegen_and_run!(
+        if_then_return,
+        r#"
+fn main() -> _ {
+    if true {return 1}
+    else {0}
+}
+"#,
+        1
+    );
+
+    test_codegen_and_run!(multi_expr_return, r#"fn main() -> _ { 1 + (return 2) }"#, 1);
 
     test_codegen_and_run!(
         struct_construtor,
