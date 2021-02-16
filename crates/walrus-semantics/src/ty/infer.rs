@@ -217,16 +217,19 @@ impl Ctx {
         }
     }
 
-    fn try_to_unify(&mut self, id: Either<ExprId, PatId>, expected: &Type, got: &Type) -> bool {
-        let unified = self.unify(got, expected);
-        if !unified {
-            self.result.diagnostics.push(Diagnostic::TypeMismatch {
-                id,
-                expected: expected.clone(),
-                got: got.clone(),
-            });
+    fn try_to_unify(&mut self, id: Either<ExprId, PatId>, expected: &Type, got: &Type) -> Type {
+        match self.coerce(got, expected) {
+            false => {
+                self.result.diagnostics.push(Diagnostic::TypeMismatch {
+                    id,
+                    expected: expected.clone(),
+                    got: got.clone(),
+                });
+                got.clone()
+            }
+            true if expected == &Type::Unknown => got.clone(),
+            true => expected.clone(),
         }
-        unified
     }
 
     fn try_to_unify_and_propagate_as_far_as_possible(
@@ -235,11 +238,19 @@ impl Ctx {
         expected: &Type,
         got: &Type,
     ) -> Type {
-        self.try_to_unify(id, expected, got);
-        self.propagate_type_as_far_as_possible(got)
+        let ty = self.try_to_unify(id, expected, got);
+        self.propagate_type_as_far_as_possible(&ty)
     }
 
     fn unify(&mut self, t1: &Type, t2: &Type) -> bool { self.table.unify(t1, t2) }
+
+    fn coerce(&mut self, from: &Type, to: &Type) -> bool {
+        if from == &Type::NEVER {
+            true
+        } else {
+            self.unify(from, to)
+        }
+    }
 }
 
 impl Ctx {
