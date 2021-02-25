@@ -13,7 +13,7 @@ use std::ops::Index;
 use walrus_semantics::{
     hir::{
         self, ArithmeticBinop, Binop, CmpBinop, Expr, ExprId, Field, FnDefId, LazyBinop, Lit,
-        PatId, StructExprField, Unop, VarId,
+        Param, PatId, StructExprField, Unop, VarId,
     },
     scopes::{self, Denotation},
     ty,
@@ -226,7 +226,7 @@ impl<'ctx> Compiler<'ctx> {
             Expr::Continue => todo!(),
             Expr::Return(expr) => self.codegen_return(vars, *expr),
             Expr::Call { func, args } => self.codegen_call(vars, *func, args),
-            Expr::Lambda { params, expr } => todo!(),
+            Expr::Lambda { params, expr } => Some(self.codegen_lambda(vars, id, params, *expr)),
             Expr::Unop { op, expr } => self.codegen_unop(vars, *op, *expr),
             Expr::Binop { lhs, op, rhs } => self.codegen_binop(vars, *lhs, *op, *rhs),
             Expr::Block { stmts, expr } => {
@@ -449,6 +449,75 @@ impl<'ctx> Compiler<'ctx> {
                 .try_as_basic_value()
                 .unwrap_left(),
         )
+    }
+
+    fn codegen_lambda(
+        &self,
+        vars: &mut Vars<'ctx>,
+        expr: ExprId,
+        params: &[Param],
+        body: ExprId,
+    ) -> BasicValueEnum {
+        let code_ptr = self
+            .codegen_lambda_body(vars, expr, params, body)
+            .as_global_value()
+            .as_pointer_value();
+
+        let closure_type = self.types[expr].as_fn().unwrap();
+        let closure_alloca = self
+            .builder
+            .build_alloca(self.closure_type(&closure_type), "closure.alloca");
+        let code_gep = self
+            .builder
+            .build_struct_gep(closure_alloca, 0, "closure.code")
+            .unwrap();
+        self.builder.build_store(code_gep, code_ptr);
+
+        let env_gep = self
+            .builder
+            .build_struct_gep(closure_alloca, 1, "closure.env")
+            .unwrap();
+        // TODO: store free variables
+        let null_ptr = self.void_ptr_type().const_zero();
+        self.builder.build_store(env_gep, null_ptr);
+        self.builder.build_load(closure_alloca, "closure")
+    }
+
+    fn codegen_lambda_body(
+        &self,
+        vars: &mut Vars<'ctx>,
+        expr: ExprId,
+        params: &[Param],
+        body: ExprId,
+    ) -> FunctionValue {
+        let fn_type = self.fn_type(&self.types[expr].as_fn().unwrap());
+        let llvm_fn = self.module.add_function("lambda", fn_type, None);
+        let old_bb = self.builder.get_insert_block().unwrap();
+
+        let bb = self.llvm.append_basic_block(llvm_fn, "lambda.entry");
+        self.builder.position_at_end(bb);
+
+        llvm_fn.get_nth_param(0).unwrap().set_name("env");
+
+        // TODO: load free vars
+
+        llvm_fn
+            .get_param_iter()
+            .skip(1)
+            .zip(params)
+            .enumerate()
+            .for_each(|(idx, (llvm_param, hir_param))| {
+                llvm_param.set_name(&format!("params.{idx}"));
+                self.codegen_local_var(vars, hir_param.pat, llvm_param)
+            });
+
+        if let Some(value) = self.codegen_expr(vars, body) {
+            self.builder.build_return(Some(&value));
+        }
+
+        self.builder.position_at_end(old_bb);
+
+        llvm_fn
     }
 
     fn codegen_return(&self, vars: &mut Vars<'ctx>, expr: Option<ExprId>) -> Value {
@@ -907,5 +976,34 @@ fn main() -> _ {
         int_greater_eq,
         r#"fn main() -> _ {let x = 1; let y = 1; x >= y}"#,
         true
+    );
+
+    test_codegen_and_run!(
+        lambda_no_free_vars,
+        r#"fn main() -> _ {
+let get_five = () => 5;
+get_five()
+}"#,
+        5_i32
+    );
+
+    test_codegen_and_run!(
+        lambda_args,
+        r#"fn main() -> _ {
+let add = (x,y) => x+y;
+add(2,3)
+}"#,
+        5_i32
+    );
+
+    // TODO
+    test_codegen_and_run!(
+        lambda_free_vars,
+        r#"fn main() -> _ {
+let x = 5;
+let capture_x = () => x;
+capture_x()
+}"#,
+        5_i32
     );
 }
