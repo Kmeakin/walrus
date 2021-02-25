@@ -517,7 +517,6 @@ impl<'ctx> Compiler<'ctx> {
             LazyBinop::Or => phi.add_incoming(&[(&lhs_value, then_bb), (&rhs_value, else_bb)]),
             LazyBinop::And => phi.add_incoming(&[(&rhs_value, then_bb), (&lhs_value, else_bb)]),
         }
-        phi.add_incoming(&[(&lhs_value, then_bb), (&rhs_value, else_bb)]);
         Some(phi.as_basic_value())
     }
 
