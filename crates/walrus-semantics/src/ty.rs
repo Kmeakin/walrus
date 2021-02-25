@@ -89,6 +89,18 @@ impl Type {
             _ => None,
         }
     }
+    pub const fn ctor(&self) -> Option<&Ctor> {
+        match self {
+            Self::App { ctor, .. } => Some(ctor),
+            _ => None,
+        }
+    }
+    pub const fn params(&self) -> Option<&Vec<Self>> {
+        match self {
+            Self::App { params, .. } => Some(params),
+            _ => None,
+        }
+    }
 
     fn walk_mut(&mut self, f: &mut impl FnMut(&mut Self)) {
         f(self);

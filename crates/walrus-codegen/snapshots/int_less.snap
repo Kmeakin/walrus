@@ -7,7 +7,7 @@ expression: llvm_module.print_to_string().to_string()
 source_filename = "module"
 target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
 
-define i32 @main(i8* %main.env) {
+define i1 @main(i8* %main.env) {
 main.entry:
   %x.alloca = alloca i32, align 4
   store i32 1, i32* %x.alloca, align 4
@@ -15,7 +15,7 @@ main.entry:
   store i32 1, i32* %y.alloca, align 4
   %x = load i32, i32* %x.alloca, align 4
   %y = load i32, i32* %y.alloca, align 4
-  %0 = add i32 %x, %y
-  ret i32 %0
+  %0 = icmp slt i32 %x, %y
+  ret i1 %0
 }
 

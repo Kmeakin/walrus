@@ -6,16 +6,14 @@ use inkwell::{
     context::Context,
     module::Module,
     types::{BasicType, BasicTypeEnum, FunctionType, StructType},
-    values::{
-        BasicValue, BasicValueEnum, FloatValue, FunctionValue, IntMathValue, IntValue, PointerValue,
-    },
+    values::{BasicValue, BasicValueEnum, FunctionValue, PointerValue},
     AddressSpace, FloatPredicate, IntPredicate,
 };
-use std::{ops::Index, rc::Rc};
+use std::ops::Index;
 use walrus_semantics::{
     hir::{
-        self, ArithmeticBinop, Binop, Expr, ExprId, Field, FnDefId, LazyBinop, Lit, PatId,
-        StructExprField, Unop, VarId,
+        self, ArithmeticBinop, Binop, CmpBinop, Expr, ExprId, Field, FnDefId, LazyBinop, Lit,
+        PatId, StructExprField, Unop, VarId,
     },
     scopes::{self, Denotation},
     ty,
@@ -531,33 +529,102 @@ impl<'ctx> Compiler<'ctx> {
     ) -> Value {
         let lhs_value = self.codegen_expr(vars, lhs)?;
         let rhs_value = self.codegen_expr(vars, rhs)?;
-        let ty = match &self.types[lhs] {
-            Type::App { ctor, params } => ctor,
-            _ => unreachable!(),
-        };
+
+        let lhs_ty = &self.types[lhs];
+        let rhs_ty = &self.types[rhs];
+
+        let ctor = self.types[lhs].ctor().unwrap();
 
         #[rustfmt::skip]
         macro_rules! int_op {
-            ($op:ident, $name:expr) => {self.builder .$op(lhs_value.into_int_value(), rhs_value.into_int_value(), $name,) .into()};
+            ($op:ident) => {self.builder .$op(lhs_value.into_int_value(), rhs_value.into_int_value(), "") .into()};
         }
 
         #[rustfmt::skip]
         macro_rules! float_op {
-            ($op:ident, $name:expr) => {self.builder.$op(lhs_value.into_float_value(), rhs_value.into_float_value(), $name,) .into()};
+            ($op:ident) => {self.builder.$op(lhs_value.into_float_value(), rhs_value.into_float_value(), "") .into()};
         }
 
-        let value = match (ty, op) {
-            (Ctor::Int, ArithmeticBinop::Add) => int_op!(build_int_add, "int.+"),
-            (Ctor::Int, ArithmeticBinop::Sub) => int_op!(build_int_sub, "int.-"),
-            (Ctor::Int, ArithmeticBinop::Mul) => int_op!(build_int_mul, "int.*"),
-            (Ctor::Int, ArithmeticBinop::Div) => int_op!(build_int_signed_div, "int./"),
+        let value = match (ctor, op) {
+            (Ctor::Int, ArithmeticBinop::Add) => int_op!(build_int_add),
+            (Ctor::Int, ArithmeticBinop::Sub) => int_op!(build_int_sub),
+            (Ctor::Int, ArithmeticBinop::Mul) => int_op!(build_int_mul),
+            (Ctor::Int, ArithmeticBinop::Div) => int_op!(build_int_signed_div),
+            (Ctor::Float, ArithmeticBinop::Add) => float_op!(build_float_add),
+            (Ctor::Float, ArithmeticBinop::Sub) => float_op!(build_float_sub),
+            (Ctor::Float, ArithmeticBinop::Mul) => float_op!(build_float_mul),
+            (Ctor::Float, ArithmeticBinop::Div) => float_op!(build_float_div),
 
-            (Ctor::Float, ArithmeticBinop::Add) => float_op!(build_float_add, "float.+"),
-            (Ctor::Float, ArithmeticBinop::Sub) => float_op!(build_float_sub, "float.-"),
-            (Ctor::Float, ArithmeticBinop::Mul) => float_op!(build_float_mul, "float.*"),
-            (Ctor::Float, ArithmeticBinop::Div) => float_op!(build_float_div, "float./"),
+            _ => unreachable!(format!("cannot perform binop {lhs_ty:?} {op} {rhs_ty:?}")),
+        };
+        Some(value)
+    }
 
-            _ => unreachable!(),
+    fn codegen_cmp_binop(
+        &self,
+        vars: &mut Vars<'ctx>,
+        lhs: ExprId,
+        op: CmpBinop,
+        rhs: ExprId,
+    ) -> Value {
+        let lhs_value = self.codegen_expr(vars, lhs)?;
+        let rhs_value = self.codegen_expr(vars, rhs)?;
+
+        let lhs_ty = &self.types[lhs];
+        let rhs_ty = &self.types[rhs];
+
+        let ctor = self.types[lhs].ctor().unwrap();
+
+        #[rustfmt::skip]
+        macro_rules! int_cmp {
+            ($op:expr) => {self.builder.build_int_compare($op,lhs_value.into_int_value(), rhs_value.into_int_value(), "") .into()};
+        }
+
+        #[rustfmt::skip]
+        macro_rules! float_cmp {
+            ($op:expr) => {self.builder.build_float_compare($op,lhs_value.into_float_value(), rhs_value.into_float_value(), "") .into()};
+        }
+
+        let value = match (ctor, op) {
+            (Ctor::Bool | Ctor::Int | Ctor::Char, CmpBinop::Eq) => {
+                int_cmp!(IntPredicate::EQ)
+            }
+            (Ctor::Bool | Ctor::Int | Ctor::Char, CmpBinop::NotEq) => {
+                int_cmp!(IntPredicate::NE)
+            }
+            (Ctor::Bool | Ctor::Int | Ctor::Char, CmpBinop::Less) => {
+                int_cmp!(IntPredicate::SLT)
+            }
+            (Ctor::Bool | Ctor::Int | Ctor::Char, CmpBinop::LessEq) => {
+                int_cmp!(IntPredicate::SLE)
+            }
+            (Ctor::Bool | Ctor::Int | Ctor::Char, CmpBinop::Greater) => {
+                int_cmp!(IntPredicate::SGT)
+            }
+            (Ctor::Bool | Ctor::Int | Ctor::Char, CmpBinop::GreaterEq) => {
+                int_cmp!(IntPredicate::SGE)
+            }
+
+            (Ctor::Float, CmpBinop::Eq) => {
+                float_cmp!(FloatPredicate::OEQ)
+            }
+            (Ctor::Float, CmpBinop::NotEq) => {
+                float_cmp!(FloatPredicate::ONE)
+            }
+            (Ctor::Float, CmpBinop::Less) => {
+                float_cmp!(FloatPredicate::OLT)
+            }
+            (Ctor::Float, CmpBinop::LessEq) => {
+                float_cmp!(FloatPredicate::OLE)
+            }
+            (Ctor::Float, CmpBinop::Greater) => {
+                float_cmp!(FloatPredicate::OGT)
+            }
+            (Ctor::Float, CmpBinop::GreaterEq) => {
+                float_cmp!(FloatPredicate::OGE)
+            }
+
+            _ => unreachable!(format!("cannot perform binop {lhs_ty:?} {op} {rhs_ty:?}")),
         };
         Some(value)
     }
@@ -566,7 +633,7 @@ impl<'ctx> Compiler<'ctx> {
         match op {
             Binop::Lazy(op) => self.codegen_lazy_binop(vars, lhs, op, rhs),
             Binop::Arithmetic(op) => self.codegen_arithmetic_binop(vars, lhs, op, rhs),
-            Binop::Cmp(_) => todo!(),
+            Binop::Cmp(op) => self.codegen_cmp_binop(vars, lhs, op, rhs),
             Binop::Assign => todo!(),
         }
     }
@@ -769,13 +836,76 @@ fn main() -> _ {
     test_codegen_and_run!(binop_or, r#"fn main() -> _  {false || true}"#, true);
     test_codegen_and_run!(binop_and, r#"fn main() -> _ {true && false}"#, false);
 
-    test_codegen_and_run!(int_add, r#"fn main() -> _ {1 + 1}"#, 2_i32);
-    test_codegen_and_run!(int_sub, r#"fn main() -> _ {1 - 1}"#, 0_i32);
-    test_codegen_and_run!(int_mul, r#"fn main() -> _ {1 * 2}"#, 2_i32);
-    test_codegen_and_run!(int_div, r#"fn main() -> _ {5 / 2}"#, 2_i32);
+    test_codegen_and_run!(
+        int_add,
+        r#"fn main() -> _ {let x = 1; let y = 1; x + y}"#,
+        2_i32
+    );
+    test_codegen_and_run!(
+        int_sub,
+        r#"fn main() -> _ {let x = 1; let y = 1; x - y}"#,
+        0_i32
+    );
+    test_codegen_and_run!(
+        int_mul,
+        r#"fn main() -> _ {let x = 1; let y = 2; x * y}"#,
+        2_i32
+    );
+    test_codegen_and_run!(
+        int_div,
+        r#"fn main() -> _ {let x = 5; let y = 2; x / y}"#,
+        2_i32
+    );
 
-    test_codegen_and_run!(float_add, r#"fn main() -> _ {1.0 + 1.0}"#, 2.0_f32);
-    test_codegen_and_run!(float_sub, r#"fn main() -> _ {1.0 - 1.0}"#, 0.0_f32);
-    test_codegen_and_run!(float_mul, r#"fn main() -> _ {1.0 * 2.0}"#, 2.0_f32);
-    test_codegen_and_run!(float_div, r#"fn main() -> _ {5.0 / 2.0}"#, 2.5_f32);
+    test_codegen_and_run!(
+        float_add,
+        r#"fn main() -> _ {let x = 1.0; let y = 1.0; x + y}"#,
+        2.0_f32
+    );
+    test_codegen_and_run!(
+        float_sub,
+        r#"fn main() -> _ {let x = 1.0; let y = 1.0; x - y}"#,
+        0.0_f32
+    );
+    test_codegen_and_run!(
+        float_mul,
+        r#"fn main() -> _ {let x = 1.0; let y = 2.0; x * y}"#,
+        2.0_f32
+    );
+    test_codegen_and_run!(
+        float_div,
+        r#"fn main() -> _ {let x = 5.0; let y = 2.0; x / y}"#,
+        2.5_f32
+    );
+
+    test_codegen_and_run!(
+        int_eq,
+        r#"fn main() -> _ {let x = 1; let y = 1; x == y}"#,
+        true
+    );
+    test_codegen_and_run!(
+        int_neq,
+        r#"fn main() -> _ {let x = 1; let y = 1; x != y}"#,
+        false
+    );
+    test_codegen_and_run!(
+        int_less,
+        r#"fn main() -> _ {let x = 1; let y = 1; x < y}"#,
+        false
+    );
+    test_codegen_and_run!(
+        int_less_eq,
+        r#"fn main() -> _ {let x = 1; let y = 1; x <= y}"#,
+        true
+    );
+    test_codegen_and_run!(
+        int_greater,
+        r#"fn main() -> _ {let x = 1; let y = 1; x > y}"#,
+        false
+    );
+    test_codegen_and_run!(
+        int_greater_eq,
+        r#"fn main() -> _ {let x = 1; let y = 1; x >= y}"#,
+        true
+    );
 }
