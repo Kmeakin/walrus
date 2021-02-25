@@ -523,17 +523,9 @@ impl<'ctx> Compiler<'ctx> {
     fn codegen_binop(&self, vars: &mut Vars<'ctx>, lhs: ExprId, op: Binop, rhs: ExprId) -> Value {
         let value = match op {
             Binop::Lazy(op) => return self.codegen_lazy_binop(vars, lhs, op, rhs),
-            Binop::Add => todo!(),
-            Binop::Sub => todo!(),
-            Binop::Mul => todo!(),
-            Binop::Div => todo!(),
+            Binop::Arithmetic(_) => todo!(),
+            Binop::Cmp(_) => todo!(),
             Binop::Assign => todo!(),
-            Binop::Eq => todo!(),
-            Binop::NotEq => todo!(),
-            Binop::Less => todo!(),
-            Binop::LessEq => todo!(),
-            Binop::Greater => todo!(),
-            Binop::GreaterEq => todo!(),
         };
         Some(value)
     }

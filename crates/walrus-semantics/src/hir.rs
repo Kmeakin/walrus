@@ -211,25 +211,45 @@ pub enum Unop {
 #[derive(Debug, Display, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Binop {
     Lazy(LazyBinop),
-    Add,
-    Sub,
-    Mul,
-    Div,
+    Arithmetic(ArithmeticBinop),
+    Cmp(CmpBinop),
     Assign,
-    Eq,
-    NotEq,
-    Less,
-    LessEq,
-    Greater,
-    GreaterEq,
 }
 
 #[derive(Debug, Display, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum LazyBinop {
-    #[display(fmt = "or")]
+    #[display(fmt = "||")]
     Or,
-    #[display(fmt = "and")]
+    #[display(fmt = "&&")]
     And,
+}
+
+#[derive(Debug, Display, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum ArithmeticBinop {
+    #[display(fmt = "+")]
+    Add,
+    #[display(fmt = "-")]
+    Sub,
+    #[display(fmt = "*")]
+    Mul,
+    #[display(fmt = "/")]
+    Div,
+}
+
+#[derive(Debug, Display, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum CmpBinop {
+    #[display(fmt = "==")]
+    Eq,
+    #[display(fmt = "!=")]
+    NotEq,
+    #[display(fmt = "<")]
+    Less,
+    #[display(fmt = "<=")]
+    LessEq,
+    #[display(fmt = ">")]
+    Greater,
+    #[display(fmt = ">=")]
+    GreaterEq,
 }
 
 impl From<syntax::Unop> for Unop {
@@ -246,17 +266,17 @@ impl From<syntax::Binop> for Binop {
         match op {
             syntax::Binop::Or(_) => Self::Lazy(LazyBinop::Or),
             syntax::Binop::And(_) => Self::Lazy(LazyBinop::And),
-            syntax::Binop::Add(_) => Self::Add,
-            syntax::Binop::Sub(_) => Self::Sub,
-            syntax::Binop::Mul(_) => Self::Mul,
-            syntax::Binop::Div(_) => Self::Div,
+            syntax::Binop::Add(_) => Self::Arithmetic(ArithmeticBinop::Add),
+            syntax::Binop::Sub(_) => Self::Arithmetic(ArithmeticBinop::Add),
+            syntax::Binop::Mul(_) => Self::Arithmetic(ArithmeticBinop::Mul),
+            syntax::Binop::Div(_) => Self::Arithmetic(ArithmeticBinop::Div),
             syntax::Binop::Assign(_) => Self::Assign,
-            syntax::Binop::Eq(_) => Self::Eq,
-            syntax::Binop::NotEq(_) => Self::NotEq,
-            syntax::Binop::Less(_) => Self::Less,
-            syntax::Binop::LessEq(_) => Self::LessEq,
-            syntax::Binop::Greater(_) => Self::Greater,
-            syntax::Binop::GreaterEq(_) => Self::GreaterEq,
+            syntax::Binop::Eq(_) => Self::Cmp(CmpBinop::Eq),
+            syntax::Binop::NotEq(_) => Self::Cmp(CmpBinop::NotEq),
+            syntax::Binop::Less(_) => Self::Cmp(CmpBinop::Less),
+            syntax::Binop::LessEq(_) => Self::Cmp(CmpBinop::LessEq),
+            syntax::Binop::Greater(_) => Self::Cmp(CmpBinop::Greater),
+            syntax::Binop::GreaterEq(_) => Self::Cmp(CmpBinop::GreaterEq),
         }
     }
 }

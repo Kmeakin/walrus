@@ -706,35 +706,28 @@ impl Binop {
 
     const fn lhs_expectation(self) -> Type {
         match self {
-            Self::Add | Self::Sub | Self::Mul | Self::Div => Type::Unknown,
-            Self::Assign => Type::Unknown,
-            Self::Eq | Self::NotEq => Type::Unknown,
-            Self::Less | Self::LessEq | Self::Greater | Self::GreaterEq => Type::Unknown,
             Self::Lazy(LazyBinop::And | LazyBinop::Or) => Type::BOOL,
+            Self::Arithmetic(_) => Type::Unknown,
+            Self::Cmp(_) => Type::Unknown,
+            Self::Assign => Type::Unknown,
         }
     }
 
     fn rhs_expectation(self, lhs_type: Type) -> Type {
         match self {
-            Self::Add | Self::Sub | Self::Mul | Self::Div => lhs_type,
-            Self::Assign => lhs_type,
-            Self::Eq | Self::NotEq => lhs_type,
-            Self::Less | Self::LessEq | Self::Greater | Self::GreaterEq => lhs_type,
             Self::Lazy(LazyBinop::And | LazyBinop::Or) => Type::BOOL,
+            Self::Arithmetic(_) => lhs_type,
+            Self::Cmp(_) => lhs_type,
+            Self::Assign => lhs_type,
         }
     }
 
     fn return_type(self, rhs_type: Type) -> Type {
         match self {
-            Self::Add | Self::Sub | Self::Mul | Self::Div => rhs_type,
-            Self::Assign => Type::UNIT,
-            Self::Eq
-            | Self::NotEq
-            | Self::Less
-            | Self::LessEq
-            | Self::Greater
-            | Self::GreaterEq => Type::BOOL,
             Self::Lazy(LazyBinop::And | LazyBinop::Or) => Type::BOOL,
+            Self::Arithmetic(_) => rhs_type,
+            Self::Cmp(_) => Type::BOOL,
+            Self::Assign => Type::UNIT,
         }
     }
 }

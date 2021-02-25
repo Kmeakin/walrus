@@ -9,16 +9,16 @@ target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16
 
 define i1 @main(i8* %main.env) {
 main.entry:
-  br i1 true, label %and.then, label %and.else
+  br i1 true, label %"&&.then", label %"&&.else"
 
-and.then:                                         ; preds = %main.entry
-  br label %and.end
+"&&.then":                                        ; preds = %main.entry
+  br label %"&&.end"
 
-and.else:                                         ; preds = %main.entry
-  br label %and.end
+"&&.else":                                        ; preds = %main.entry
+  br label %"&&.end"
 
-and.end:                                          ; preds = %and.else, %and.then
-  %and.merge = phi i1 [ false, %and.then ], [ true, %and.else ]
-  ret i1 %and.merge
+"&&.end":                                         ; preds = %"&&.else", %"&&.then"
+  %"&&.merge" = phi i1 [ false, %"&&.then" ], [ true, %"&&.else" ]
+  ret i1 %"&&.merge"
 }
 
