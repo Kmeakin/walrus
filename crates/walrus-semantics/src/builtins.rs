@@ -86,6 +86,11 @@ builtins! {
         name: "exit",
         kind: BuiltinKind::Value,
         ty: Type::function(vec![Type::INT], Type::NEVER),
+    },
+    PutChar {
+        name: "putchar",
+        kind: BuiltinKind::Value,
+        ty: Type::function(vec![Type::CHAR], Type::CHAR),
     }
 }
 

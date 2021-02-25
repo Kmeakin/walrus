@@ -14,6 +14,13 @@ define void @builtins.exit.wrapper(i8* %env, i32 %status) {
 
 declare void @exit(i32)
 
+define i32 @builtins.putchar.wrapper(i8* %env, i32 %c) {
+  %1 = call i32 @putchar(i32 %c)
+  ret i32 %1
+}
+
+declare i32 @putchar(i32)
+
 define i1 @main(i8* %main.env) {
 main.entry:
   ret i1 true
