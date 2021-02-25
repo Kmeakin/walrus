@@ -21,12 +21,12 @@ define i32 @builtins.putchar.wrapper(i8* %env, i32 %c) {
 
 declare i32 @putchar(i32)
 
-define {} @main(i8* %main.env) {
+define i32 @main(i8* %main.env) {
 main.entry:
-  br label %loop
+  br label %loop.body
 
-loop:                                             ; preds = %loop, %main.entry
-  br label %loop
+loop.body:                                        ; preds = %loop.body, %main.entry
+  br label %loop.body
 }
 
 ; Function Attrs: nounwind

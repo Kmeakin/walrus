@@ -12,7 +12,7 @@ use inkwell::{
     values::{BasicValue, BasicValueEnum, FunctionValue, PointerValue},
     AddressSpace, FloatPredicate, IntPredicate,
 };
-use std::{cell::RefCell, ops::Index};
+use std::ops::Index;
 use walrus_semantics::{
     builtins::Builtin,
     hir::{
@@ -41,14 +41,11 @@ pub struct Compiler<'ctx> {
     pub hir: hir::ModuleData,
     pub scopes: scopes::Scopes,
     pub types: ty::InferenceResult,
-
-    current_loop: RefCell<Option<Loop<'ctx>>>,
 }
 
 #[derive(Debug, Clone)]
 pub struct Loop<'ctx> {
-    result: Option<PointerValue<'ctx>>,
-    body_bb: BasicBlock<'ctx>,
+    result_alloca: PointerValue<'ctx>,
     exit_bb: BasicBlock<'ctx>,
 }
 
@@ -56,6 +53,7 @@ pub struct Loop<'ctx> {
 pub struct Vars<'a> {
     locals: ArenaMap<PatId, PointerValue<'a>>,
     fns: ArenaMap<FnDefId, FunctionValue<'a>>,
+    current_loop: Option<Loop<'a>>,
 }
 
 impl<'a> Index<PatId> for Vars<'a> {
@@ -492,61 +490,58 @@ impl<'ctx> Compiler<'ctx> {
     }
 
     fn codegen_loop(&self, vars: &mut Vars<'ctx>, expr: ExprId, body: ExprId) -> Value {
-        let old_loop = self.current_loop.borrow().clone();
-
         let old_bb = self.builder.get_insert_block().unwrap();
         let exit_bb = self.llvm.insert_basic_block_after(old_bb, "loop.exit");
         let body_bb = self.llvm.insert_basic_block_after(old_bb, "loop.body");
 
         let result_type = &self.types[expr];
-        let result = if result_type == &Type::NEVER {
-            None
-        } else {
+        let terminates = result_type != &Type::NEVER;
+
+        if terminates {
             let result_alloca = self
                 .builder
                 .build_alloca(self.value_type(result_type), "loop.result.alloca");
-            Some(result_alloca)
-        };
 
-        self.builder.build_unconditional_branch(body_bb);
-
-        self.builder.position_at_end(body_bb);
-
-        *self.current_loop.borrow_mut() = Some(Loop {
-            result,
-            body_bb,
-            exit_bb,
-        });
-
-        let body = self.codegen_expr(vars, body);
-        if body != None {
             self.builder.build_unconditional_branch(body_bb);
-        }
+            self.builder.position_at_end(body_bb);
 
-        self.builder.position_at_end(exit_bb);
-
-        let res = match self.current_loop.borrow().as_ref().unwrap().result {
-            None => None,
-            Some(alloca) => {
-                let result = self.builder.build_load(alloca, "loop.result");
-                Some(result)
+            {
+                let old_loop = vars.current_loop.clone();
+                vars.current_loop = Some(Loop {
+                    result_alloca,
+                    exit_bb,
+                });
+                let _body = self.codegen_expr(vars, body);
+                vars.current_loop = old_loop;
             }
-        };
-        *self.current_loop.borrow_mut() = old_loop;
-        res
+
+            self.builder.position_at_end(exit_bb);
+            let result = self.builder.build_load(result_alloca, "loop.result");
+            Some(result)
+        } else {
+            self.builder.build_unconditional_branch(body_bb);
+            self.builder.position_at_end(body_bb);
+            let _body = self.codegen_expr(vars, body);
+            self.builder.build_unconditional_branch(body_bb);
+
+            self.builder.position_at_end(exit_bb);
+            self.builder.build_unreachable();
+            None
+        }
     }
 
     fn codegen_break(&self, vars: &mut Vars<'ctx>, expr: Option<ExprId>) -> Value {
         let value = match expr {
-            Some(expr) => self.codegen_expr(vars, expr)?,
             None => self.codegen_unit(),
+            Some(expr) => self.codegen_expr(vars, expr)?,
         };
+
         let Loop {
-            result, exit_bb, ..
-        } = self.current_loop.borrow().as_ref().unwrap().clone();
-        let result = result.unwrap();
-        self.builder.build_store(result, value);
-        self.builder.build_unconditional_branch(exit_bb);
+            result_alloca,
+            exit_bb,
+        } = vars.current_loop.as_ref().unwrap();
+        self.builder.build_store(*result_alloca, value);
+        self.builder.build_unconditional_branch(*exit_bb);
         None
     }
 
@@ -927,8 +922,6 @@ mod tests {
                 hir: hir.data,
                 scopes,
                 types,
-
-                current_loop: RefCell::new(None),
             };
             compiler.codegen_module()
         };
@@ -1240,11 +1233,12 @@ fn main() -> () {
     test_codegen_and_run!(
         loop_forever,
         r#"
-fn main() -> () {
+fn main() -> Int {
     loop {}
+    5 // unreachable
 }
 "#,
-        ()
+        5_i32
     );
 
     test_codegen_and_run!(
