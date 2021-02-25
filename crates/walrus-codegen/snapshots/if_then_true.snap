@@ -7,6 +7,13 @@ expression: llvm_module.print_to_string().to_string()
 source_filename = "module"
 target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
 
+define void @builtins.exit.wrapper(i8* %env, i32 %status) {
+  call void @exit(i32 %status)
+  unreachable
+}
+
+declare void @exit(i32)
+
 define {} @main(i8* %main.env) {
 main.entry:
   br i1 true, label %if.then, label %if.else
@@ -21,4 +28,9 @@ if.end:                                           ; preds = %if.else, %if.then
   %if.merge = phi {} [ zeroinitializer, %if.then ], [ zeroinitializer, %if.else ]
   ret {} %if.merge
 }
+
+; Function Attrs: nounwind
+declare void @llvm.stackprotector(i8*, i8**) #0
+
+attributes #0 = { nounwind }
 

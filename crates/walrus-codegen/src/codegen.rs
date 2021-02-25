@@ -135,14 +135,15 @@ impl<'ctx> Compiler<'ctx> {
     }
 
     fn codegen_module(self) -> Module<'ctx> {
-        // let builtins = MemoryBuffer::create_from_file("builtins.ll".into()).unwrap();
-        // let module = self
-        //     .llvm
-        //     .create_module_from_ir(builtins)
-        //     .map_err(|e| eprintln!("{}", e.to_string()))
-        //     .unwrap();
-        // self.module.link_in_module(module).unwrap();
-
+        let builtins_source = include_str!("builtins.ll");
+        let builtins =
+            MemoryBuffer::create_from_memory_range_copy(builtins_source.as_bytes(), "builtins");
+        let builtins = self
+            .llvm
+            .create_module_from_ir(builtins)
+            .map_err(|e| eprintln!("{}", e.to_string()))
+            .unwrap();
+        self.module.link_in_module(builtins).unwrap();
         let mut vars = Vars::default();
 
         for (id, func) in self.hir.fn_defs.iter() {
@@ -335,22 +336,6 @@ impl<'ctx> Compiler<'ctx> {
                 unreachable!()
             }
             Builtin::Exit => {
-                let source = r#"
-declare void @exit(i32)
-
-define void @builtins.exit.wrapper(i8* %env, i32 %status) {
-    call void @exit(i32 %status)
-    unreachable
-}"#;
-                let memory =
-                    MemoryBuffer::create_from_memory_range_copy(source.as_bytes(), "builtins");
-                let module = self
-                    .llvm
-                    .create_module_from_ir(memory)
-                    .map_err(|e| eprintln!("{}", e.to_string()))
-                    .unwrap();
-                self.module.link_in_module(module).unwrap();
-
                 let exit_wrapper_fn = self.module.get_function("builtins.exit.wrapper").unwrap();
                 self.codegen_fn_value("exit", exit_wrapper_fn, builtin.ty().as_fn().unwrap())
             }

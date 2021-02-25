@@ -7,6 +7,13 @@ expression: llvm_module.print_to_string().to_string()
 source_filename = "module"
 target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
 
+define void @builtins.exit.wrapper(i8* %env, i32 %status) {
+  call void @exit(i32 %status)
+  unreachable
+}
+
+declare void @exit(i32)
+
 define float @main(i8* %main.env) {
 main.entry:
   %x.alloca = alloca float, align 4
@@ -18,4 +25,9 @@ main.entry:
   %0 = fadd float %x, %y
   ret float %0
 }
+
+; Function Attrs: nounwind
+declare void @llvm.stackprotector(i8*, i8**) #0
+
+attributes #0 = { nounwind }
 
