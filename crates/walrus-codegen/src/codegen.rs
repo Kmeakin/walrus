@@ -40,6 +40,8 @@ pub struct Compiler<'ctx> {
     pub hir: hir::ModuleData,
     pub scopes: scopes::Scopes,
     pub types: ty::InferenceResult,
+
+    loop_result: Value<'ctx>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -244,7 +246,7 @@ impl<'ctx> Compiler<'ctx> {
                 then_branch,
                 else_branch,
             } => self.codegen_if(vars, *test, *then_branch, *else_branch),
-            Expr::Loop(_) => todo!(),
+            Expr::Loop(expr) => self.codegen_loop(vars, *expr),
             Expr::Break(_) => todo!(),
             Expr::Continue => todo!(),
             Expr::Return(expr) => self.codegen_return(vars, *expr),
@@ -479,6 +481,20 @@ impl<'ctx> Compiler<'ctx> {
         let phi = self.builder.build_phi(ty, "if.merge");
         phi.add_incoming(&[(&then_value, then_bb), (&else_value, else_bb)]);
         Some(phi.as_basic_value())
+    }
+
+    fn codegen_loop(&self, vars: &mut Vars<'ctx>, expr: ExprId) -> Value {
+        let old_bb = self.builder.get_insert_block().unwrap();
+        let loop_bb = self.llvm.insert_basic_block_after(old_bb, "loop");
+        self.builder.build_unconditional_branch(loop_bb);
+
+        self.builder.position_at_end(loop_bb);
+        let body = self.codegen_expr(vars, expr);
+        self.builder.build_unconditional_branch(loop_bb);
+
+        self.builder.position_at_end(old_bb);
+
+        self.loop_result
     }
 
     fn codegen_call(&self, vars: &mut Vars<'ctx>, func: ExprId, args: &[ExprId]) -> Value {
@@ -856,6 +872,8 @@ mod tests {
                 hir: hir.data,
                 scopes,
                 types,
+
+                loop_result: None,
             };
             compiler.codegen_module()
         };
@@ -864,7 +882,7 @@ mod tests {
             .create_jit_execution_engine(OptimizationLevel::None)
             .unwrap();
         let f = unsafe { exec_engine.get_function::<unsafe extern "C" fn() -> T>("main") }.unwrap();
-        // assert_eq!(unsafe { f.call() }, expected);
+        assert_eq!(unsafe { f.call() }, expected);
 
         let mut settings = insta::Settings::new();
         settings.set_snapshot_path("../snapshots");
@@ -1140,7 +1158,7 @@ fn main() -> Int {exit(1)}
     test_codegen_and_run!(
         builtin_putchar,
         r#"
-fn main() -> _ {
+fn main() -> () {
     putchar('h');
     putchar('e');
     putchar('l');
@@ -1154,6 +1172,18 @@ fn main() -> _ {
     putchar('d');
 }
 "#,
-        0_i32
+        ()
+    );
+
+    // TODO: this successfully loops forever, which makes the test never complete!
+    #[cfg(FALSE)]
+    test_codegen_and_run!(
+        loop_forever,
+        r#"
+fn main() -> () {
+    loop {}
+}
+"#,
+        ()
     );
 }
