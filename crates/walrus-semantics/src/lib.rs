@@ -20,7 +20,7 @@
 )]
 #![feature(format_args_capture, or_patterns)]
 
-mod builtins;
+pub mod builtins;
 mod diagnostic;
 pub mod hir;
 pub mod scopes;

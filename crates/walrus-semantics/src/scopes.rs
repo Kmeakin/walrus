@@ -1,6 +1,6 @@
 use crate::{builtins::Builtin, diagnostic::Diagnostic, hir::*};
 use arena::{Arena, ArenaMap, Idx};
-use std::{collections::HashMap, ops::Index};
+use std::collections::HashMap;
 
 pub fn scopes(module: &Module) -> Scopes {
     let mut scopes = Scopes::new();
