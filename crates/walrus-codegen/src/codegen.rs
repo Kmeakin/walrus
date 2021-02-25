@@ -1057,4 +1057,17 @@ capture_x()
 }"#,
         5_i32
     );
+
+    test_codegen_and_run!(
+        return_lambda,
+        r#"
+fn const_(k) -> _ { (_) => k }
+
+fn main() -> _ {
+    let const_five = const_(5);
+    const_five(0)
+}
+"#,
+        5_i32
+    );
 }
