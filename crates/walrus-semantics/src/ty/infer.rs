@@ -156,8 +156,7 @@ impl Ctx {
 
     fn resolve_var_type(&mut self, id: TypeId, var_id: VarId) -> Type {
         let var = &self.module.data[var_id];
-        let scope = self.scopes.scope_of_type(id);
-        let denotation = self.scopes.lookup_in_scope(scope, var);
+        let denotation = self.scopes.lookup_type(id, var);
         match denotation {
             Some(Denotation::Builtin(b)) if b.kind() == BuiltinKind::Type => b.ty(),
             Some(Denotation::Struct(id)) => Type::struct_(id),
@@ -174,8 +173,7 @@ impl Ctx {
 
     fn resolve_var_expr(&mut self, id: ExprId, var_id: VarId) -> Type {
         let var = &self.module.data[var_id];
-        let scope = self.scopes.scope_of_expr(id);
-        let denotation = self.scopes.lookup_in_scope(scope, var);
+        let denotation = self.scopes.lookup_expr(id, var);
         match denotation {
             Some(Denotation::Local(id)) => self.result.type_of_pat[id].clone(),
             Some(Denotation::Fn(id)) => self.result.type_of_fn[id].clone().into(),
@@ -399,15 +397,9 @@ impl Ctx {
         Type::tuple(tys)
     }
 
-    fn infer_struct_expr(
-        &mut self,
-        parent_expr: ExprId,
-        name: VarId,
-        fields: &[StructExprField],
-    ) -> Type {
+    fn infer_struct_expr(&mut self, expr: ExprId, name: VarId, fields: &[StructExprField]) -> Type {
         let var = &self.module.data[name];
-        let scope = self.scopes.scope_of_expr(parent_expr);
-        let denotation = self.scopes.lookup_in_scope(scope, var);
+        let denotation = self.scopes.lookup_expr(expr, var);
         match denotation {
             Some(Denotation::Struct(id)) => {
                 let struct_def = self.module.data[id].clone();
@@ -420,7 +412,7 @@ impl Ctx {
                         .find(|f| &self.module.data[f.name] == name);
                     match target_field {
                         None => self.result.diagnostics.push(Diagnostic::NoSuchField {
-                            expr: parent_expr,
+                            expr,
                             field: Field::Named(field.name),
                             ty: struct_type.clone(),
                         }),
@@ -437,7 +429,7 @@ impl Ctx {
                         Some(_) => {}
                         None => {
                             self.result.diagnostics.push(Diagnostic::MissingField {
-                                expr: parent_expr,
+                                expr,
                                 field: Field::Named(field.name),
                                 ty: struct_type.clone(),
                             });
@@ -448,7 +440,7 @@ impl Ctx {
             }
             _ => {
                 self.result.diagnostics.push(Diagnostic::UnboundVar {
-                    id: Left(parent_expr),
+                    id: Left(expr),
                     var: name,
                     denotation,
                 });

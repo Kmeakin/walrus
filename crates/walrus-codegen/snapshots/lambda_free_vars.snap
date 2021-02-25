@@ -9,28 +9,37 @@ target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16
 
 define i32 @main(i8* %main.env) {
 main.entry:
+  %x.alloca = alloca i32, align 4
+  store i32 5, i32* %x.alloca, align 4
   %closure.alloca = alloca { i32 (i8*)*, i8* }, align 8
   %closure.code = getelementptr inbounds { i32 (i8*)*, i8* }, { i32 (i8*)*, i8* }* %closure.alloca, i32 0, i32 0
   store i32 (i8*)* @lambda, i32 (i8*)** %closure.code, align 8
   %closure.env = getelementptr inbounds { i32 (i8*)*, i8* }, { i32 (i8*)*, i8* }* %closure.alloca, i32 0, i32 1
-  %env.alloca = alloca {}, align 8
-  %env = bitcast {}* %env.alloca to i8*
+  %env.alloca = alloca { i32 }, align 8
+  %env.0.gep = getelementptr inbounds { i32 }, { i32 }* %env.alloca, i32 0, i32 0
+  %env.0 = load i32, i32* %x.alloca, align 4
+  store i32 %env.0, i32* %env.0.gep, align 4
+  %env = bitcast { i32 }* %env.alloca to i8*
   store i8* %env, i8** %closure.env, align 8
   %closure = load { i32 (i8*)*, i8* }, { i32 (i8*)*, i8* }* %closure.alloca, align 8
-  %get_five.alloca = alloca { i32 (i8*)*, i8* }, align 8
-  store { i32 (i8*)*, i8* } %closure, { i32 (i8*)*, i8* }* %get_five.alloca, align 8
-  %get_five = load { i32 (i8*)*, i8* }, { i32 (i8*)*, i8* }* %get_five.alloca, align 8
-  %closure.code1 = extractvalue { i32 (i8*)*, i8* } %get_five, 0
-  %closure.env2 = extractvalue { i32 (i8*)*, i8* } %get_five, 1
+  %capture_x.alloca = alloca { i32 (i8*)*, i8* }, align 8
+  store { i32 (i8*)*, i8* } %closure, { i32 (i8*)*, i8* }* %capture_x.alloca, align 8
+  %capture_x = load { i32 (i8*)*, i8* }, { i32 (i8*)*, i8* }* %capture_x.alloca, align 8
+  %closure.code1 = extractvalue { i32 (i8*)*, i8* } %capture_x, 0
+  %closure.env2 = extractvalue { i32 (i8*)*, i8* } %capture_x, 1
   %call = call i32 %closure.code1(i8* %closure.env2)
   ret i32 %call
 }
 
 define i32 @lambda(i8* %env_ptr) {
 lambda.entry:
-  %env_ptr1 = bitcast i8* %env_ptr to {}*
-  %env = load {}, {}* %env_ptr1, align 1
-  ret i32 5
+  %env_ptr1 = bitcast i8* %env_ptr to { i32 }*
+  %env = load { i32 }, { i32 }* %env_ptr1, align 4
+  %env.0 = extractvalue { i32 } %env, 0
+  %x.alloca = alloca i32, align 4
+  store i32 %env.0, i32* %x.alloca, align 4
+  %x = load i32, i32* %x.alloca, align 4
+  ret i32 %x
 }
 
 ; Function Attrs: nounwind

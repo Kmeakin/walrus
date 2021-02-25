@@ -20,6 +20,8 @@ use walrus_semantics::{
     ty::{Ctor, FnType, Type},
 };
 
+use crate::free_vars::FreeVars;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HirModule {
     pub hir: hir::Module,
@@ -265,8 +267,7 @@ impl<'ctx> Compiler<'ctx> {
 
     fn codegen_var(&self, vars: &Vars<'ctx>, expr: ExprId, var: VarId) -> BasicValueEnum {
         let var = &self.hir[var];
-        let scope = self.scopes.scope_of_expr(expr);
-        let denotation = self.scopes.lookup_in_scope(scope, var);
+        let denotation = self.scopes.lookup_expr(expr, var);
         match denotation {
             Some(Denotation::Local(id)) => self.builder.build_load(vars[id], var.as_str()),
             Some(Denotation::Fn(id)) => {
@@ -458,8 +459,17 @@ impl<'ctx> Compiler<'ctx> {
         params: &[Param],
         body: ExprId,
     ) -> BasicValueEnum {
+        let free_vars = self.free_vars(expr);
+
         let code_ptr = self
-            .codegen_lambda_body(vars, expr, params, body)
+            .codegen_lambda_body(
+                // this clone is necessary. Dont delete it!
+                &mut vars.clone(),
+                &free_vars,
+                expr,
+                params,
+                body,
+            )
             .as_global_value()
             .as_pointer_value();
 
@@ -477,15 +487,36 @@ impl<'ctx> Compiler<'ctx> {
             .builder
             .build_struct_gep(closure_alloca, 1, "closure.env")
             .unwrap();
-        // TODO: store free variables
-        let null_ptr = self.void_ptr_type().const_zero();
-        self.builder.build_store(env_gep, null_ptr);
+
+        // store free variables
+        let free_vars_type = self.tuple_type(
+            &free_vars
+                .iter()
+                .map(|(pat, _)| self.types[pat].clone())
+                .collect::<Vec<_>>(),
+        );
+        let env_alloca = self.builder.build_alloca(free_vars_type, "env.alloca");
+        for (idx, (free_var, ())) in free_vars.iter().enumerate() {
+            let gep = self
+                .builder
+                .build_struct_gep(env_alloca, idx as u32, &format!("env.{idx}.gep"))
+                .unwrap();
+            let val = self
+                .builder
+                .build_load(vars[free_var], &format!("env.{idx}"));
+            self.builder.build_store(gep, val);
+        }
+        let env_alloca = self
+            .builder
+            .build_bitcast(env_alloca, self.void_ptr_type(), "env");
+        self.builder.build_store(env_gep, env_alloca);
         self.builder.build_load(closure_alloca, "closure")
     }
 
     fn codegen_lambda_body(
         &self,
         vars: &mut Vars<'ctx>,
+        free_vars: &FreeVars,
         expr: ExprId,
         params: &[Param],
         body: ExprId,
@@ -497,10 +528,31 @@ impl<'ctx> Compiler<'ctx> {
         let bb = self.llvm.append_basic_block(llvm_fn, "lambda.entry");
         self.builder.position_at_end(bb);
 
-        llvm_fn.get_nth_param(0).unwrap().set_name("env");
+        // load free vars
+        let free_vars_type = self.tuple_type(
+            &free_vars
+                .iter()
+                .map(|(pat, _)| self.types[pat].clone())
+                .collect::<Vec<_>>(),
+        );
 
-        // TODO: load free vars
+        let env_param = llvm_fn.get_nth_param(0).unwrap();
+        env_param.set_name("env_ptr");
+        let env_ptr = self.builder.build_bitcast(
+            env_param,
+            free_vars_type.ptr_type(AddressSpace::Generic),
+            "env_ptr",
+        );
+        let env = self.builder.build_load(env_ptr.into_pointer_value(), "env");
+        for (idx, (free_var, ())) in free_vars.iter().enumerate() {
+            let val = self
+                .builder
+                .build_extract_value(env.into_struct_value(), idx as u32, &format!("env.{idx}"))
+                .unwrap();
+            self.codegen_local_var(vars, free_var, val)
+        }
 
+        // load params
         llvm_fn
             .get_param_iter()
             .skip(1)
@@ -996,7 +1048,6 @@ add(2,3)
         5_i32
     );
 
-    // TODO
     test_codegen_and_run!(
         lambda_free_vars,
         r#"fn main() -> _ {

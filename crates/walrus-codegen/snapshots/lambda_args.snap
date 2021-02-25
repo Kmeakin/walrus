@@ -13,7 +13,9 @@ main.entry:
   %closure.code = getelementptr inbounds { i32 (i8*, i32, i32)*, i8* }, { i32 (i8*, i32, i32)*, i8* }* %closure.alloca, i32 0, i32 0
   store i32 (i8*, i32, i32)* @lambda, i32 (i8*, i32, i32)** %closure.code, align 8
   %closure.env = getelementptr inbounds { i32 (i8*, i32, i32)*, i8* }, { i32 (i8*, i32, i32)*, i8* }* %closure.alloca, i32 0, i32 1
-  store i8* null, i8** %closure.env, align 8
+  %env.alloca = alloca {}, align 8
+  %env = bitcast {}* %env.alloca to i8*
+  store i8* %env, i8** %closure.env, align 8
   %closure = load { i32 (i8*, i32, i32)*, i8* }, { i32 (i8*, i32, i32)*, i8* }* %closure.alloca, align 8
   %add.alloca = alloca { i32 (i8*, i32, i32)*, i8* }, align 8
   store { i32 (i8*, i32, i32)*, i8* } %closure, { i32 (i8*, i32, i32)*, i8* }* %add.alloca, align 8
@@ -24,8 +26,10 @@ main.entry:
   ret i32 %call
 }
 
-define i32 @lambda(i8* %env, i32 %params.0, i32 %params.1) {
+define i32 @lambda(i8* %env_ptr, i32 %params.0, i32 %params.1) {
 lambda.entry:
+  %env_ptr1 = bitcast i8* %env_ptr to {}*
+  %env = load {}, {}* %env_ptr1, align 1
   %x.alloca = alloca i32, align 4
   store i32 %params.0, i32* %x.alloca, align 4
   %y.alloca = alloca i32, align 4

@@ -21,3 +21,4 @@
 #![feature(format_args_capture, never_type, exhaustive_patterns, or_patterns)]
 
 mod codegen;
+mod free_vars;
