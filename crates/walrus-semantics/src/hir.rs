@@ -267,7 +267,7 @@ impl From<syntax::Binop> for Binop {
             syntax::Binop::Or(_) => Self::Lazy(LazyBinop::Or),
             syntax::Binop::And(_) => Self::Lazy(LazyBinop::And),
             syntax::Binop::Add(_) => Self::Arithmetic(ArithmeticBinop::Add),
-            syntax::Binop::Sub(_) => Self::Arithmetic(ArithmeticBinop::Add),
+            syntax::Binop::Sub(_) => Self::Arithmetic(ArithmeticBinop::Sub),
             syntax::Binop::Mul(_) => Self::Arithmetic(ArithmeticBinop::Mul),
             syntax::Binop::Div(_) => Self::Arithmetic(ArithmeticBinop::Div),
             syntax::Binop::Assign(_) => Self::Assign,
