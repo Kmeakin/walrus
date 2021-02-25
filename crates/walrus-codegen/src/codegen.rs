@@ -3,6 +3,7 @@
 use arena::ArenaMap;
 use either::Either;
 use inkwell::{
+    basic_block::BasicBlock,
     builder::Builder,
     context::Context,
     memory_buffer::MemoryBuffer,
@@ -11,7 +12,7 @@ use inkwell::{
     values::{BasicValue, BasicValueEnum, FunctionValue, PointerValue},
     AddressSpace, FloatPredicate, IntPredicate,
 };
-use std::ops::Index;
+use std::{cell::RefCell, ops::Index};
 use walrus_semantics::{
     builtins::Builtin,
     hir::{
@@ -41,7 +42,14 @@ pub struct Compiler<'ctx> {
     pub scopes: scopes::Scopes,
     pub types: ty::InferenceResult,
 
-    loop_result: Value<'ctx>,
+    current_loop: RefCell<Option<Loop<'ctx>>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Loop<'ctx> {
+    result: Option<PointerValue<'ctx>>,
+    body_bb: BasicBlock<'ctx>,
+    exit_bb: BasicBlock<'ctx>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -246,8 +254,8 @@ impl<'ctx> Compiler<'ctx> {
                 then_branch,
                 else_branch,
             } => self.codegen_if(vars, *test, *then_branch, *else_branch),
-            Expr::Loop(expr) => self.codegen_loop(vars, *expr),
-            Expr::Break(_) => todo!(),
+            Expr::Loop(body) => self.codegen_loop(vars, id, *body),
+            Expr::Break(expr) => self.codegen_break(vars, *expr),
             Expr::Continue => todo!(),
             Expr::Return(expr) => self.codegen_return(vars, *expr),
             Expr::Call { func, args } => self.codegen_call(vars, *func, args),
@@ -483,18 +491,63 @@ impl<'ctx> Compiler<'ctx> {
         Some(phi.as_basic_value())
     }
 
-    fn codegen_loop(&self, vars: &mut Vars<'ctx>, expr: ExprId) -> Value {
+    fn codegen_loop(&self, vars: &mut Vars<'ctx>, expr: ExprId, body: ExprId) -> Value {
+        let old_loop = self.current_loop.borrow().clone();
+
         let old_bb = self.builder.get_insert_block().unwrap();
-        let loop_bb = self.llvm.insert_basic_block_after(old_bb, "loop");
-        self.builder.build_unconditional_branch(loop_bb);
+        let exit_bb = self.llvm.insert_basic_block_after(old_bb, "loop.exit");
+        let body_bb = self.llvm.insert_basic_block_after(old_bb, "loop.body");
 
-        self.builder.position_at_end(loop_bb);
-        let body = self.codegen_expr(vars, expr);
-        self.builder.build_unconditional_branch(loop_bb);
+        let result_type = &self.types[expr];
+        let result = if result_type == &Type::NEVER {
+            None
+        } else {
+            let result_alloca = self
+                .builder
+                .build_alloca(self.value_type(result_type), "loop.result.alloca");
+            Some(result_alloca)
+        };
 
-        self.builder.position_at_end(old_bb);
+        self.builder.build_unconditional_branch(body_bb);
 
-        self.loop_result
+        self.builder.position_at_end(body_bb);
+
+        *self.current_loop.borrow_mut() = Some(Loop {
+            result,
+            body_bb,
+            exit_bb,
+        });
+
+        let body = self.codegen_expr(vars, body);
+        if body != None {
+            self.builder.build_unconditional_branch(body_bb);
+        }
+
+        self.builder.position_at_end(exit_bb);
+
+        let res = match self.current_loop.borrow().as_ref().unwrap().result {
+            None => None,
+            Some(alloca) => {
+                let result = self.builder.build_load(alloca, "loop.result");
+                Some(result)
+            }
+        };
+        *self.current_loop.borrow_mut() = old_loop;
+        res
+    }
+
+    fn codegen_break(&self, vars: &mut Vars<'ctx>, expr: Option<ExprId>) -> Value {
+        let value = match expr {
+            Some(expr) => self.codegen_expr(vars, expr)?,
+            None => self.codegen_unit(),
+        };
+        let Loop {
+            result, exit_bb, ..
+        } = self.current_loop.borrow().as_ref().unwrap().clone();
+        let result = result.unwrap();
+        self.builder.build_store(result, value);
+        self.builder.build_unconditional_branch(exit_bb);
+        None
     }
 
     fn codegen_call(&self, vars: &mut Vars<'ctx>, func: ExprId, args: &[ExprId]) -> Value {
@@ -834,6 +887,8 @@ impl<'ctx> Compiler<'ctx> {
 
 #[cfg(test)]
 mod tests {
+    use std::{ffi::c_void, ptr};
+
     use super::*;
     use inkwell::OptimizationLevel;
     use insta::*;
@@ -873,7 +928,7 @@ mod tests {
                 scopes,
                 types,
 
-                loop_result: None,
+                current_loop: RefCell::new(None),
             };
             compiler.codegen_module()
         };
@@ -881,8 +936,13 @@ mod tests {
         let exec_engine = llvm_module
             .create_jit_execution_engine(OptimizationLevel::None)
             .unwrap();
-        let f = unsafe { exec_engine.get_function::<unsafe extern "C" fn() -> T>("main") }.unwrap();
-        assert_eq!(unsafe { f.call() }, expected);
+        let f =
+            unsafe { exec_engine.get_function::<unsafe extern "C" fn(*mut c_void) -> T>("main") }
+                .unwrap();
+        assert_eq!(
+            unsafe { f.call(ptr::null::<c_void>() as *mut c_void) },
+            expected
+        );
 
         let mut settings = insta::Settings::new();
         settings.set_snapshot_path("../snapshots");
@@ -1185,5 +1245,15 @@ fn main() -> () {
 }
 "#,
         ()
+    );
+
+    test_codegen_and_run!(
+        loop_and_break,
+        r#"
+fn main() -> _ {
+    loop {let x = 5; break x}
+}
+"#,
+        5_i32
     );
 }
