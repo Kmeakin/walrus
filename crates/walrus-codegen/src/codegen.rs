@@ -140,7 +140,7 @@ impl<'ctx> Compiler<'ctx> {
                 eprintln!("{}", e.to_string());
                 panic!()
             }
-            _ => {}
+            Ok(_) => {}
         }
 
         self.module
@@ -223,8 +223,8 @@ impl<'ctx> Compiler<'ctx> {
             } => self.codegen_if(vars, *test, *then_branch, *else_branch),
             Expr::Loop(_) => todo!(),
             Expr::Break(_) => todo!(),
-            Expr::Return(expr) => self.codegen_return(vars, *expr),
             Expr::Continue => todo!(),
+            Expr::Return(expr) => self.codegen_return(vars, *expr),
             Expr::Call { func, args } => self.codegen_call(vars, *func, args),
             Expr::Lambda { params, expr } => todo!(),
             Expr::Unop { op, expr } => self.codegen_unop(vars, *op, *expr),
