@@ -21,14 +21,11 @@ impl<'ctx> Compiler<'ctx> {
                 let var = &self.hir[*var_id];
                 let usage_scope = self.scopes.scope_of_expr(expr_id);
                 let denotation = self.scopes.lookup_expr(expr_id, var).unwrap();
-                match denotation {
-                    Denotation::Local(pat_id) => {
-                        let defining_scope = self.scopes.scope_of_pat(pat_id);
-                        if usage_scope.lambda_depth != defining_scope.lambda_depth {
-                            free_vars.insert(pat_id, ());
-                        }
+                if let Denotation::Local(pat_id) = denotation {
+                    let defining_scope = self.scopes.scope_of_pat(pat_id);
+                    if usage_scope.lambda_depth != defining_scope.lambda_depth {
+                        free_vars.insert(pat_id, ());
                     }
-                    _ => {}
                 }
             }
             expr => expr.walk_child_exprs(|expr| self.free_vars_helper(free_vars, expr)),

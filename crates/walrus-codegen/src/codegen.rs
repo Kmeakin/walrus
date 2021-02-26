@@ -12,7 +12,7 @@ use inkwell::{
     values::{BasicValue, BasicValueEnum, FunctionValue, PointerValue},
     AddressSpace, FloatPredicate, IntPredicate,
 };
-use std::{lazy::Lazy, ops::Index, rc::Rc};
+use std::ops::Index;
 use walrus_semantics::{
     builtins::Builtin,
     hir::{
@@ -171,13 +171,10 @@ impl<'ctx> Compiler<'ctx> {
             self.codegen_fn(&mut vars, id)
         }
 
-        match self.module.verify() {
-            Err(e) => {
-                eprintln!("{}", self.module.print_to_string().to_string());
-                eprintln!("{}", e.to_string());
-                panic!()
-            }
-            Ok(_) => {}
+        if let Err(e) = self.module.verify() {
+            eprintln!("{}", self.module.print_to_string().to_string());
+            eprintln!("{}", e.to_string());
+            panic!()
         }
 
         self.module
@@ -310,7 +307,7 @@ impl<'ctx> Compiler<'ctx> {
                 let fn_name = &self.hir[fn_def.name].as_str();
                 let fn_type = self.types[expr].as_fn().unwrap();
                 let fn_value = vars[id];
-                self.codegen_fn_value(fn_name, fn_value, fn_type)
+                self.codegen_fn_value(fn_name, fn_value, &fn_type)
             }
             Some(Denotation::Builtin(b)) => self.codegen_builtin(b),
             _ => unreachable!(),
@@ -321,11 +318,11 @@ impl<'ctx> Compiler<'ctx> {
         &self,
         fn_name: &str,
         fn_value: FunctionValue,
-        fn_type: FnType,
+        fn_type: &FnType,
     ) -> BasicValueEnum {
         let code_ptr = fn_value.as_global_value().as_pointer_value();
         let closure_alloca = self.builder.build_alloca(
-            self.closure_type(&fn_type),
+            self.closure_type(fn_type),
             &format!("{fn_name}.closure.alloca"),
         );
 
@@ -351,14 +348,14 @@ impl<'ctx> Compiler<'ctx> {
             }
             Builtin::Exit => {
                 let exit_wrapper_fn = self.module.get_function("builtins.exit.wrapper").unwrap();
-                self.codegen_fn_value("exit", exit_wrapper_fn, builtin.ty().as_fn().unwrap())
+                self.codegen_fn_value("exit", exit_wrapper_fn, &builtin.ty().as_fn().unwrap())
             }
             Builtin::PutChar => {
                 let wrapper_fn = self
                     .module
                     .get_function("builtins.putchar.wrapper")
                     .unwrap();
-                self.codegen_fn_value("putchar", wrapper_fn, builtin.ty().as_fn().unwrap())
+                self.codegen_fn_value("putchar", wrapper_fn, &builtin.ty().as_fn().unwrap())
             }
         }
     }
