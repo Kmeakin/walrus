@@ -12,7 +12,7 @@ use inkwell::{
     values::{BasicValue, BasicValueEnum, FunctionValue, PointerValue},
     AddressSpace, FloatPredicate, IntPredicate,
 };
-use std::ops::Index;
+use std::{lazy::Lazy, ops::Index, rc::Rc};
 use walrus_semantics::{
     builtins::Builtin,
     hir::{
@@ -45,8 +45,12 @@ pub struct Compiler<'ctx> {
 
 #[derive(Debug, Clone)]
 pub struct Loop<'ctx> {
-    result_alloca: PointerValue<'ctx>,
+    body_bb: BasicBlock<'ctx>,
     exit_bb: BasicBlock<'ctx>,
+    result_alloca: PointerValue<'ctx>,
+
+    does_continue: bool,
+    does_break: bool,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -141,6 +145,8 @@ impl<'ctx> Compiler<'ctx> {
             false,
         )
     }
+
+    fn unit_type(&self) -> StructType<'ctx> { self.tuple_type(&[]) }
 
     fn codegen_module(self) -> Module<'ctx> {
         let builtins_source = include_str!("builtins.ll");
@@ -254,7 +260,7 @@ impl<'ctx> Compiler<'ctx> {
             } => self.codegen_if(vars, *test, *then_branch, *else_branch),
             Expr::Loop(body) => self.codegen_loop(vars, id, *body),
             Expr::Break(expr) => self.codegen_break(vars, *expr),
-            Expr::Continue => todo!(),
+            Expr::Continue => self.codegen_continue(vars),
             Expr::Return(expr) => self.codegen_return(vars, *expr),
             Expr::Call { func, args } => self.codegen_call(vars, *func, args),
             Expr::Lambda { params, expr } => Some(self.codegen_lambda(vars, id, params, *expr)),
@@ -496,38 +502,53 @@ impl<'ctx> Compiler<'ctx> {
 
         let result_type = &self.types[expr];
         let terminates = result_type != &Type::NEVER;
-
-        if terminates {
-            let result_alloca = self
-                .builder
-                .build_alloca(self.value_type(result_type), "loop.result.alloca");
-
-            self.builder.build_unconditional_branch(body_bb);
-            self.builder.position_at_end(body_bb);
-
-            {
-                let old_loop = vars.current_loop.clone();
-                vars.current_loop = Some(Loop {
-                    result_alloca,
-                    exit_bb,
-                });
-                let _body = self.codegen_expr(vars, body);
-                vars.current_loop = old_loop;
-            }
-
-            self.builder.position_at_end(exit_bb);
-            let result = self.builder.build_load(result_alloca, "loop.result");
-            Some(result)
+        let result_type = if terminates {
+            self.value_type(result_type)
         } else {
-            self.builder.build_unconditional_branch(body_bb);
-            self.builder.position_at_end(body_bb);
-            let _body = self.codegen_expr(vars, body);
-            self.builder.build_unconditional_branch(body_bb);
+            self.unit_type().into()
+        };
+        let result_alloca = self.builder.build_alloca(result_type, "loop.result.alloca");
+        self.builder.build_unconditional_branch(body_bb);
 
-            self.builder.position_at_end(exit_bb);
-            self.builder.build_unreachable();
-            None
-        }
+        self.builder.position_at_end(body_bb);
+        let old_loop = vars.current_loop.clone();
+        let new_loop = Loop {
+            result_alloca,
+            body_bb,
+            exit_bb,
+            does_continue: false,
+            does_break: false,
+        };
+        vars.current_loop = Some(new_loop);
+        let _body = self.codegen_expr(vars, body);
+        let Loop {
+            does_continue,
+            does_break,
+            ..
+        } = vars.current_loop.as_ref().unwrap();
+
+        let ret = match dbg!((does_continue, does_break)) {
+            (false, false) => {
+                self.builder.build_unconditional_branch(body_bb);
+                self.builder.position_at_end(exit_bb);
+                self.builder.build_unreachable();
+                None
+            }
+            (true, false) => {
+                self.builder.position_at_end(exit_bb);
+                self.builder.build_unreachable();
+                None
+            }
+            (_, true) => {
+                self.builder.position_at_end(exit_bb);
+                let result = self.builder.build_load(result_alloca, "loop.result");
+                Some(result)
+            }
+        };
+
+        vars.current_loop = old_loop;
+
+        ret
     }
 
     fn codegen_break(&self, vars: &mut Vars<'ctx>, expr: Option<ExprId>) -> Value {
@@ -539,9 +560,23 @@ impl<'ctx> Compiler<'ctx> {
         let Loop {
             result_alloca,
             exit_bb,
-        } = vars.current_loop.as_ref().unwrap();
+            ref mut does_break,
+            ..
+        } = vars.current_loop.as_mut().unwrap();
+        *does_break = true;
         self.builder.build_store(*result_alloca, value);
         self.builder.build_unconditional_branch(*exit_bb);
+        None
+    }
+
+    fn codegen_continue(&self, vars: &mut Vars<'ctx>) -> Value {
+        let Loop {
+            body_bb,
+            ref mut does_continue,
+            ..
+        } = vars.current_loop.as_mut().unwrap();
+        *does_continue = true;
+        self.builder.build_unconditional_branch(*body_bb);
         None
     }
 
@@ -891,12 +926,19 @@ mod tests {
     macro_rules! test_codegen_and_run {
         ($name:ident, $src:expr, $expected:expr) => {
             #[test]
-            fn $name() { test_codegen_and_run($src, $expected); }
+            fn $name() { test_codegen_and_run($src, $expected, true); }
+        };
+    }
+
+    macro_rules! test_codegen {
+        ($name:ident, $src:expr) => {
+            #[test]
+            fn $name() { test_codegen_and_run($src, (), false); }
         };
     }
 
     #[track_caller]
-    fn test_codegen_and_run<T>(src: &str, expected: T)
+    fn test_codegen_and_run<T>(src: &str, expected: T, run: bool)
     where
         T: PartialEq + std::fmt::Debug,
     {
@@ -926,21 +968,24 @@ mod tests {
             compiler.codegen_module()
         };
 
-        let exec_engine = llvm_module
-            .create_jit_execution_engine(OptimizationLevel::None)
-            .unwrap();
-        let f =
-            unsafe { exec_engine.get_function::<unsafe extern "C" fn(*mut c_void) -> T>("main") }
-                .unwrap();
-        assert_eq!(
-            unsafe { f.call(ptr::null::<c_void>() as *mut c_void) },
-            expected
-        );
-
         let mut settings = insta::Settings::new();
         settings.set_snapshot_path("../snapshots");
         settings.set_prepend_module_to_snapshot(false);
         settings.bind(|| assert_display_snapshot!(llvm_module.print_to_string().to_string()));
+
+        if run {
+            let exec_engine = llvm_module
+                .create_jit_execution_engine(OptimizationLevel::None)
+                .unwrap();
+            let f = unsafe {
+                exec_engine.get_function::<unsafe extern "C" fn(*mut c_void) -> T>("main")
+            }
+            .unwrap();
+            assert_eq!(
+                unsafe { f.call(ptr::null::<c_void>() as *mut c_void) },
+                expected
+            );
+        }
     }
 
     test_codegen_and_run!(empty_fn, r#"fn main() -> _ {}"#, ());
@@ -1228,17 +1273,25 @@ fn main() -> () {
         ()
     );
 
-    // TODO: this successfully loops forever, which makes the test never complete!
-    #[cfg(FALSE)]
-    test_codegen_and_run!(
+    // this successfully loops forever, which makes the test never complete!
+    test_codegen!(
         loop_forever,
         r#"
 fn main() -> Int {
     loop {}
     5 // unreachable
 }
-"#,
-        5_i32
+"#
+    );
+
+    // this successfully loops forever, which makes the test never complete!
+    test_codegen!(
+        loop_and_continue,
+        r#"
+fn main() -> () {
+    loop {let x = 5; continue}
+}
+"#
     );
 
     test_codegen_and_run!(
@@ -1249,5 +1302,17 @@ fn main() -> _ {
 }
 "#,
         5_i32
+    );
+
+    test_codegen_and_run!(
+        loop_and_break_and_continue,
+        r#"
+fn main() -> _ {
+    loop {
+         if true {continue} else {break}
+    }
+}
+"#,
+        ()
     );
 }
