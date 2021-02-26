@@ -734,22 +734,28 @@ impl<'ctx> Compiler<'ctx> {
     }
 
     fn codegen_unop(&self, vars: &mut Vars<'ctx>, op: Unop, expr: ExprId) -> Value {
+        let ty = &self.types[expr].ctor().unwrap();
         let value = self.codegen_expr(vars, expr)?;
-        let value = match op {
-            Unop::Not => self
+        let value = match (op, ty) {
+            (Unop::Not, _) => self
                 .builder
                 .build_int_compare(
-                    IntPredicate::NE,
+                    IntPredicate::EQ,
                     value.into_int_value(),
                     self.llvm.bool_type().const_int(0, false),
-                    "unary_not",
+                    "",
                 )
                 .into(),
-            Unop::Sub => self
+            (Unop::Sub, &Ctor::Int) => self
                 .builder
-                .build_int_neg(value.into_int_value(), "unary_neg")
+                .build_int_neg(value.into_int_value(), "")
                 .into(),
-            Unop::Add => value,
+            (Unop::Sub, &Ctor::Float) => self
+                .builder
+                .build_float_neg(value.into_float_value(), "")
+                .into(),
+            (Unop::Sub, _) => unreachable!(),
+            (Unop::Add, _) => value,
         };
         Some(value)
     }
@@ -1122,6 +1128,10 @@ fn main() -> _ {
 "#,
         6_i32
     );
+
+    test_codegen_and_run!(bool_not, r#"fn main() -> _  {!false}"#, true);
+    test_codegen_and_run!(int_neg, r#"fn main() ->   _  {-1}"#, -1_i32);
+    test_codegen_and_run!(float_neg, r#"fn main() -> _  {-1.0}"#, -1.0_f32);
 
     test_codegen_and_run!(binop_or, r#"fn main() -> _  {false || true}"#, true);
     test_codegen_and_run!(binop_and, r#"fn main() -> _ {true && false}"#, false);
