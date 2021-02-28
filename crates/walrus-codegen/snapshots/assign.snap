@@ -1,0 +1,31 @@
+---
+source: crates/walrus-codegen/src/codegen.rs
+expression: llvm_module.print_to_string().to_string()
+
+---
+; ModuleID = 'module'
+source_filename = "module"
+
+define void @builtins.exit.wrapper(i8* %env, i32 %status) {
+  call void @exit(i32 %status)
+  unreachable
+}
+
+declare void @exit(i32)
+
+define i32 @builtins.putchar.wrapper(i8* %env, i32 %c) {
+  %1 = call i32 @putchar(i32 %c)
+  ret i32 %1
+}
+
+declare i32 @putchar(i32)
+
+define i32 @main(i8* %main.env) {
+main.entry:
+  %x.alloca = alloca i32, align 4
+  store i32 5, i32* %x.alloca, align 4
+  store i32 6, i32* %x.alloca, align 4
+  %x = load i32, i32* %x.alloca, align 4
+  ret i32 %x
+}
+

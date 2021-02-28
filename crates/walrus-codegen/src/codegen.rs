@@ -283,6 +283,22 @@ impl<'ctx> Compiler<'ctx> {
         }
     }
 
+    fn codegen_lvalue(&self, vars: &mut Vars<'ctx>, id: ExprId) -> Option<PointerValue> {
+        let expr = &self.hir[id];
+        match expr {
+            Expr::Var(var) => {
+                let var = &self.hir[*var];
+                let denotation = self.scopes.lookup_expr(id, var);
+                match denotation {
+                    Some(Denotation::Local(id)) => Some(vars[id]),
+                    _ => unreachable!(),
+                }
+            }
+            Expr::Field { expr, field } => todo!(),
+            _ => unreachable!(),
+        }
+    }
+
     fn codegen_unit(&self) -> BasicValueEnum { self.llvm.const_struct(&[], false).into() }
 
     fn codegen_undef(&self) -> BasicValueEnum { self.llvm.i8_type().get_undef().into() }
@@ -760,6 +776,15 @@ impl<'ctx> Compiler<'ctx> {
         Some(value)
     }
 
+    fn codegen_binop(&self, vars: &mut Vars<'ctx>, lhs: ExprId, op: Binop, rhs: ExprId) -> Value {
+        match op {
+            Binop::Lazy(op) => self.codegen_lazy_binop(vars, lhs, op, rhs),
+            Binop::Arithmetic(op) => self.codegen_arithmetic_binop(vars, lhs, op, rhs),
+            Binop::Cmp(op) => self.codegen_cmp_binop(vars, lhs, op, rhs),
+            Binop::Assign => self.codegen_assign(vars, lhs, rhs),
+        }
+    }
+
     fn codegen_lazy_binop(
         &self,
         vars: &mut Vars<'ctx>,
@@ -908,13 +933,11 @@ impl<'ctx> Compiler<'ctx> {
         Some(value)
     }
 
-    fn codegen_binop(&self, vars: &mut Vars<'ctx>, lhs: ExprId, op: Binop, rhs: ExprId) -> Value {
-        match op {
-            Binop::Lazy(op) => self.codegen_lazy_binop(vars, lhs, op, rhs),
-            Binop::Arithmetic(op) => self.codegen_arithmetic_binop(vars, lhs, op, rhs),
-            Binop::Cmp(op) => self.codegen_cmp_binop(vars, lhs, op, rhs),
-            Binop::Assign => todo!(),
-        }
+    fn codegen_assign(&self, vars: &mut Vars<'ctx>, lhs: ExprId, rhs: ExprId) -> Value {
+        let lhs = self.codegen_lvalue(vars, lhs)?;
+        let rhs = self.codegen_expr(vars, rhs)?;
+        self.builder.build_store(lhs, rhs);
+        Some(self.codegen_unit())
     }
 }
 
@@ -1320,5 +1343,15 @@ fn main() -> _ {
 }
 "#,
         ()
+    );
+
+    test_codegen_and_run!(
+        assign,
+        r#"fn main() -> _{
+        let x = 5;
+        x = 6;
+        x
+    }"#,
+        6_i32
     );
 }
