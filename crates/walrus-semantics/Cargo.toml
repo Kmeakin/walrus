@@ -9,7 +9,6 @@ edition = "2018"
 [dependencies]
 arena = { path = "../arena" }
 walrus-syntax = { path = "../walrus-syntax" }
-walrus-parser = { path = "../walrus-parser" }
 
 ordered-float = "2.0.1"
 smol_str = "0.1.17"
@@ -18,4 +17,5 @@ either = "1.6.1"
 derive_more = "0.99.11"
 
 [dev-dependencies]
+walrus-parser = { path = "../walrus-parser" }
 insta = "1.5.3"
