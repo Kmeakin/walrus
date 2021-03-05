@@ -54,6 +54,6 @@ pub fn lex(src: &str) -> impl Iterator<Item = Token> {
             let end = TextSize::try_from(end).expect(ERROR);
             TextRange::new(start, end)
         };
-        Some(Token { kind, text, range })
+        Some(Token { range, kind, text })
     })
 }

@@ -4,8 +4,8 @@ use super::*;
 pub enum Pat {
     Var(Var),
     Ignore(Underscore),
-    Paren(Paren<Pat>),
-    Tuple(Tuple<Pat>),
+    Paren(Paren<Self>),
+    Tuple(Tuple<Self>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

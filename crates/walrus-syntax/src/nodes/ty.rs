@@ -4,10 +4,10 @@ use super::*;
 pub enum Type {
     Var(Var),
     Infer(Underscore),
-    Paren(Paren<Type>),
-    Tuple(Tuple<Type>),
+    Paren(Paren<Self>),
+    Tuple(Tuple<Self>),
     Fn {
-        args: Paren<Punctuated0<Type, Comma>>,
+        args: Paren<Punctuated0<Self, Comma>>,
         ret: RetType,
     },
 }

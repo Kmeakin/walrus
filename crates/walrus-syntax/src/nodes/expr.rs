@@ -4,8 +4,8 @@ use super::*;
 pub enum Expr {
     Lit(Lit),
     Var(Var),
-    Paren(Paren<Expr>),
-    Tuple(Tuple<Expr>),
+    Paren(Paren<Self>),
+    Tuple(Tuple<Self>),
     Lambda(LambdaExpr),
     Unary(UnaryExpr),
     Binary(BinaryExpr),

@@ -588,10 +588,7 @@ impl Ctx {
 
     fn is_lvalue(&self, id: ExprId) -> bool {
         let expr = &self.module.data[id];
-        match expr {
-            Expr::Var(_) | Expr::Field { .. } => true,
-            _ => false,
-        }
+        matches!(expr, Expr::Var(_) | Expr::Field { .. })
     }
 
     fn infer_binop_expr(&mut self, op: Binop, lhs: ExprId, rhs: ExprId) -> Type {
