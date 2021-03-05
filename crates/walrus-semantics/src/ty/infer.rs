@@ -586,7 +586,21 @@ impl Ctx {
         op.return_type(lhs_type)
     }
 
+    fn is_lvalue(&self, id: ExprId) -> bool {
+        let expr = &self.module.data[id];
+        match expr {
+            Expr::Var(_) | Expr::Field { .. } => true,
+            _ => false,
+        }
+    }
+
     fn infer_binop_expr(&mut self, op: Binop, lhs: ExprId, rhs: ExprId) -> Type {
+        if let Binop::Assign = op {
+            if !self.is_lvalue(lhs) {
+                self.result.diagnostics.push(Diagnostic::NotLValue { lhs });
+            }
+        }
+
         let lhs_expectation = op.lhs_expectation();
         let lhs_type = self.infer_expr(&lhs_expectation, lhs);
         let rhs_expectation = op.rhs_expectation(lhs_type.clone());

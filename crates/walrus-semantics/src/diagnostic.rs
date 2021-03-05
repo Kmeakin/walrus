@@ -56,6 +56,9 @@ pub enum Diagnostic {
         op: Binop,
         rhs_type: Type,
     },
+    NotLValue {
+        lhs: ExprId,
+    },
     NoSuchField {
         expr: ExprId,
         ty: Type,
