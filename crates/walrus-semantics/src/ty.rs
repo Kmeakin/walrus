@@ -168,11 +168,11 @@ mod tests {
     macro_rules! test_infer {
         ($name:ident, $src:expr, $expected:expr) => {
             #[test]
-            fn $name() { test_infer($src, $expected) }
+            fn $name() { test_infer($src, &$expected) }
         };
     }
 
-    fn test_infer(src: &str, expected: Type) {
+    fn test_infer(src: &str, expected: &Type) {
         let syntax = walrus_parser::parse(src);
         let hir = crate::hir::lower(&syntax);
         let scopes = crate::scopes::scopes(&hir);
@@ -181,7 +181,7 @@ mod tests {
         let first_fn = &hir.data.fn_defs.iter().next().unwrap();
         let ret_type = &types.type_of_fn[first_fn.0].ret;
 
-        assert_eq!(ret_type, &expected);
+        assert_eq!(ret_type, expected);
 
         let mut settings = insta::Settings::new();
         settings.set_snapshot_path("../snapshots/infer");

@@ -583,7 +583,7 @@ impl Ctx {
     fn infer_unop_expr(&mut self, op: Unop, lhs: ExprId) -> Type {
         let lhs_expectation = op.lhs_expectation();
         let lhs_type = self.infer_expr(&lhs_expectation, lhs);
-        op.return_type(lhs_type)
+        op.return_type(&lhs_type)
     }
 
     fn is_lvalue(&self, id: ExprId) -> bool {
@@ -600,7 +600,7 @@ impl Ctx {
 
         let lhs_expectation = op.lhs_expectation();
         let lhs_type = self.infer_expr(&lhs_expectation, lhs);
-        let rhs_expectation = op.rhs_expectation(lhs_type.clone());
+        let rhs_expectation = op.rhs_expectation(&lhs_type);
         if lhs_type != Type::Unknown && rhs_expectation == Type::Unknown {
             self.result.diagnostics.push(Diagnostic::CannotApplyBinop {
                 lhs_type,
@@ -609,7 +609,7 @@ impl Ctx {
             });
         }
         let rhs_type = self.infer_expr(&rhs_expectation, rhs);
-        op.return_type(rhs_type)
+        op.return_type(&rhs_type)
     }
 
     fn infer_loop_expr(&mut self, expected: &Type, expr: ExprId) -> Type {
@@ -697,38 +697,32 @@ impl Unop {
         }
     }
 
-    fn return_type(self, lhs_type: Type) -> Type {
+    fn return_type(self, lhs_type: &Type) -> Type {
         match self {
-            Self::Add | Self::Sub => lhs_type,
+            Self::Add | Self::Sub => lhs_type.clone(),
             Self::Not => Type::BOOL,
         }
     }
 }
 impl Binop {
-    #![allow(clippy::match_same_arms)]
-
     const fn lhs_expectation(self) -> Type {
         match self {
             Self::Lazy(LazyBinop::And | LazyBinop::Or) => Type::BOOL,
-            Self::Arithmetic(_) => Type::Unknown,
-            Self::Cmp(_) => Type::Unknown,
-            Self::Assign => Type::Unknown,
+            Self::Arithmetic(_) | Self::Cmp(_) | Self::Assign => Type::Unknown,
         }
     }
 
-    fn rhs_expectation(self, lhs_type: Type) -> Type {
+    fn rhs_expectation(self, lhs_type: &Type) -> Type {
         match self {
             Self::Lazy(LazyBinop::And | LazyBinop::Or) => Type::BOOL,
-            Self::Arithmetic(_) => lhs_type,
-            Self::Cmp(_) => lhs_type,
-            Self::Assign => lhs_type,
+            Self::Arithmetic(_) | Self::Cmp(_) | Self::Assign => lhs_type.clone(),
         }
     }
 
-    fn return_type(self, rhs_type: Type) -> Type {
+    fn return_type(self, rhs_type: &Type) -> Type {
         match self {
             Self::Lazy(LazyBinop::And | LazyBinop::Or) => Type::BOOL,
-            Self::Arithmetic(_) => rhs_type,
+            Self::Arithmetic(_) => rhs_type.clone(),
             Self::Cmp(_) => Type::BOOL,
             Self::Assign => Type::UNIT,
         }
