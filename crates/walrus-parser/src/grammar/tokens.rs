@@ -20,6 +20,7 @@ macro_rules! token_parser {
 token_parser!(kw_break, KwBreak);
 token_parser!(kw_continue, KwContinue);
 token_parser!(kw_else, KwElse);
+token_parser!(kw_enum, KwEnum);
 token_parser!(kw_false, KwFalse);
 token_parser!(kw_fn, KwFn);
 token_parser!(kw_if, KwIf);

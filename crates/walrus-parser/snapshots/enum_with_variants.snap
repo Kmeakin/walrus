@@ -1,0 +1,109 @@
+---
+source: crates/walrus-parser/src/grammar.rs
+expression: got
+
+---
+Ok(
+    (
+        [],
+        SourceFile {
+            decls: [
+                Enum(
+                    EnumDef {
+                        kw_enum: KwEnum {
+                            span: 0..4,
+                        },
+                        name: Var(
+                            Ident {
+                                span: 5..14,
+                                text: "OptionInt",
+                            },
+                        ),
+                        variants: Delimited {
+                            open: LCurly {
+                                span: 15..16,
+                            },
+                            inner: Punctuated0 {
+                                first: Some(
+                                    EnumVariant {
+                                        name: Var(
+                                            Ident {
+                                                span: 29..33,
+                                                text: "None",
+                                            },
+                                        ),
+                                        fields: Delimited {
+                                            open: LCurly {
+                                                span: 34..35,
+                                            },
+                                            inner: Punctuated0 {
+                                                first: None,
+                                                tail: [],
+                                                trail: None,
+                                            },
+                                            close: RCurly {
+                                                span: 35..36,
+                                            },
+                                        },
+                                    },
+                                ),
+                                tail: [
+                                    (
+                                        Comma {
+                                            span: 36..37,
+                                        },
+                                        EnumVariant {
+                                            name: Var(
+                                                Ident {
+                                                    span: 50..54,
+                                                    text: "Some",
+                                                },
+                                            ),
+                                            fields: Delimited {
+                                                open: LCurly {
+                                                    span: 55..56,
+                                                },
+                                                inner: Punctuated0 {
+                                                    first: Some(
+                                                        StructField {
+                                                            name: Var(
+                                                                Ident {
+                                                                    span: 57..60,
+                                                                    text: "val",
+                                                                },
+                                                            ),
+                                                            colon: Colon {
+                                                                span: 60..61,
+                                                            },
+                                                            ty: Var(
+                                                                Var(
+                                                                    Ident {
+                                                                        span: 62..65,
+                                                                        text: "Int",
+                                                                    },
+                                                                ),
+                                                            ),
+                                                        },
+                                                    ),
+                                                    tail: [],
+                                                    trail: None,
+                                                },
+                                                close: RCurly {
+                                                    span: 66..67,
+                                                },
+                                            },
+                                        },
+                                    ),
+                                ],
+                                trail: None,
+                            },
+                            close: RCurly {
+                                span: 76..77,
+                            },
+                        },
+                    },
+                ),
+            ],
+        },
+    ),
+)

@@ -1,0 +1,40 @@
+---
+source: crates/walrus-parser/src/grammar.rs
+expression: got
+
+---
+Ok(
+    (
+        [],
+        SourceFile {
+            decls: [
+                Enum(
+                    EnumDef {
+                        kw_enum: KwEnum {
+                            span: 0..4,
+                        },
+                        name: Var(
+                            Ident {
+                                span: 5..9,
+                                text: "Void",
+                            },
+                        ),
+                        variants: Delimited {
+                            open: LCurly {
+                                span: 10..11,
+                            },
+                            inner: Punctuated0 {
+                                first: None,
+                                tail: [],
+                                trail: None,
+                            },
+                            close: RCurly {
+                                span: 11..12,
+                            },
+                        },
+                    },
+                ),
+            ],
+        },
+    ),
+)
