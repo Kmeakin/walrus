@@ -19,6 +19,7 @@ pub enum TokenKind {
     #[token("break")] KwBreak,
     #[token("continue")] KwContinue,
     #[token("else")] KwElse,
+    #[token("enum")] KwEnum,
     #[token("false")] KwFalse,
     #[token("fn")] KwFn,
     #[token("if")] KwIf,
@@ -127,7 +128,7 @@ mod tests {
     );
     test_lex!(
         keywords,
-        r"break continue else false fn if import let loop return struct true"
+        r"break continue else enum false fn if import let loop return struct true"
     );
     test_lex!(idents, "abc_DEF_123");
     test_lex!(dec_int, "123_456_7890");

@@ -1,6 +1,7 @@
 ---
 source: crates/walrus-lexer/src/token_kind.rs
 expression: got
+
 ---
 [
     0..5@KwBreak "break",
@@ -9,21 +10,23 @@ expression: got
     14..15@Whitespace " ",
     15..19@KwElse "else",
     19..20@Whitespace " ",
-    20..25@KwFalse "false",
-    25..26@Whitespace " ",
-    26..28@KwFn "fn",
-    28..29@Whitespace " ",
-    29..31@KwIf "if",
-    31..32@Whitespace " ",
-    32..38@KwImport "import",
-    38..39@Whitespace " ",
-    39..42@KwLet "let",
-    42..43@Whitespace " ",
-    43..47@KwLoop "loop",
+    20..24@KwEnum "enum",
+    24..25@Whitespace " ",
+    25..30@KwFalse "false",
+    30..31@Whitespace " ",
+    31..33@KwFn "fn",
+    33..34@Whitespace " ",
+    34..36@KwIf "if",
+    36..37@Whitespace " ",
+    37..43@KwImport "import",
+    43..44@Whitespace " ",
+    44..47@KwLet "let",
     47..48@Whitespace " ",
-    48..54@KwReturn "return",
-    54..55@Whitespace " ",
-    55..61@KwStruct "struct",
-    61..62@Whitespace " ",
-    62..66@KwTrue "true",
+    48..52@KwLoop "loop",
+    52..53@Whitespace " ",
+    53..59@KwReturn "return",
+    59..60@Whitespace " ",
+    60..66@KwStruct "struct",
+    66..67@Whitespace " ",
+    67..71@KwTrue "true",
 ]
