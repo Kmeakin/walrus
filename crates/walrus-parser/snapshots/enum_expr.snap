@@ -1,0 +1,91 @@
+---
+source: crates/walrus-parser/src/grammar.rs
+expression: got
+
+---
+Ok(
+    (
+        [],
+        Enum(
+            EnumExpr {
+                name: Var(
+                    Ident {
+                        span: 0..3,
+                        text: "Foo",
+                    },
+                ),
+                colon_colon: ColonColon {
+                    span: 3..5,
+                },
+                variant: Var(
+                    Ident {
+                        span: 5..8,
+                        text: "Bar",
+                    },
+                ),
+                fields: Delimited {
+                    open: LCurly {
+                        span: 9..10,
+                    },
+                    inner: Punctuated0 {
+                        first: Some(
+                            StructExprField {
+                                name: Var(
+                                    Ident {
+                                        span: 10..11,
+                                        text: "x",
+                                    },
+                                ),
+                                colon: Colon {
+                                    span: 11..12,
+                                },
+                                val: Lit(
+                                    Int(
+                                        Dec(
+                                            DecInt {
+                                                span: 13..14,
+                                                text: "1",
+                                            },
+                                        ),
+                                    ),
+                                ),
+                            },
+                        ),
+                        tail: [
+                            (
+                                Comma {
+                                    span: 14..15,
+                                },
+                                StructExprField {
+                                    name: Var(
+                                        Ident {
+                                            span: 16..17,
+                                            text: "y",
+                                        },
+                                    ),
+                                    colon: Colon {
+                                        span: 17..18,
+                                    },
+                                    val: Lit(
+                                        Int(
+                                            Dec(
+                                                DecInt {
+                                                    span: 19..20,
+                                                    text: "2",
+                                                },
+                                            ),
+                                        ),
+                                    ),
+                                },
+                            ),
+                        ],
+                        trail: None,
+                    },
+                    close: RCurly {
+                        span: 20..21,
+                    },
+                },
+            },
+        ),
+    ),
+)

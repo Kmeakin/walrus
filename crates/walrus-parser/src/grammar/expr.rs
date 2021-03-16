@@ -8,14 +8,7 @@ use nom::{
 // for expression precedence
 
 pub fn expr(input: Input) -> IResult<Expr> {
-    lambda_expr
-        .or(struct_expr)
-        .or(return_expr)
-        .or(break_expr)
-        .or(continue_expr)
-        .or(assign_expr)
-        .or(or_expr)
-        .parse(input)
+    struct_expr.or(enum_expr).or(expr_no_struct).parse(input)
 }
 pub fn expr_no_struct(input: Input) -> IResult<Expr> {
     lambda_expr
@@ -23,7 +16,7 @@ pub fn expr_no_struct(input: Input) -> IResult<Expr> {
         .or(break_expr)
         .or(continue_expr)
         .or(assign_expr)
-        .or(cmp_expr)
+        .or(or_expr)
         .parse(input)
 }
 fn lambda_expr(input: Input) -> IResult<Expr> {
@@ -50,6 +43,22 @@ fn struct_expr_field(input: Input) -> IResult<StructExprField> {
     let (input, val) = expr.parse(input)?;
     Ok((input, StructExprField { name, colon, val }))
 }
+fn enum_expr(input: Input) -> IResult<Expr> {
+    let (input, name) = var.parse(input)?;
+    let (input, colon_colon) = colon_colon.parse(input)?;
+    let (input, variant) = var.parse(input)?;
+    let (input, fields) = curly(punctuated0(struct_expr_field, comma)).parse(input)?;
+    Ok((
+        input,
+        Expr::Enum(EnumExpr {
+            name,
+            colon_colon,
+            variant,
+            fields,
+        }),
+    ))
+}
+
 fn return_expr(input: Input) -> IResult<Expr> {
     let (input, kw_return) = kw_return.parse(input)?;
     let (input, expr) = expr.opt().parse(input)?;
@@ -371,4 +380,5 @@ mod tests {
     test_parse!(block_expr, expr, r#"{x; y; z}"#);
     test_parse!(block_expr2, expr, r#"{if true {} loop {} {} x}"#);
     test_parse!(struct_expr, expr, r#"Foo {x: 1, y: 2}"#);
+    test_parse!(enum_expr, expr, r#"Foo::Bar {x: 1, y: 2}"#);
 }

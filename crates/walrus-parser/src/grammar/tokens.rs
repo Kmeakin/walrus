@@ -45,6 +45,7 @@ token_parser!(rparen, RParen);
 token_parser!(lcurly, LCurly);
 token_parser!(rcurly, RCurly);
 token_parser!(colon, Colon);
+token_parser!(colon_colon, ColonColon);
 token_parser!(comma, Comma);
 token_parser!(dot, Dot);
 token_parser!(eq, Eq);

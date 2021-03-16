@@ -262,6 +262,7 @@ impl Ctx {
                     })
                     .collect(),
             },
+            syntax::Expr::Enum(_) => todo!(),
             syntax::Expr::If(expr) => self.lower_if_expr(expr),
             syntax::Expr::Return(expr) => {
                 Expr::Return(expr.expr.as_ref().map(|expr| self.lower_expr(expr)))

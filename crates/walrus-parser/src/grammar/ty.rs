@@ -41,7 +41,7 @@ fn fn_type(input: Input) -> IResult<Type> {
 mod tests {
     use super::*;
 
-    test_parse!(path_type, ty, r#"x::y::Z"#);
+    test_parse!(var_type, ty, r#"Z"#);
     test_parse!(infer_type, ty, r#"_"#);
     test_parse!(tuple0_type, ty, r#"()"#);
     test_parse!(tuple1_type, ty, r#"(T,)"#);

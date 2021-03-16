@@ -12,6 +12,7 @@ pub enum Expr {
     Call(CallExpr),
     Field(FieldExpr),
     Struct(StructExpr),
+    Enum(EnumExpr),
     If(IfExpr),
     Return(ReturnExpr),
     Break(BreakExpr),
@@ -80,6 +81,14 @@ pub enum Field {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct StructExpr {
     pub name: Var,
+    pub fields: Curly<Punctuated0<StructExprField, Comma>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct EnumExpr {
+    pub name: Var,
+    pub colon_colon: ColonColon,
+    pub variant: Var,
     pub fields: Curly<Punctuated0<StructExprField, Comma>>,
 }
 

@@ -48,6 +48,7 @@ pub enum TokenKind {
     #[token(",")] Comma,
     #[token(";")] Semicolon,
     #[token(":")] Colon,
+    #[token("::")] ColonColon,
     #[token("->")] ThinArrow,
     #[token("=>")] FatArrow,
     #[token("_")] Underscore,
@@ -138,6 +139,6 @@ mod tests {
     test_lex!(simple_char, "'a'");
     test_lex!(escaped_char, r"'\n'");
     test_lex!(unicode_char, r"'\u0a'");
-    test_lex!(symbols, "() {} . , ; : -> => _");
+    test_lex!(symbols, "() {} . , ; : :: -> => _");
     test_lex!(operators, "+ - * / ! = == != < <= > >= || &&");
 }
