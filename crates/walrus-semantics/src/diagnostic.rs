@@ -4,7 +4,7 @@ use crate::{
         VarId,
     },
     scopes::Denotation,
-    ty::{InferenceId, Type},
+    ty::{FnType, InferenceId, Type},
 };
 use either::Either;
 use std::num::{ParseFloatError, ParseIntError};
@@ -50,7 +50,7 @@ pub enum Diagnostic {
     },
     ArgCountMismatch {
         expr: ExprId,
-        ty: Type,
+        ty: FnType,
         expected: usize,
         got: usize,
     },

@@ -8,116 +8,82 @@ pub use self::infer::{infer, InferenceId, InferenceResult};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Type {
-    App { ctor: Ctor, params: Vec<Self> },
-    Unknown,
+    Primitive(PrimitiveType),
+    Fn(FnType),
+    Struct(StructDefId),
+    Enum(EnumDefId),
+    Tuple(Vec<Self>),
     Infer(InferType),
+    Unknown,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FnType {
     pub params: Vec<Type>,
-    pub ret: Type,
+    pub ret: Box<Type>,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum PrimitiveType {
+    Bool,
+    Int,
+    Float,
+    Char,
+    Never,
 }
 
 impl From<FnType> for Type {
-    fn from(func: FnType) -> Self { Self::function(func.params, func.ret) }
+    fn from(func: FnType) -> Self { Self::Fn(func) }
 }
 
 impl Type {
-    pub const UNIT: Self = Self::new0(Ctor::Tuple);
-    pub const BOOL: Self = Self::new0(Ctor::Bool);
-    pub const INT: Self = Self::new0(Ctor::Int);
-    pub const FLOAT: Self = Self::new0(Ctor::Float);
-    pub const CHAR: Self = Self::new0(Ctor::Char);
-    pub const NEVER: Self = Self::new0(Ctor::Never);
+    pub const UNIT: Self = Self::Tuple(vec![]);
+    pub const BOOL: Self = Self::Primitive(PrimitiveType::Bool);
+    pub const INT: Self = Self::Primitive(PrimitiveType::Int);
+    pub const FLOAT: Self = Self::Primitive(PrimitiveType::Float);
+    pub const CHAR: Self = Self::Primitive(PrimitiveType::Char);
+    pub const NEVER: Self = Self::Primitive(PrimitiveType::Never);
 
-    pub const fn new0(ctor: Ctor) -> Self {
-        Self::App {
-            ctor,
-            params: vec![],
-        }
-    }
-    pub fn function(mut params: Vec<Self>, ret: Self) -> Self {
-        params.push(ret);
-        Self::App {
-            ctor: Ctor::Fn,
+    pub fn function(params: Vec<Type>, ret: Type) -> Self {
+        Self::Fn(FnType {
             params,
-        }
-    }
-    pub fn tuple(tys: Vec<Self>) -> Self {
-        Self::App {
-            ctor: Ctor::Tuple,
-            params: tys,
-        }
-    }
-    pub const fn struct_(id: StructDefId) -> Self {
-        Self::App {
-            ctor: Ctor::Struct(id),
-            params: vec![],
-        }
-    }
-    pub const fn enum_(id: EnumDefId) -> Self {
-        Self::App {
-            ctor: Ctor::Enum(id),
-            params: vec![],
-        }
+            ret: box ret,
+        })
     }
 
-    pub fn as_tuple(&self) -> Option<&[Self]> {
+    pub fn as_fn(&self) -> Option<&FnType> {
         match self {
-            Self::App {
-                ctor: Ctor::Tuple,
-                params,
-            } => Some(params),
+            Self::Fn(func) => Some(func),
             _ => None,
         }
     }
-    pub fn as_fn(&self) -> Option<FnType> {
+    pub fn as_tuple(&self) -> Option<&[Self]> {
         match self {
-            Self::App {
-                ctor: Ctor::Fn,
-                params,
-            } => {
-                let (ret, params) = params.split_last().unwrap();
-                Some(FnType {
-                    params: params.to_vec(),
-                    ret: ret.clone(),
-                })
-            }
+            Self::Tuple(tys) => Some(tys),
             _ => None,
         }
     }
     pub const fn as_struct(&self) -> Option<StructDefId> {
         match self {
-            Self::App {
-                ctor: Ctor::Struct(id),
-                ..
-            } => Some(*id),
+            Self::Struct(id) => Some(*id),
             _ => None,
         }
     }
-    pub const fn ctor(&self) -> Option<&Ctor> {
-        match self {
-            Self::App { ctor, .. } => Some(ctor),
-            _ => None,
-        }
-    }
-    pub const fn params(&self) -> Option<&Vec<Self>> {
-        match self {
-            Self::App { params, .. } => Some(params),
-            _ => None,
-        }
-    }
-
     fn walk_mut(&mut self, f: &mut impl FnMut(&mut Self)) {
         f(self);
         match self {
-            Self::App { params, .. } => {
-                for t in params {
-                    t.walk_mut(f);
+            Self::Tuple(tys) => {
+                for ty in tys {
+                    ty.walk_mut(f)
                 }
             }
-            Self::Infer(_) | Self::Unknown => {}
+            Self::Fn(FnType { params, ret }) => {
+                for ty in params {
+                    ty.walk_mut(f)
+                }
+                ret.walk_mut(f)
+            }
+            _ => {}
         }
     }
 }
@@ -185,7 +151,7 @@ mod tests {
         let first_fn = &hir.data.fn_defs.iter().next().unwrap();
         let ret_type = &types.type_of_fn[first_fn.0].ret;
 
-        assert_eq!(ret_type, expected);
+        assert_eq!(ret_type.as_ref(), expected);
 
         let mut settings = insta::Settings::new();
         settings.set_snapshot_path("../snapshots/infer");
@@ -220,17 +186,17 @@ fn g() -> _ {1}
     test_infer!(
         tuple,
         r#"fn f() -> _ {(1,false)}"#,
-        Type::tuple(vec![Type::INT, Type::BOOL])
+        Type::Tuple(vec![Type::INT, Type::BOOL])
     );
     test_infer!(
         tuple_destructure,
         r#"fn f() -> _ {let (x, y) = (1, false); (y, x)}"#,
-        Type::tuple(vec![Type::BOOL, Type::INT])
+        Type::Tuple(vec![Type::BOOL, Type::INT])
     );
     test_infer!(
         tuple_field,
         r#"fn f() -> _ {let x = (1, false); (x.1, x.0)}"#,
-        Type::tuple(vec![Type::BOOL, Type::INT])
+        Type::Tuple(vec![Type::BOOL, Type::INT])
     );
 
     test_infer!(
@@ -242,7 +208,7 @@ struct Foo {
 }
 fn f() -> _ { Foo { x: 0, y: false } }
 "#,
-        Type::struct_(StructDefId::new(0))
+        Type::Struct(StructDefId::new(0))
     );
 
     test_infer!(
@@ -254,13 +220,13 @@ enum Foo {
 }
 fn f() -> _ { Foo::X { x: 0 } }
 "#,
-        Type::enum_(EnumDefId::new(0))
+        Type::Enum(EnumDefId::new(0))
     );
 
     test_infer!(
         struct_destructure,
         r#"fn f() -> _ {let (x, y) = (1, false); (y, x)}"#,
-        Type::tuple(vec![Type::BOOL, Type::INT])
+        Type::Tuple(vec![Type::BOOL, Type::INT])
     );
 
     test_infer!(
@@ -275,7 +241,7 @@ fn f() -> _ {
     (foo.x, foo.y)
 }
 "#,
-        Type::tuple(vec![Type::INT, Type::BOOL])
+        Type::Tuple(vec![Type::INT, Type::BOOL])
     );
 
     test_infer!(
@@ -359,7 +325,7 @@ fn f() -> _ { (is_odd, is_even) }
 fn is_odd(x: _)  -> _ { if x == 0 { false } else { is_even(x - 1) } }
 fn is_even(x: _) -> _ { if x == 0 { true  } else { is_odd(x - 1)  } }
 "#,
-        Type::tuple(vec![
+        Type::Tuple(vec![
             Type::function(vec![Type::INT], Type::BOOL),
             Type::function(vec![Type::INT], Type::BOOL),
         ])

@@ -5,114 +5,84 @@ expression: types
 ---
 InferenceResult {
     type_of_expr: {
-        0: App {
-            ctor: Int,
-            params: [],
-        },
-        1: App {
-            ctor: Bool,
-            params: [],
-        },
-        2: App {
-            ctor: Struct(
-                0,
-            ),
-            params: [],
-        },
-        3: App {
-            ctor: Struct(
-                0,
-            ),
-            params: [],
-        },
-        4: App {
-            ctor: Int,
-            params: [],
-        },
-        5: App {
-            ctor: Struct(
-                0,
-            ),
-            params: [],
-        },
-        6: App {
-            ctor: Bool,
-            params: [],
-        },
-        7: App {
-            ctor: Tuple,
-            params: [
-                App {
-                    ctor: Int,
-                    params: [],
-                },
-                App {
-                    ctor: Bool,
-                    params: [],
-                },
+        0: Primitive(
+            Int,
+        ),
+        1: Primitive(
+            Bool,
+        ),
+        2: Struct(
+            0,
+        ),
+        3: Struct(
+            0,
+        ),
+        4: Primitive(
+            Int,
+        ),
+        5: Struct(
+            0,
+        ),
+        6: Primitive(
+            Bool,
+        ),
+        7: Tuple(
+            [
+                Primitive(
+                    Int,
+                ),
+                Primitive(
+                    Bool,
+                ),
             ],
-        },
-        8: App {
-            ctor: Tuple,
-            params: [
-                App {
-                    ctor: Int,
-                    params: [],
-                },
-                App {
-                    ctor: Bool,
-                    params: [],
-                },
+        ),
+        8: Tuple(
+            [
+                Primitive(
+                    Int,
+                ),
+                Primitive(
+                    Bool,
+                ),
             ],
-        },
+        ),
     },
     type_of_type: {
-        0: App {
-            ctor: Int,
-            params: [],
-        },
-        1: App {
-            ctor: Bool,
-            params: [],
-        },
-        2: App {
-            ctor: Tuple,
-            params: [
-                App {
-                    ctor: Int,
-                    params: [],
-                },
-                App {
-                    ctor: Bool,
-                    params: [],
-                },
+        0: Primitive(
+            Int,
+        ),
+        1: Primitive(
+            Bool,
+        ),
+        2: Tuple(
+            [
+                Primitive(
+                    Int,
+                ),
+                Primitive(
+                    Bool,
+                ),
             ],
-        },
+        ),
     },
     type_of_pat: {
-        0: App {
-            ctor: Struct(
-                0,
-            ),
-            params: [],
-        },
+        0: Struct(
+            0,
+        ),
     },
     type_of_fn: {
         0: FnType {
             params: [],
-            ret: App {
-                ctor: Tuple,
-                params: [
-                    App {
-                        ctor: Int,
-                        params: [],
-                    },
-                    App {
-                        ctor: Bool,
-                        params: [],
-                    },
+            ret: Tuple(
+                [
+                    Primitive(
+                        Int,
+                    ),
+                    Primitive(
+                        Bool,
+                    ),
                 ],
-            },
+            ),
         },
     },
     diagnostics: [],

@@ -5,142 +5,120 @@ expression: types
 ---
 InferenceResult {
     type_of_expr: {
-        0: App {
-            ctor: Fn,
-            params: [
-                App {
-                    ctor: Int,
-                    params: [],
-                },
-                App {
-                    ctor: Int,
-                    params: [],
-                },
-                App {
-                    ctor: Int,
-                    params: [],
-                },
-            ],
-        },
-        1: App {
-            ctor: Fn,
-            params: [
-                App {
-                    ctor: Int,
-                    params: [],
-                },
-                App {
-                    ctor: Int,
-                    params: [],
-                },
-                App {
-                    ctor: Int,
-                    params: [],
-                },
-            ],
-        },
-        2: App {
-            ctor: Int,
-            params: [],
-        },
-        3: App {
-            ctor: Int,
-            params: [],
-        },
-        4: App {
-            ctor: Int,
-            params: [],
-        },
-        5: App {
-            ctor: Int,
-            params: [],
-        },
-        6: App {
-            ctor: Int,
-            params: [],
-        },
-        7: App {
-            ctor: Int,
-            params: [],
-        },
+        0: Fn(
+            FnType {
+                params: [
+                    Primitive(
+                        Int,
+                    ),
+                    Primitive(
+                        Int,
+                    ),
+                ],
+                ret: Primitive(
+                    Int,
+                ),
+            },
+        ),
+        1: Fn(
+            FnType {
+                params: [
+                    Primitive(
+                        Int,
+                    ),
+                    Primitive(
+                        Int,
+                    ),
+                ],
+                ret: Primitive(
+                    Int,
+                ),
+            },
+        ),
+        2: Primitive(
+            Int,
+        ),
+        3: Primitive(
+            Int,
+        ),
+        4: Primitive(
+            Int,
+        ),
+        5: Primitive(
+            Int,
+        ),
+        6: Primitive(
+            Int,
+        ),
+        7: Primitive(
+            Int,
+        ),
     },
     type_of_type: {
-        0: App {
-            ctor: Fn,
-            params: [
-                App {
-                    ctor: Int,
-                    params: [],
-                },
-                App {
-                    ctor: Int,
-                    params: [],
-                },
-                App {
-                    ctor: Int,
-                    params: [],
-                },
-            ],
-        },
-        1: App {
-            ctor: Int,
-            params: [],
-        },
-        2: App {
-            ctor: Int,
-            params: [],
-        },
-        3: App {
-            ctor: Int,
-            params: [],
-        },
+        0: Fn(
+            FnType {
+                params: [
+                    Primitive(
+                        Int,
+                    ),
+                    Primitive(
+                        Int,
+                    ),
+                ],
+                ret: Primitive(
+                    Int,
+                ),
+            },
+        ),
+        1: Primitive(
+            Int,
+        ),
+        2: Primitive(
+            Int,
+        ),
+        3: Primitive(
+            Int,
+        ),
     },
     type_of_pat: {
-        0: App {
-            ctor: Int,
-            params: [],
-        },
-        1: App {
-            ctor: Int,
-            params: [],
-        },
+        0: Primitive(
+            Int,
+        ),
+        1: Primitive(
+            Int,
+        ),
     },
     type_of_fn: {
         0: FnType {
             params: [],
-            ret: App {
-                ctor: Fn,
-                params: [
-                    App {
-                        ctor: Int,
-                        params: [],
-                    },
-                    App {
-                        ctor: Int,
-                        params: [],
-                    },
-                    App {
-                        ctor: Int,
-                        params: [],
-                    },
-                ],
-            },
+            ret: Fn(
+                FnType {
+                    params: [
+                        Primitive(
+                            Int,
+                        ),
+                        Primitive(
+                            Int,
+                        ),
+                    ],
+                    ret: Primitive(
+                        Int,
+                    ),
+                },
+            ),
         },
         1: FnType {
             params: [
-                App {
-                    ctor: Int,
-                    params: [],
-                },
-                App {
-                    ctor: Int,
-                    params: [],
-                },
+                Primitive(
+                    Int,
+                ),
+                Primitive(
+                    Int,
+                ),
             ],
-            ret: App {
-                ctor: Int,
-                params: [],
-            },
+            ret: Primitive(
+                Int,
+            ),
         },
     },
     diagnostics: [],

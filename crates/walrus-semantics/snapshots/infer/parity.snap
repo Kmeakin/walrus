@@ -5,334 +5,284 @@ expression: types
 ---
 InferenceResult {
     type_of_expr: {
-        0: App {
-            ctor: Fn,
-            params: [
-                App {
-                    ctor: Int,
-                    params: [],
-                },
-                App {
-                    ctor: Bool,
-                    params: [],
-                },
+        0: Fn(
+            FnType {
+                params: [
+                    Primitive(
+                        Int,
+                    ),
+                ],
+                ret: Primitive(
+                    Bool,
+                ),
+            },
+        ),
+        1: Fn(
+            FnType {
+                params: [
+                    Primitive(
+                        Int,
+                    ),
+                ],
+                ret: Primitive(
+                    Bool,
+                ),
+            },
+        ),
+        2: Tuple(
+            [
+                Fn(
+                    FnType {
+                        params: [
+                            Primitive(
+                                Int,
+                            ),
+                        ],
+                        ret: Primitive(
+                            Bool,
+                        ),
+                    },
+                ),
+                Fn(
+                    FnType {
+                        params: [
+                            Primitive(
+                                Int,
+                            ),
+                        ],
+                        ret: Primitive(
+                            Bool,
+                        ),
+                    },
+                ),
             ],
-        },
-        1: App {
-            ctor: Fn,
-            params: [
-                App {
-                    ctor: Int,
-                    params: [],
-                },
-                App {
-                    ctor: Bool,
-                    params: [],
-                },
+        ),
+        3: Tuple(
+            [
+                Fn(
+                    FnType {
+                        params: [
+                            Primitive(
+                                Int,
+                            ),
+                        ],
+                        ret: Primitive(
+                            Bool,
+                        ),
+                    },
+                ),
+                Fn(
+                    FnType {
+                        params: [
+                            Primitive(
+                                Int,
+                            ),
+                        ],
+                        ret: Primitive(
+                            Bool,
+                        ),
+                    },
+                ),
             ],
-        },
-        2: App {
-            ctor: Tuple,
-            params: [
-                App {
-                    ctor: Fn,
-                    params: [
-                        App {
-                            ctor: Int,
-                            params: [],
-                        },
-                        App {
-                            ctor: Bool,
-                            params: [],
-                        },
-                    ],
-                },
-                App {
-                    ctor: Fn,
-                    params: [
-                        App {
-                            ctor: Int,
-                            params: [],
-                        },
-                        App {
-                            ctor: Bool,
-                            params: [],
-                        },
-                    ],
-                },
-            ],
-        },
-        3: App {
-            ctor: Tuple,
-            params: [
-                App {
-                    ctor: Fn,
-                    params: [
-                        App {
-                            ctor: Int,
-                            params: [],
-                        },
-                        App {
-                            ctor: Bool,
-                            params: [],
-                        },
-                    ],
-                },
-                App {
-                    ctor: Fn,
-                    params: [
-                        App {
-                            ctor: Int,
-                            params: [],
-                        },
-                        App {
-                            ctor: Bool,
-                            params: [],
-                        },
-                    ],
-                },
-            ],
-        },
-        4: App {
-            ctor: Int,
-            params: [],
-        },
-        5: App {
-            ctor: Int,
-            params: [],
-        },
-        6: App {
-            ctor: Bool,
-            params: [],
-        },
-        7: App {
-            ctor: Bool,
-            params: [],
-        },
-        8: App {
-            ctor: Bool,
-            params: [],
-        },
-        9: App {
-            ctor: Fn,
-            params: [
-                App {
-                    ctor: Int,
-                    params: [],
-                },
-                App {
-                    ctor: Bool,
-                    params: [],
-                },
-            ],
-        },
-        10: App {
-            ctor: Int,
-            params: [],
-        },
-        11: App {
-            ctor: Int,
-            params: [],
-        },
-        12: App {
-            ctor: Int,
-            params: [],
-        },
-        13: App {
-            ctor: Bool,
-            params: [],
-        },
-        14: App {
-            ctor: Bool,
-            params: [],
-        },
-        15: App {
-            ctor: Bool,
-            params: [],
-        },
-        16: App {
-            ctor: Bool,
-            params: [],
-        },
-        17: App {
-            ctor: Int,
-            params: [],
-        },
-        18: App {
-            ctor: Int,
-            params: [],
-        },
-        19: App {
-            ctor: Bool,
-            params: [],
-        },
-        20: App {
-            ctor: Bool,
-            params: [],
-        },
-        21: App {
-            ctor: Bool,
-            params: [],
-        },
-        22: App {
-            ctor: Fn,
-            params: [
-                App {
-                    ctor: Int,
-                    params: [],
-                },
-                App {
-                    ctor: Bool,
-                    params: [],
-                },
-            ],
-        },
-        23: App {
-            ctor: Int,
-            params: [],
-        },
-        24: App {
-            ctor: Int,
-            params: [],
-        },
-        25: App {
-            ctor: Int,
-            params: [],
-        },
-        26: App {
-            ctor: Bool,
-            params: [],
-        },
-        27: App {
-            ctor: Bool,
-            params: [],
-        },
-        28: App {
-            ctor: Bool,
-            params: [],
-        },
-        29: App {
-            ctor: Bool,
-            params: [],
-        },
+        ),
+        4: Primitive(
+            Int,
+        ),
+        5: Primitive(
+            Int,
+        ),
+        6: Primitive(
+            Bool,
+        ),
+        7: Primitive(
+            Bool,
+        ),
+        8: Primitive(
+            Bool,
+        ),
+        9: Fn(
+            FnType {
+                params: [
+                    Primitive(
+                        Int,
+                    ),
+                ],
+                ret: Primitive(
+                    Bool,
+                ),
+            },
+        ),
+        10: Primitive(
+            Int,
+        ),
+        11: Primitive(
+            Int,
+        ),
+        12: Primitive(
+            Int,
+        ),
+        13: Primitive(
+            Bool,
+        ),
+        14: Primitive(
+            Bool,
+        ),
+        15: Primitive(
+            Bool,
+        ),
+        16: Primitive(
+            Bool,
+        ),
+        17: Primitive(
+            Int,
+        ),
+        18: Primitive(
+            Int,
+        ),
+        19: Primitive(
+            Bool,
+        ),
+        20: Primitive(
+            Bool,
+        ),
+        21: Primitive(
+            Bool,
+        ),
+        22: Fn(
+            FnType {
+                params: [
+                    Primitive(
+                        Int,
+                    ),
+                ],
+                ret: Primitive(
+                    Bool,
+                ),
+            },
+        ),
+        23: Primitive(
+            Int,
+        ),
+        24: Primitive(
+            Int,
+        ),
+        25: Primitive(
+            Int,
+        ),
+        26: Primitive(
+            Bool,
+        ),
+        27: Primitive(
+            Bool,
+        ),
+        28: Primitive(
+            Bool,
+        ),
+        29: Primitive(
+            Bool,
+        ),
     },
     type_of_type: {
-        0: App {
-            ctor: Tuple,
-            params: [
-                App {
-                    ctor: Fn,
-                    params: [
-                        App {
-                            ctor: Int,
-                            params: [],
-                        },
-                        App {
-                            ctor: Bool,
-                            params: [],
-                        },
-                    ],
-                },
-                App {
-                    ctor: Fn,
-                    params: [
-                        App {
-                            ctor: Int,
-                            params: [],
-                        },
-                        App {
-                            ctor: Bool,
-                            params: [],
-                        },
-                    ],
-                },
+        0: Tuple(
+            [
+                Fn(
+                    FnType {
+                        params: [
+                            Primitive(
+                                Int,
+                            ),
+                        ],
+                        ret: Primitive(
+                            Bool,
+                        ),
+                    },
+                ),
+                Fn(
+                    FnType {
+                        params: [
+                            Primitive(
+                                Int,
+                            ),
+                        ],
+                        ret: Primitive(
+                            Bool,
+                        ),
+                    },
+                ),
             ],
-        },
-        1: App {
-            ctor: Int,
-            params: [],
-        },
-        2: App {
-            ctor: Bool,
-            params: [],
-        },
-        3: App {
-            ctor: Int,
-            params: [],
-        },
-        4: App {
-            ctor: Bool,
-            params: [],
-        },
+        ),
+        1: Primitive(
+            Int,
+        ),
+        2: Primitive(
+            Bool,
+        ),
+        3: Primitive(
+            Int,
+        ),
+        4: Primitive(
+            Bool,
+        ),
     },
     type_of_pat: {
-        0: App {
-            ctor: Int,
-            params: [],
-        },
-        1: App {
-            ctor: Int,
-            params: [],
-        },
+        0: Primitive(
+            Int,
+        ),
+        1: Primitive(
+            Int,
+        ),
     },
     type_of_fn: {
         0: FnType {
             params: [],
-            ret: App {
-                ctor: Tuple,
-                params: [
-                    App {
-                        ctor: Fn,
-                        params: [
-                            App {
-                                ctor: Int,
-                                params: [],
-                            },
-                            App {
-                                ctor: Bool,
-                                params: [],
-                            },
-                        ],
-                    },
-                    App {
-                        ctor: Fn,
-                        params: [
-                            App {
-                                ctor: Int,
-                                params: [],
-                            },
-                            App {
-                                ctor: Bool,
-                                params: [],
-                            },
-                        ],
-                    },
+            ret: Tuple(
+                [
+                    Fn(
+                        FnType {
+                            params: [
+                                Primitive(
+                                    Int,
+                                ),
+                            ],
+                            ret: Primitive(
+                                Bool,
+                            ),
+                        },
+                    ),
+                    Fn(
+                        FnType {
+                            params: [
+                                Primitive(
+                                    Int,
+                                ),
+                            ],
+                            ret: Primitive(
+                                Bool,
+                            ),
+                        },
+                    ),
                 ],
-            },
+            ),
         },
         1: FnType {
             params: [
-                App {
-                    ctor: Int,
-                    params: [],
-                },
+                Primitive(
+                    Int,
+                ),
             ],
-            ret: App {
-                ctor: Bool,
-                params: [],
-            },
+            ret: Primitive(
+                Bool,
+            ),
         },
         2: FnType {
             params: [
-                App {
-                    ctor: Int,
-                    params: [],
-                },
+                Primitive(
+                    Int,
+                ),
             ],
-            ret: App {
-                ctor: Bool,
-                params: [],
-            },
+            ret: Primitive(
+                Bool,
+            ),
         },
     },
     diagnostics: [],

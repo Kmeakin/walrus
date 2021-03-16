@@ -5,49 +5,40 @@ expression: types
 ---
 InferenceResult {
     type_of_expr: {
-        0: App {
-            ctor: Bool,
-            params: [],
-        },
-        1: App {
-            ctor: Int,
-            params: [],
-        },
-        2: App {
-            ctor: Int,
-            params: [],
-        },
-        3: App {
-            ctor: Int,
-            params: [],
-        },
-        4: App {
-            ctor: Int,
-            params: [],
-        },
-        5: App {
-            ctor: Int,
-            params: [],
-        },
-        6: App {
-            ctor: Int,
-            params: [],
-        },
+        0: Primitive(
+            Bool,
+        ),
+        1: Primitive(
+            Int,
+        ),
+        2: Primitive(
+            Int,
+        ),
+        3: Primitive(
+            Int,
+        ),
+        4: Primitive(
+            Int,
+        ),
+        5: Primitive(
+            Int,
+        ),
+        6: Primitive(
+            Int,
+        ),
     },
     type_of_type: {
-        0: App {
-            ctor: Int,
-            params: [],
-        },
+        0: Primitive(
+            Int,
+        ),
     },
     type_of_pat: {},
     type_of_fn: {
         0: FnType {
             params: [],
-            ret: App {
-                ctor: Int,
-                params: [],
-            },
+            ret: Primitive(
+                Int,
+            ),
         },
     },
     diagnostics: [],

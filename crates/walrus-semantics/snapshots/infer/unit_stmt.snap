@@ -5,29 +5,25 @@ expression: types
 ---
 InferenceResult {
     type_of_expr: {
-        0: App {
-            ctor: Int,
-            params: [],
-        },
-        1: App {
-            ctor: Tuple,
-            params: [],
-        },
+        0: Primitive(
+            Int,
+        ),
+        1: Tuple(
+            [],
+        ),
     },
     type_of_type: {
-        0: App {
-            ctor: Tuple,
-            params: [],
-        },
+        0: Tuple(
+            [],
+        ),
     },
     type_of_pat: {},
     type_of_fn: {
         0: FnType {
             params: [],
-            ret: App {
-                ctor: Tuple,
-                params: [],
-            },
+            ret: Tuple(
+                [],
+            ),
         },
     },
     diagnostics: [],

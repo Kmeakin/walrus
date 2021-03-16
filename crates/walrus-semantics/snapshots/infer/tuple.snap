@@ -5,73 +5,59 @@ expression: types
 ---
 InferenceResult {
     type_of_expr: {
-        0: App {
-            ctor: Int,
-            params: [],
-        },
-        1: App {
-            ctor: Bool,
-            params: [],
-        },
-        2: App {
-            ctor: Tuple,
-            params: [
-                App {
-                    ctor: Int,
-                    params: [],
-                },
-                App {
-                    ctor: Bool,
-                    params: [],
-                },
+        0: Primitive(
+            Int,
+        ),
+        1: Primitive(
+            Bool,
+        ),
+        2: Tuple(
+            [
+                Primitive(
+                    Int,
+                ),
+                Primitive(
+                    Bool,
+                ),
             ],
-        },
-        3: App {
-            ctor: Tuple,
-            params: [
-                App {
-                    ctor: Int,
-                    params: [],
-                },
-                App {
-                    ctor: Bool,
-                    params: [],
-                },
+        ),
+        3: Tuple(
+            [
+                Primitive(
+                    Int,
+                ),
+                Primitive(
+                    Bool,
+                ),
             ],
-        },
+        ),
     },
     type_of_type: {
-        0: App {
-            ctor: Tuple,
-            params: [
-                App {
-                    ctor: Int,
-                    params: [],
-                },
-                App {
-                    ctor: Bool,
-                    params: [],
-                },
+        0: Tuple(
+            [
+                Primitive(
+                    Int,
+                ),
+                Primitive(
+                    Bool,
+                ),
             ],
-        },
+        ),
     },
     type_of_pat: {},
     type_of_fn: {
         0: FnType {
             params: [],
-            ret: App {
-                ctor: Tuple,
-                params: [
-                    App {
-                        ctor: Int,
-                        params: [],
-                    },
-                    App {
-                        ctor: Bool,
-                        params: [],
-                    },
+            ret: Tuple(
+                [
+                    Primitive(
+                        Int,
+                    ),
+                    Primitive(
+                        Bool,
+                    ),
                 ],
-            },
+            ),
         },
     },
     diagnostics: [],

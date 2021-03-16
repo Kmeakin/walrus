@@ -16,8 +16,8 @@ use std::ops::Index;
 use walrus_semantics::{
     builtins::Builtin,
     hir::{
-        self, ArithmeticBinop, Binop, CmpBinop, Expr, ExprId, Field, FieldInit, FnDefId, LazyBinop,
-        Lit, Param, PatId, Unop, VarId,
+        self, ArithmeticBinop, Binop, CmpBinop, EnumDefId, Expr, ExprId, Field, FieldInit, FnDefId,
+        LazyBinop, Lit, Param, PatId, StructDefId, Unop, VarId,
     },
     scopes::{self, Denotation},
     ty,
@@ -77,49 +77,33 @@ impl<'ctx> Compiler<'ctx> {
     }
 
     fn value_type(&self, ty: &Type) -> BasicTypeEnum<'ctx> {
-        let (ctor, params) = match ty {
-            Type::App { ctor, params } => (ctor, params),
-            _ => unreachable!(format!("{ty:?}")),
-        };
-        match ctor {
-            ty::Ctor::Bool => self.llvm.bool_type().into(),
-            ty::Ctor::Int | ty::Ctor::Char => self.llvm.i32_type().into(),
-            ty::Ctor::Float => self.llvm.f32_type().into(),
-            ty::Ctor::Tuple => self.tuple_type(params).into(),
-            ty::Ctor::Fn => self.closure_type(&ty.as_fn().unwrap()),
-            ty::Ctor::Struct(id) => {
-                let struct_def = &self.hir[*id];
-                let field_types = struct_def
-                    .fields
-                    .iter()
-                    .map(|field| {
-                        let field_type = &self.types[field.ty];
-                        self.value_type(field_type)
-                    })
-                    .collect::<Vec<_>>();
-                self.llvm.struct_type(&field_types, false).into()
-            }
-            ty::Ctor::Enum(_) => todo!(),
-            ty::Ctor::Never => unreachable!(),
+        match ty {
+            Type::Fn(func) => self.closure_type(func),
+            Type::Struct(id) => self.struct_type(*id).into(),
+            Type::Enum(id) => self.enum_type(*id).into(),
+            Type::Tuple(tys) => self.tuple_type(tys).into(),
+            &Type::BOOL => self.llvm.bool_type().into(),
+            &(Type::INT | Type::CHAR) => self.llvm.i32_type().into(),
+            &Type::FLOAT => self.llvm.f32_type().into(),
+            Type::Infer(_) | &Type::NEVER | Type::Unknown => unreachable!(),
         }
     }
 
     fn fn_type(&self, ty: &FnType) -> FunctionType<'ctx> {
         let FnType { params, ret } = ty;
-        if ret == &Type::NEVER {
-            self.llvm.void_type().fn_type(
+        match ret.as_ref() {
+            &Type::NEVER => self.llvm.void_type().fn_type(
                 &std::iter::once(self.void_ptr_type())
                     .chain(params.iter().map(|ty| self.value_type(ty)))
                     .collect::<Vec<_>>(),
                 false,
-            )
-        } else {
-            self.value_type(ret).fn_type(
+            ),
+            _ => self.value_type(ret).fn_type(
                 &std::iter::once(self.void_ptr_type())
                     .chain(params.iter().map(|ty| self.value_type(ty)))
                     .collect::<Vec<_>>(),
                 false,
-            )
+            ),
         }
     }
 
@@ -142,6 +126,19 @@ impl<'ctx> Compiler<'ctx> {
     }
 
     fn unit_type(&self) -> StructType<'ctx> { self.tuple_type(&[]) }
+
+    fn struct_type(&self, id: StructDefId) -> StructType<'ctx> {
+        let struct_def = &self.hir[id];
+        self.llvm.struct_type(
+            &struct_def
+                .fields
+                .iter()
+                .map(|field| self.value_type(&self.types[field.ty]))
+                .collect::<Vec<_>>(),
+            false,
+        )
+    }
+    fn enum_type(&self, id: EnumDefId) -> StructType<'ctx> { todo!() }
 
     fn codegen_module(self) -> Module<'ctx> {
         let builtins_source = include_str!("builtins.ll");
@@ -770,7 +767,7 @@ impl<'ctx> Compiler<'ctx> {
     }
 
     fn codegen_unop(&self, vars: &mut Vars<'ctx>, op: Unop, expr: ExprId) -> Value {
-        let ty = &self.types[expr].ctor().unwrap();
+        let ty = &self.types[expr];
         let value = self.codegen_expr(vars, expr)?;
         let value = match (op, ty) {
             (Unop::Not, _) => self
@@ -782,11 +779,11 @@ impl<'ctx> Compiler<'ctx> {
                     "",
                 )
                 .into(),
-            (Unop::Sub, &Ctor::Int) => self
+            (Unop::Sub, &Type::INT) => self
                 .builder
                 .build_int_neg(value.into_int_value(), "")
                 .into(),
-            (Unop::Sub, &Ctor::Float) => self
+            (Unop::Sub, &Type::FLOAT) => self
                 .builder
                 .build_float_neg(value.into_float_value(), "")
                 .into(),
@@ -857,7 +854,7 @@ impl<'ctx> Compiler<'ctx> {
         let lhs_ty = &self.types[lhs];
         let rhs_ty = &self.types[rhs];
 
-        let ctor = self.types[lhs].ctor().unwrap();
+        let ty = &self.types[lhs];
 
         #[rustfmt::skip]
         macro_rules! int_op {
@@ -869,16 +866,15 @@ impl<'ctx> Compiler<'ctx> {
             ($op:ident) => {self.builder.$op(lhs_value.into_float_value(), rhs_value.into_float_value(), "") .into()};
         }
 
-        let value = match (ctor, op) {
-            (Ctor::Int, ArithmeticBinop::Add) => int_op!(build_int_add),
-            (Ctor::Int, ArithmeticBinop::Sub) => int_op!(build_int_sub),
-            (Ctor::Int, ArithmeticBinop::Mul) => int_op!(build_int_mul),
-            (Ctor::Int, ArithmeticBinop::Div) => int_op!(build_int_signed_div),
-            (Ctor::Float, ArithmeticBinop::Add) => float_op!(build_float_add),
-            (Ctor::Float, ArithmeticBinop::Sub) => float_op!(build_float_sub),
-            (Ctor::Float, ArithmeticBinop::Mul) => float_op!(build_float_mul),
-            (Ctor::Float, ArithmeticBinop::Div) => float_op!(build_float_div),
-
+        let value = match (ty, op) {
+            (&Type::INT, ArithmeticBinop::Add) => int_op!(build_int_add),
+            (&Type::INT, ArithmeticBinop::Sub) => int_op!(build_int_sub),
+            (&Type::INT, ArithmeticBinop::Mul) => int_op!(build_int_mul),
+            (&Type::INT, ArithmeticBinop::Div) => int_op!(build_int_signed_div),
+            (&Type::FLOAT, ArithmeticBinop::Add) => float_op!(build_float_add),
+            (&Type::FLOAT, ArithmeticBinop::Sub) => float_op!(build_float_sub),
+            (&Type::FLOAT, ArithmeticBinop::Mul) => float_op!(build_float_mul),
+            (&Type::FLOAT, ArithmeticBinop::Div) => float_op!(build_float_div),
             _ => unreachable!(format!("cannot perform binop {lhs_ty:?} {op} {rhs_ty:?}")),
         };
         Some(value)
@@ -897,7 +893,7 @@ impl<'ctx> Compiler<'ctx> {
         let lhs_ty = &self.types[lhs];
         let rhs_ty = &self.types[rhs];
 
-        let ctor = self.types[lhs].ctor().unwrap();
+        let ty = &self.types[lhs];
 
         #[rustfmt::skip]
         macro_rules! int_cmp {
@@ -909,45 +905,44 @@ impl<'ctx> Compiler<'ctx> {
             ($op:expr) => {self.builder.build_float_compare($op,lhs_value.into_float_value(), rhs_value.into_float_value(), "") .into()};
         }
 
-        let value = match (ctor, op) {
-            (Ctor::Bool | Ctor::Int | Ctor::Char, CmpBinop::Eq) => {
+        let value = match (ty, op) {
+            (&Type::BOOL | &Type::INT | &Type::CHAR, CmpBinop::Eq) => {
                 int_cmp!(IntPredicate::EQ)
             }
-            (Ctor::Bool | Ctor::Int | Ctor::Char, CmpBinop::NotEq) => {
+            (&Type::BOOL | &Type::INT | &Type::CHAR, CmpBinop::NotEq) => {
                 int_cmp!(IntPredicate::NE)
             }
-            (Ctor::Bool | Ctor::Int | Ctor::Char, CmpBinop::Less) => {
+            (&Type::BOOL | &Type::INT | &Type::CHAR, CmpBinop::Less) => {
                 int_cmp!(IntPredicate::SLT)
             }
-            (Ctor::Bool | Ctor::Int | Ctor::Char, CmpBinop::LessEq) => {
+            (&Type::BOOL | &Type::INT | &Type::CHAR, CmpBinop::LessEq) => {
                 int_cmp!(IntPredicate::SLE)
             }
-            (Ctor::Bool | Ctor::Int | Ctor::Char, CmpBinop::Greater) => {
+            (&Type::BOOL | &Type::INT | &Type::CHAR, CmpBinop::Greater) => {
                 int_cmp!(IntPredicate::SGT)
             }
-            (Ctor::Bool | Ctor::Int | Ctor::Char, CmpBinop::GreaterEq) => {
+            (&Type::BOOL | &Type::INT | &Type::CHAR, CmpBinop::GreaterEq) => {
                 int_cmp!(IntPredicate::SGE)
             }
 
-            (Ctor::Float, CmpBinop::Eq) => {
+            (&Type::FLOAT, CmpBinop::Eq) => {
                 float_cmp!(FloatPredicate::OEQ)
             }
-            (Ctor::Float, CmpBinop::NotEq) => {
+            (&Type::FLOAT, CmpBinop::NotEq) => {
                 float_cmp!(FloatPredicate::ONE)
             }
-            (Ctor::Float, CmpBinop::Less) => {
+            (&Type::FLOAT, CmpBinop::Less) => {
                 float_cmp!(FloatPredicate::OLT)
             }
-            (Ctor::Float, CmpBinop::LessEq) => {
+            (&Type::FLOAT, CmpBinop::LessEq) => {
                 float_cmp!(FloatPredicate::OLE)
             }
-            (Ctor::Float, CmpBinop::Greater) => {
+            (&Type::FLOAT, CmpBinop::Greater) => {
                 float_cmp!(FloatPredicate::OGT)
             }
-            (Ctor::Float, CmpBinop::GreaterEq) => {
+            (&Type::FLOAT, CmpBinop::GreaterEq) => {
                 float_cmp!(FloatPredicate::OGE)
             }
-
             _ => unreachable!(format!("cannot perform binop {lhs_ty:?} {op} {rhs_ty:?}")),
         };
         Some(value)

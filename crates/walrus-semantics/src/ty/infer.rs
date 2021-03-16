@@ -141,7 +141,7 @@ impl Ctx {
         let ty = match ty {
             hir::Type::Infer => self.new_type_var(),
             hir::Type::Tuple(tys) => {
-                Type::tuple(tys.iter().map(|ty| self.resolve_type(*ty)).collect())
+                Type::Tuple(tys.iter().map(|ty| self.resolve_type(*ty)).collect())
             }
             hir::Type::Fn { params, ret } => Type::function(
                 params.iter().map(|ty| self.resolve_type(*ty)).collect(),
@@ -159,8 +159,8 @@ impl Ctx {
         let denotation = self.scopes.lookup_type(id, var);
         match denotation {
             Some(Denotation::Builtin(b)) if b.kind() == BuiltinKind::Type => b.ty(),
-            Some(Denotation::Struct(id)) => Type::struct_(id),
-            Some(Denotation::Enum(id)) => Type::enum_(id),
+            Some(Denotation::Struct(id)) => Type::Struct(id),
+            Some(Denotation::Enum(id)) => Type::Enum(id),
             _ => {
                 self.result.diagnostics.push(Diagnostic::UnboundVar {
                     id: Right(id),
@@ -212,7 +212,7 @@ impl Ctx {
                 .iter()
                 .map(|param| self.propagate_type_completely(param))
                 .collect(),
-            ret: self.propagate_type_completely(&fn_type.ret),
+            ret: box self.propagate_type_completely(&fn_type.ret),
         }
     }
 
@@ -302,7 +302,13 @@ impl Ctx {
         let ret = fn_decl
             .ret_type
             .map_or(Type::UNIT, |ty| self.resolve_type(ty));
-        self.set_fn_type(fn_id, FnType { params, ret });
+        self.set_fn_type(
+            fn_id,
+            FnType {
+                params,
+                ret: box ret,
+            },
+        );
     }
 
     fn infer_decl_body(&mut self, decl: Decl) {
@@ -361,7 +367,7 @@ impl Ctx {
                     .zip(expectations)
                     .map(|(pat, expected)| self.infer_pat(expected, *pat))
                     .collect();
-                Type::tuple(tys)
+                Type::Tuple(tys)
             }
         };
         let ty = self.propagate_type_as_far_as_possible(&ty);
@@ -410,7 +416,7 @@ impl Ctx {
             .zip(expectations)
             .map(|(expr, expected)| self.infer_expr(expected, *expr))
             .collect();
-        Type::tuple(tys)
+        Type::Tuple(tys)
     }
 
     fn infer_struct_expr(&mut self, expr: ExprId, name: VarId, fields: &[FieldInit]) -> Type {
@@ -419,7 +425,7 @@ impl Ctx {
         match denotation {
             Some(Denotation::Struct(id)) => {
                 let struct_def = self.module.data[id].clone();
-                let struct_type = Type::struct_(id);
+                let struct_type = Type::Struct(id);
                 self.infer_fields(expr, Some(&struct_def.fields), fields);
                 struct_type
             }
@@ -442,7 +448,7 @@ impl Ctx {
         match denotation {
             Some(Denotation::Enum(id)) => {
                 let enum_def = self.module.data[id].clone();
-                let enum_type = Type::enum_(id);
+                let enum_type = Type::Enum(id);
                 let variant = enum_def
                     .variants
                     .iter()
@@ -550,7 +556,7 @@ impl Ctx {
         let ret_type = self.new_type_var();
         let lambda_ty = FnType {
             params: param_types,
-            ret: ret_type.clone(),
+            ret: box ret_type.clone(),
         };
         self.unify(&lambda_ty.clone().into(), expected);
         self.with_fn_type(lambda_ty.clone(), |this| this.infer_expr(&ret_type, body));
@@ -558,28 +564,28 @@ impl Ctx {
     }
 
     fn infer_call_expr(&mut self, func: ExprId, args: &[ExprId]) -> Type {
-        let func_ty = self.infer_expr(&Type::Unknown, func);
-        match func_ty.as_fn() {
+        let callee_type = self.infer_expr(&Type::Unknown, func);
+        match callee_type.as_fn() {
             None => {
                 self.result.diagnostics.push(Diagnostic::CalledNonFn {
                     expr: func,
-                    ty: func_ty,
+                    ty: callee_type,
                 });
                 Type::Unknown
             }
-            Some(FnType { params, ret }) => {
-                if args.len() != params.len() {
+            Some(fn_type) => {
+                if args.len() != fn_type.params.len() {
                     self.result.diagnostics.push(Diagnostic::ArgCountMismatch {
                         expr: func,
-                        ty: func_ty,
-                        expected: params.len(),
+                        ty: fn_type.clone(),
+                        expected: fn_type.params.len(),
                         got: args.len(),
                     });
                 }
-                for (arg, param) in args.iter().zip(params.iter()) {
+                for (arg, param) in args.iter().zip(fn_type.params.iter()) {
                     self.infer_expr(param, *arg);
                 }
-                ret
+                *fn_type.ret.clone()
             }
         }
     }
@@ -587,10 +593,7 @@ impl Ctx {
     fn infer_field_expr(&mut self, base: ExprId, field: Field) -> Type {
         let base_type = self.infer_expr(&Type::Unknown, base);
         match base_type {
-            Type::App {
-                ctor: Ctor::Tuple,
-                ref params,
-            } => match field {
+            Type::Tuple(params) => match field {
                 Field::Tuple(idx) if (idx as usize) < params.len() => params[idx as usize].clone(),
                 Field::Tuple(_) | Field::Named(_) => {
                     self.result.diagnostics.push(Diagnostic::NoSuchField {
@@ -601,10 +604,7 @@ impl Ctx {
                     Type::Unknown
                 }
             },
-            Type::App {
-                ctor: Ctor::Struct(id),
-                ..
-            } => {
+            Type::Struct(id) => {
                 let struct_def = &self.module.data[id];
                 match field {
                     Field::Named(name) => {

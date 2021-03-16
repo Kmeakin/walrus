@@ -5,94 +5,84 @@ expression: types
 ---
 InferenceResult {
     type_of_expr: {
-        0: App {
-            ctor: Fn,
-            params: [
-                App {
-                    ctor: Int,
-                    params: [],
-                },
-                App {
-                    ctor: Tuple,
-                    params: [],
-                },
-            ],
-        },
-        1: App {
-            ctor: Fn,
-            params: [
-                App {
-                    ctor: Int,
-                    params: [],
-                },
-                App {
-                    ctor: Tuple,
-                    params: [],
-                },
-            ],
-        },
-        2: App {
-            ctor: Tuple,
-            params: [],
-        },
+        0: Fn(
+            FnType {
+                params: [
+                    Primitive(
+                        Int,
+                    ),
+                ],
+                ret: Tuple(
+                    [],
+                ),
+            },
+        ),
+        1: Fn(
+            FnType {
+                params: [
+                    Primitive(
+                        Int,
+                    ),
+                ],
+                ret: Tuple(
+                    [],
+                ),
+            },
+        ),
+        2: Tuple(
+            [],
+        ),
     },
     type_of_type: {
-        0: App {
-            ctor: Fn,
-            params: [
-                App {
-                    ctor: Int,
-                    params: [],
-                },
-                App {
-                    ctor: Tuple,
-                    params: [],
-                },
-            ],
-        },
-        1: App {
-            ctor: Int,
-            params: [],
-        },
-        2: App {
-            ctor: Tuple,
-            params: [],
-        },
+        0: Fn(
+            FnType {
+                params: [
+                    Primitive(
+                        Int,
+                    ),
+                ],
+                ret: Tuple(
+                    [],
+                ),
+            },
+        ),
+        1: Primitive(
+            Int,
+        ),
+        2: Tuple(
+            [],
+        ),
     },
     type_of_pat: {
-        0: App {
-            ctor: Int,
-            params: [],
-        },
+        0: Primitive(
+            Int,
+        ),
     },
     type_of_fn: {
         0: FnType {
             params: [],
-            ret: App {
-                ctor: Fn,
-                params: [
-                    App {
-                        ctor: Int,
-                        params: [],
-                    },
-                    App {
-                        ctor: Tuple,
-                        params: [],
-                    },
-                ],
-            },
+            ret: Fn(
+                FnType {
+                    params: [
+                        Primitive(
+                            Int,
+                        ),
+                    ],
+                    ret: Tuple(
+                        [],
+                    ),
+                },
+            ),
         },
         1: FnType {
             params: [
-                App {
-                    ctor: Int,
-                    params: [],
-                },
+                Primitive(
+                    Int,
+                ),
             ],
-            ret: App {
-                ctor: Tuple,
-                params: [],
-            },
+            ret: Tuple(
+                [],
+            ),
         },
     },
     diagnostics: [],

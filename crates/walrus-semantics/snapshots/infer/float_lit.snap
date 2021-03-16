@@ -5,29 +5,25 @@ expression: types
 ---
 InferenceResult {
     type_of_expr: {
-        0: App {
-            ctor: Float,
-            params: [],
-        },
-        1: App {
-            ctor: Float,
-            params: [],
-        },
+        0: Primitive(
+            Float,
+        ),
+        1: Primitive(
+            Float,
+        ),
     },
     type_of_type: {
-        0: App {
-            ctor: Float,
-            params: [],
-        },
+        0: Primitive(
+            Float,
+        ),
     },
     type_of_pat: {},
     type_of_fn: {
         0: FnType {
             params: [],
-            ret: App {
-                ctor: Float,
-                params: [],
-            },
+            ret: Primitive(
+                Float,
+            ),
         },
     },
     diagnostics: [],

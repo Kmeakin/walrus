@@ -5,41 +5,34 @@ expression: types
 ---
 InferenceResult {
     type_of_expr: {
-        0: App {
-            ctor: Int,
-            params: [],
-        },
-        1: App {
-            ctor: Never,
-            params: [],
-        },
-        2: App {
-            ctor: Never,
-            params: [],
-        },
-        3: App {
-            ctor: Int,
-            params: [],
-        },
-        4: App {
-            ctor: Int,
-            params: [],
-        },
+        0: Primitive(
+            Int,
+        ),
+        1: Primitive(
+            Never,
+        ),
+        2: Primitive(
+            Never,
+        ),
+        3: Primitive(
+            Int,
+        ),
+        4: Primitive(
+            Int,
+        ),
     },
     type_of_type: {
-        0: App {
-            ctor: Int,
-            params: [],
-        },
+        0: Primitive(
+            Int,
+        ),
     },
     type_of_pat: {},
     type_of_fn: {
         0: FnType {
             params: [],
-            ret: App {
-                ctor: Int,
-                params: [],
-            },
+            ret: Primitive(
+                Int,
+            ),
         },
     },
     diagnostics: [],

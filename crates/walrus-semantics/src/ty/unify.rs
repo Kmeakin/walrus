@@ -151,6 +151,44 @@ impl InferenceTable {
         let t1 = self.propagate_type_shallow(&t1.clone());
         let t2 = self.propagate_type_shallow(&t2.clone());
         match (t1, t2) {
+            (Type::Primitive(p1), Type::Primitive(p2)) => p1 == p2,
+            (Type::Struct(s1), Type::Struct(s2)) => s1 == s2,
+            (Type::Enum(s1), Type::Enum(s2)) => s1 == s2,
+            (Type::Tuple(tys1), Type::Tuple(tys2)) => {
+                tys1.iter()
+                    .zip(tys2.iter())
+                    .all(|(t1, t2)| self.unify(t1, t2))
+                    && tys1.len() == tys2.len()
+            }
+            (Type::Fn(fn1), Type::Fn(fn2)) => {
+                fn1.params
+                    .iter()
+                    .zip(fn1.params.iter())
+                    .all(|(t1, t2)| self.unify(t1, t2))
+                    && self.unify(&fn1.ret, &fn2.ret)
+                    && fn1.params.len() == fn2.params.len()
+            }
+            (Type::Unknown, _) | (_, Type::Unknown) => true,
+            (Type::Infer(InferType::Var(tv1)), Type::Infer(InferType::Var(tv2))) => {
+                self.var_unification_table.union(tv1, tv2);
+                true
+            }
+
+            (Type::Infer(InferType::Var(tv)), other) | (other, Type::Infer(InferType::Var(tv))) => {
+                self.var_unification_table
+                    .union_value(tv, TypeVarValue::Known(other));
+                true
+            }
+
+            // below Type::Infer so that
+            // unify(TypeVar, Never) => Never, instead of
+            // unify(TypeVar, Never) => TypeVar
+            (ty, _) | (_, ty) if ty == Type::NEVER => true,
+
+            _ => false,
+        }
+        #[cfg(FALSE)]
+        match (t1, t2) {
             (
                 Type::App {
                     ctor: ctor1,

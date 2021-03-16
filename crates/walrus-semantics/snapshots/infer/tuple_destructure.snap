@@ -5,116 +5,92 @@ expression: types
 ---
 InferenceResult {
     type_of_expr: {
-        0: App {
-            ctor: Int,
-            params: [],
-        },
-        1: App {
-            ctor: Bool,
-            params: [],
-        },
-        2: App {
-            ctor: Tuple,
-            params: [
-                App {
-                    ctor: Int,
-                    params: [],
-                },
-                App {
-                    ctor: Bool,
-                    params: [],
-                },
+        0: Primitive(
+            Int,
+        ),
+        1: Primitive(
+            Bool,
+        ),
+        2: Tuple(
+            [
+                Primitive(
+                    Int,
+                ),
+                Primitive(
+                    Bool,
+                ),
             ],
-        },
-        3: App {
-            ctor: Bool,
-            params: [],
-        },
-        4: App {
-            ctor: Int,
-            params: [],
-        },
-        5: App {
-            ctor: Tuple,
-            params: [
-                App {
-                    ctor: Bool,
-                    params: [],
-                },
-                App {
-                    ctor: Int,
-                    params: [],
-                },
+        ),
+        3: Primitive(
+            Bool,
+        ),
+        4: Primitive(
+            Int,
+        ),
+        5: Tuple(
+            [
+                Primitive(
+                    Bool,
+                ),
+                Primitive(
+                    Int,
+                ),
             ],
-        },
-        6: App {
-            ctor: Tuple,
-            params: [
-                App {
-                    ctor: Bool,
-                    params: [],
-                },
-                App {
-                    ctor: Int,
-                    params: [],
-                },
+        ),
+        6: Tuple(
+            [
+                Primitive(
+                    Bool,
+                ),
+                Primitive(
+                    Int,
+                ),
             ],
-        },
+        ),
     },
     type_of_type: {
-        0: App {
-            ctor: Tuple,
-            params: [
-                App {
-                    ctor: Bool,
-                    params: [],
-                },
-                App {
-                    ctor: Int,
-                    params: [],
-                },
+        0: Tuple(
+            [
+                Primitive(
+                    Bool,
+                ),
+                Primitive(
+                    Int,
+                ),
             ],
-        },
+        ),
     },
     type_of_pat: {
-        0: App {
-            ctor: Int,
-            params: [],
-        },
-        1: App {
-            ctor: Bool,
-            params: [],
-        },
-        2: App {
-            ctor: Tuple,
-            params: [
-                App {
-                    ctor: Int,
-                    params: [],
-                },
-                App {
-                    ctor: Bool,
-                    params: [],
-                },
+        0: Primitive(
+            Int,
+        ),
+        1: Primitive(
+            Bool,
+        ),
+        2: Tuple(
+            [
+                Primitive(
+                    Int,
+                ),
+                Primitive(
+                    Bool,
+                ),
             ],
-        },
+        ),
     },
     type_of_fn: {
         0: FnType {
             params: [],
-            ret: App {
-                ctor: Tuple,
-                params: [
-                    App {
-                        ctor: Bool,
-                        params: [],
-                    },
-                    App {
-                        ctor: Int,
-                        params: [],
-                    },
+            ret: Tuple(
+                [
+                    Primitive(
+                        Bool,
+                    ),
+                    Primitive(
+                        Int,
+                    ),
                 ],
-            },
+            ),
         },
     },
     diagnostics: [],
