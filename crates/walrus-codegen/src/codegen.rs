@@ -85,13 +85,7 @@ impl<'ctx> Compiler<'ctx> {
             ty::Ctor::Bool => self.llvm.bool_type().into(),
             ty::Ctor::Int | ty::Ctor::Char => self.llvm.i32_type().into(),
             ty::Ctor::Float => self.llvm.f32_type().into(),
-            ty::Ctor::Tuple => {
-                let field_types = params
-                    .iter()
-                    .map(|ty| self.value_type(ty))
-                    .collect::<Vec<_>>();
-                self.llvm.struct_type(&field_types, false).into()
-            }
+            ty::Ctor::Tuple => self.tuple_type(params).into(),
             ty::Ctor::Fn => self.closure_type(&ty.as_fn().unwrap()),
             ty::Ctor::Struct(id) => {
                 let struct_def = &self.hir[*id];
@@ -412,9 +406,9 @@ impl<'ctx> Compiler<'ctx> {
     }
 
     fn codegen_tuple(&self, vars: &mut Vars<'ctx>, expr: ExprId, exprs: &[ExprId]) -> Value {
-        let types = self.types[expr].as_tuple().unwrap();
-        let tuple_type = self.tuple_type(types);
-        let tuple_alloca = self.builder.build_alloca(tuple_type, "tuple.alloca");
+        let ty = &self.types[expr];
+        let value_type = self.value_type(ty);
+        let tuple_alloca = self.builder.build_alloca(value_type, "tuple.alloca");
         for (idx, expr) in exprs.iter().enumerate() {
             let value = self.codegen_expr(vars, *expr)?;
             let gep = self
@@ -431,15 +425,15 @@ impl<'ctx> Compiler<'ctx> {
         let struct_def = &self.hir[struct_id];
         let struct_name = &self.hir[struct_def.name];
 
-        let struct_type = &self.types[expr];
-        let struct_type = self.value_type(struct_type);
+        let ty = &self.types[expr];
+        let value_type = self.value_type(ty);
         let init_exprs = fields
             .iter()
             .map(|field| (&self.hir[field.name], self.codegen_expr(vars, field.val)))
             .collect::<Vec<_>>();
         let struct_alloca = self
             .builder
-            .build_alloca(struct_type, &format!("{struct_name}.alloca"));
+            .build_alloca(value_type, &format!("{struct_name}.alloca"));
         for (idx, field) in struct_def.fields.iter().enumerate() {
             let field_name = &self.hir[field.name];
             let gep = self
@@ -531,7 +525,7 @@ impl<'ctx> Compiler<'ctx> {
         self.builder.position_at_end(end_bb);
         let ty = match else_branch {
             Some(_) => self.value_type(&self.types[then_branch]),
-            None => self.tuple_type(&[]).into(),
+            None => self.unit_type().into(),
         };
         let phi = self.builder.build_phi(ty, "if.merge");
         phi.add_incoming(&[(&then_value, then_bb), (&else_value, else_bb)]);
@@ -1054,23 +1048,22 @@ mod tests {
     test_codegen_and_run!(tuple0, r#"fn main() -> _ { () }"#, ());
     test_codegen_and_run!(tuple1, r#"fn main() -> _ { (1,) }"#, (1_i32,));
 
-    // TODO: fails
-    #[cfg(FALSE)]
-    test_codegen_and_run!(tuple2, r#"fn main() -> _ { (1,2) }"#, (1_i32, 2_i32));
+    // LLVM tuples are not ABI-compatible with rust
+    #[repr(C)]
+    #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+    struct Tuple2<T, V>(T, V);
 
-    #[cfg(FALSE)]
-    test_codegen_and_run!(
-        tuple3,
-        r#"fn main() -> _ { (1,2,3) }"#,
-        (1_i32, 2_i32, 3_i32)
-    );
+    // LLVM tuples are not ABI-compatible with rust
+    #[repr(C)]
+    #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+    struct Tuple3<T, V, U>(T, V, U);
 
-    #[cfg(FALSE)]
-    test_codegen_and_run!(
-        tuple4,
-        r#"fn main() -> _ { (1,2,3,4) }"#,
-        (1_i32, 2_i32, 3_i32, 4_i32)
-    );
+    // test_codegen_and_run!(tuple2, r#"fn main() -> _ { (1, 2) }"#, Tuple2(1_i32,
+    // 2_i32)); test_codegen_and_run!(
+    //     tuple3,
+    //     r#"fn main() -> _ { (1, false, 3) }"#,
+    //     Tuple3(1_i32, false, 3_i32)
+    // );
 
     test_codegen_and_run!(
         if_then_else_true,

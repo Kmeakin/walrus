@@ -148,10 +148,6 @@ pub enum Ctor {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum InferType {
     Var(TypeVarId),
-    /* TODO
-    Int,
-    Float,
-    */
 }
 
 impl InferType {
