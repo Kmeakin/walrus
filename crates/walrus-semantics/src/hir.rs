@@ -13,6 +13,7 @@ pub use self::lower::lower;
 pub type VarId = Idx<Var>;
 pub type FnDefId = Idx<FnDef>;
 pub type StructDefId = Idx<StructDef>;
+pub type EnumDefId = Idx<EnumDef>;
 pub type ExprId = Idx<Expr>;
 pub type TypeId = Idx<Type>;
 pub type PatId = Idx<Pat>;
@@ -49,6 +50,7 @@ pub struct ModuleData {
     pub vars: Arena<Var>,
     pub fn_defs: Arena<FnDef>,
     pub struct_defs: Arena<StructDef>,
+    pub enum_defs: Arena<EnumDef>,
     pub exprs: Arena<Expr>,
     pub types: Arena<Type>,
     pub pats: Arena<Pat>,
@@ -83,6 +85,7 @@ pub struct ModuleSource {
     pub vars: ArenaMap<VarId, syntax::Var>,
     pub fn_defs: ArenaMap<FnDefId, syntax::FnDef>,
     pub struct_defs: ArenaMap<StructDefId, syntax::StructDef>,
+    pub enum_defs: ArenaMap<EnumDefId, syntax::EnumDef>,
     pub exprs: ArenaMap<ExprId, syntax::Expr>,
     pub types: ArenaMap<TypeId, syntax::Type>,
     pub pats: ArenaMap<PatId, syntax::Pat>,
@@ -116,6 +119,7 @@ impl Index<PatId> for ModuleSource {
 pub enum Decl {
     Fn(FnDefId),
     Struct(StructDefId),
+    Enum(EnumDefId),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -136,6 +140,18 @@ pub struct StructDef {
 pub struct StructField {
     pub name: VarId,
     pub ty: TypeId,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct EnumDef {
+    pub name: VarId,
+    pub variants: Vec<EnumVariant>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct EnumVariant {
+    pub name: VarId,
+    pub fields: Vec<StructField>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]

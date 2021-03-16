@@ -47,6 +47,11 @@ impl Ctx {
         self.source.struct_defs.insert(id, syntax);
         id
     }
+    fn alloc_enum_def(&mut self, syntax: syntax::EnumDef, hir: EnumDef) -> EnumDefId {
+        let id = self.data.enum_defs.alloc(hir);
+        self.source.enum_defs.insert(id, syntax);
+        id
+    }
 
     fn alloc_expr(&mut self, syntax: syntax::Expr, hir: Expr) -> ExprId {
         let id = self.data.exprs.alloc(hir);
@@ -75,9 +80,9 @@ impl Ctx {
 
     fn lower_decl(&mut self, syntax: &syntax::Decl) -> Decl {
         match syntax {
-            syntax::Decl::Fn(id) => Decl::Fn(self.lower_fn_def(id)),
-            syntax::Decl::Struct(id) => Decl::Struct(self.lower_struct_def(id)),
-            _ => todo!(),
+            syntax::Decl::Fn(syntax) => Decl::Fn(self.lower_fn_def(syntax)),
+            syntax::Decl::Struct(syntax) => Decl::Struct(self.lower_struct_def(syntax)),
+            syntax::Decl::Enum(syntax) => Decl::Enum(self.lower_enum_def(syntax)),
         }
     }
 
@@ -125,6 +130,31 @@ impl Ctx {
         StructField {
             name: self.lower_var(syntax.name.clone()),
             ty: self.lower_type(&syntax.ty),
+        }
+    }
+
+    fn lower_enum_def(&mut self, syntax: &syntax::EnumDef) -> EnumDefId {
+        let hir = EnumDef {
+            name: self.lower_var(syntax.name.clone()),
+            variants: syntax
+                .variants
+                .inner
+                .iter()
+                .map(|variant| self.lower_enum_variant(variant))
+                .collect(),
+        };
+        self.alloc_enum_def(syntax.clone(), hir)
+    }
+
+    fn lower_enum_variant(&mut self, syntax: &syntax::EnumVariant) -> EnumVariant {
+        EnumVariant {
+            name: self.lower_var(syntax.name.clone()),
+            fields: syntax
+                .fields
+                .inner
+                .iter()
+                .map(|field| self.lower_struct_field(field))
+                .collect(),
         }
     }
 

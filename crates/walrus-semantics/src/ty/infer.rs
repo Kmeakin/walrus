@@ -271,6 +271,7 @@ impl Ctx {
         match decl {
             Decl::Struct(id) => self.infer_struct_decl(id),
             Decl::Fn(id) => self.infer_fn_decl(id),
+            _ => todo!(),
         }
     }
 
@@ -300,6 +301,7 @@ impl Ctx {
             Decl::Fn(fn_id) => {
                 self.infer_fn_body(fn_id);
             }
+            _ => todo!(),
         };
     }
 

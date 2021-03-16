@@ -155,6 +155,7 @@ impl Scopes {
             match decl {
                 Decl::Struct(id) => self.struct_def_scope(module, &mut toplevel_defs, *id),
                 Decl::Fn(id) => self.fn_def_scope(module, &mut toplevel_defs, *id),
+                _ => todo!(),
             }
         }
     }
