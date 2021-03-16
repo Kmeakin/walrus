@@ -9,6 +9,7 @@ pub struct SourceFile {
 pub enum Decl {
     Fn(FnDef),
     Struct(StructDef),
+    Enum(EnumDef),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -28,10 +29,23 @@ pub struct StructDef {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct EnumDef {
+    pub kw_enum: KwEnum,
+    pub name: Var,
+    pub variants: Curly<Punctuated0<EnumVariant, Comma>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct StructField {
     pub name: Var,
     pub colon: Colon,
     pub ty: Type,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct EnumVariant {
+    pub name: Var,
+    pub fields: Curly<Punctuated0<StructField, Comma>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

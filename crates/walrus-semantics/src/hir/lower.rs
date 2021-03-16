@@ -77,6 +77,7 @@ impl Ctx {
         match syntax {
             syntax::Decl::Fn(id) => Decl::Fn(self.lower_fn_def(id)),
             syntax::Decl::Struct(id) => Decl::Struct(self.lower_struct_def(id)),
+            _ => todo!(),
         }
     }
 

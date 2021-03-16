@@ -49,6 +49,7 @@ token!(BlockComment);
 token!(KwBreak);
 token!(KwContinue);
 token!(KwElse);
+token!(KwEnum);
 token!(KwFalse);
 token!(KwFn);
 token!(KwIf);
