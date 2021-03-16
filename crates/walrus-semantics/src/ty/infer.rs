@@ -160,6 +160,7 @@ impl Ctx {
         match denotation {
             Some(Denotation::Builtin(b)) if b.kind() == BuiltinKind::Type => b.ty(),
             Some(Denotation::Struct(id)) => Type::struct_(id),
+            Some(Denotation::Enum(id)) => Type::enum_(id),
             _ => {
                 self.result.diagnostics.push(Diagnostic::UnboundVar {
                     id: Right(id),
@@ -270,8 +271,8 @@ impl Ctx {
     fn infer_decl(&mut self, decl: Decl) {
         match decl {
             Decl::Struct(id) => self.infer_struct_decl(id),
+            Decl::Enum(id) => self.infer_enum_decl(id),
             Decl::Fn(id) => self.infer_fn_decl(id),
-            _ => todo!(),
         }
     }
 
@@ -279,6 +280,15 @@ impl Ctx {
         let struct_decl = self.module.data[id].clone();
         for field in struct_decl.fields {
             self.resolve_type(field.ty);
+        }
+    }
+
+    fn infer_enum_decl(&mut self, id: EnumDefId) {
+        let enum_decl = self.module.data[id].clone();
+        for variant in enum_decl.variants {
+            for field in variant.fields {
+                self.resolve_type(field.ty);
+            }
         }
     }
 
@@ -297,11 +307,10 @@ impl Ctx {
 
     fn infer_decl_body(&mut self, decl: Decl) {
         match decl {
-            Decl::Struct(_) => {}
+            Decl::Struct(_) | Decl::Enum(_) => {}
             Decl::Fn(fn_id) => {
                 self.infer_fn_body(fn_id);
             }
-            _ => todo!(),
         };
     }
 
