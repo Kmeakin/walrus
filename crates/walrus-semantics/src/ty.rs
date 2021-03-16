@@ -98,19 +98,6 @@ impl Type {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum Ctor {
-    Bool,
-    Int,
-    Float,
-    Char,
-    Never,
-    Tuple,
-    Fn,
-    Struct(StructDefId),
-    Enum(EnumDefId),
-}
-
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum InferType {
     Var(TypeVarId),

@@ -21,7 +21,7 @@ use walrus_semantics::{
     },
     scopes::{self, Denotation},
     ty,
-    ty::{Ctor, FnType, Type},
+    ty::{FnType, Type},
 };
 
 use crate::free_vars::FreeVars;
