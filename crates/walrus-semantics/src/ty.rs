@@ -248,12 +248,13 @@ fn f() -> _ { Foo { x: 0, y: false } }
 "#,
         Type::struct_(StructDefId::new(0))
     );
-    // TODO
-    // test_infer!(
-    //     struct_destructure,
-    //     r#"fn f() -> _ {let (x, y) = (1, false); (y, x)}"#,
-    //     Type::struct_(vec![Type::BOOL, Type::INT])
-    // );
+
+    test_infer!(
+        struct_destructure,
+        r#"fn f() -> _ {let (x, y) = (1, false); (y, x)}"#,
+        Type::tuple(vec![Type::BOOL, Type::INT])
+    );
+
     test_infer!(
         struct_field,
         r#"
