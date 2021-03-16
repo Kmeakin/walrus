@@ -67,6 +67,10 @@ impl Index<StructDefId> for ModuleData {
     type Output = StructDef;
     fn index(&self, id: StructDefId) -> &Self::Output { &self.struct_defs[id] }
 }
+impl Index<EnumDefId> for ModuleData {
+    type Output = EnumDef;
+    fn index(&self, id: EnumDefId) -> &Self::Output { &self.enum_defs[id] }
+}
 impl Index<ExprId> for ModuleData {
     type Output = Expr;
     fn index(&self, id: ExprId) -> &Self::Output { &self.exprs[id] }

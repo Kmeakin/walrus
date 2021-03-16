@@ -18,6 +18,7 @@ pub enum Denotation {
     Local(PatId),
     Fn(FnDefId),
     Struct(StructDefId),
+    Enum(EnumDefId),
     Builtin(Builtin),
 }
 
@@ -154,8 +155,8 @@ impl Scopes {
         for decl in &module.decls {
             match decl {
                 Decl::Struct(id) => self.struct_def_scope(module, &mut toplevel_defs, *id),
+                Decl::Enum(id) => self.enum_def_scope(module, &mut toplevel_defs, *id),
                 Decl::Fn(id) => self.fn_def_scope(module, &mut toplevel_defs, *id),
-                _ => todo!(),
             }
         }
     }
@@ -173,6 +174,21 @@ impl Scopes {
         for field in &struct_def.fields {
             self.insert_var(module, &mut fields, field.name);
             self.type_scope(module, field.ty);
+        }
+    }
+
+    fn enum_def_scope(&mut self, module: &Module, toplevel_defs: &mut Vars, id: EnumDefId) {
+        let enum_def = &module.data[id];
+        self.insert_denotation(module, toplevel_defs, enum_def.name, Denotation::Enum(id));
+
+        let mut variants = Vars::new();
+        for variant in &enum_def.variants {
+            self.insert_var(module, &mut variants, variant.name);
+            let mut fields = Vars::new();
+            for field in &variant.fields {
+                self.insert_var(module, &mut fields, field.name);
+                self.type_scope(module, field.ty);
+            }
         }
     }
 
