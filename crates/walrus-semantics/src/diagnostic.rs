@@ -1,8 +1,5 @@
 use crate::{
-    hir::{
-        Binop, EnumDefId, EnumVariant, ExprId, Field, PatId, StructDefId, StructField, TypeId,
-        VarId,
-    },
+    hir::{Binop, ExprId, Field, PatId, StructField, TypeId, VarId},
     scopes::Denotation,
     ty::{FnType, InferenceId, Type},
 };

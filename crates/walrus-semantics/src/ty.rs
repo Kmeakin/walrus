@@ -44,14 +44,14 @@ impl Type {
     pub const CHAR: Self = Self::Primitive(PrimitiveType::Char);
     pub const NEVER: Self = Self::Primitive(PrimitiveType::Never);
 
-    pub fn function(params: Vec<Type>, ret: Type) -> Self {
+    pub fn function(params: Vec<Self>, ret: Self) -> Self {
         Self::Fn(FnType {
             params,
             ret: box ret,
         })
     }
 
-    pub fn as_fn(&self) -> Option<&FnType> {
+    pub const fn as_fn(&self) -> Option<&FnType> {
         match self {
             Self::Fn(func) => Some(func),
             _ => None,

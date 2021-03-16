@@ -85,14 +85,14 @@ impl<'ctx> Compiler<'ctx> {
             &Type::BOOL => self.llvm.bool_type().into(),
             &(Type::INT | Type::CHAR) => self.llvm.i32_type().into(),
             &Type::FLOAT => self.llvm.f32_type().into(),
-            Type::Infer(_) | &Type::NEVER | Type::Unknown => unreachable!(),
+            &Type::NEVER | Type::Infer(_) | Type::Unknown => unreachable!(),
         }
     }
 
     fn fn_type(&self, ty: &FnType) -> FunctionType<'ctx> {
         let FnType { params, ret } = ty;
-        match ret.as_ref() {
-            &Type::NEVER => self.llvm.void_type().fn_type(
+        match *ret.as_ref() {
+            Type::NEVER => self.llvm.void_type().fn_type(
                 &std::iter::once(self.void_ptr_type())
                     .chain(params.iter().map(|ty| self.value_type(ty)))
                     .collect::<Vec<_>>(),
@@ -345,7 +345,7 @@ impl<'ctx> Compiler<'ctx> {
                 let fn_name = &self.hir[fn_def.name].as_str();
                 let fn_type = self.types[expr].as_fn().unwrap();
                 let fn_value = vars[id];
-                self.codegen_fn_value(fn_name, fn_value, &fn_type)
+                self.codegen_fn_value(fn_name, fn_value, fn_type)
             }
             Some(Denotation::Builtin(b)) => self.codegen_builtin(b),
             _ => unreachable!(),
@@ -386,14 +386,14 @@ impl<'ctx> Compiler<'ctx> {
             }
             Builtin::Exit => {
                 let exit_wrapper_fn = self.module.get_function("builtins.exit.wrapper").unwrap();
-                self.codegen_fn_value("exit", exit_wrapper_fn, &builtin.ty().as_fn().unwrap())
+                self.codegen_fn_value("exit", exit_wrapper_fn, builtin.ty().as_fn().unwrap())
             }
             Builtin::PutChar => {
                 let wrapper_fn = self
                     .module
                     .get_function("builtins.putchar.wrapper")
                     .unwrap();
-                self.codegen_fn_value("putchar", wrapper_fn, &builtin.ty().as_fn().unwrap())
+                self.codegen_fn_value("putchar", wrapper_fn, builtin.ty().as_fn().unwrap())
             }
         }
     }
@@ -661,7 +661,7 @@ impl<'ctx> Compiler<'ctx> {
         let closure_type = self.types[expr].as_fn().unwrap();
         let closure_alloca = self
             .builder
-            .build_alloca(self.closure_type(&closure_type), "closure.alloca");
+            .build_alloca(self.closure_type(closure_type), "closure.alloca");
         let code_gep = self
             .builder
             .build_struct_gep(closure_alloca, 0, "closure.code")
@@ -706,7 +706,7 @@ impl<'ctx> Compiler<'ctx> {
         params: &[Param],
         body: ExprId,
     ) -> FunctionValue {
-        let fn_type = self.fn_type(&self.types[expr].as_fn().unwrap());
+        let fn_type = self.fn_type(self.types[expr].as_fn().unwrap());
         let llvm_fn = self.module.add_function("lambda", fn_type, None);
         let old_bb = self.builder.get_insert_block().unwrap();
 
@@ -906,22 +906,22 @@ impl<'ctx> Compiler<'ctx> {
         }
 
         let value = match (ty, op) {
-            (&Type::BOOL | &Type::INT | &Type::CHAR, CmpBinop::Eq) => {
+            (&(Type::BOOL | Type::INT | Type::CHAR), CmpBinop::Eq) => {
                 int_cmp!(IntPredicate::EQ)
             }
-            (&Type::BOOL | &Type::INT | &Type::CHAR, CmpBinop::NotEq) => {
+            (&(Type::BOOL | Type::INT | Type::CHAR), CmpBinop::NotEq) => {
                 int_cmp!(IntPredicate::NE)
             }
-            (&Type::BOOL | &Type::INT | &Type::CHAR, CmpBinop::Less) => {
+            (&(Type::BOOL | Type::INT | Type::CHAR), CmpBinop::Less) => {
                 int_cmp!(IntPredicate::SLT)
             }
-            (&Type::BOOL | &Type::INT | &Type::CHAR, CmpBinop::LessEq) => {
+            (&(Type::BOOL | Type::INT | Type::CHAR), CmpBinop::LessEq) => {
                 int_cmp!(IntPredicate::SLE)
             }
-            (&Type::BOOL | &Type::INT | &Type::CHAR, CmpBinop::Greater) => {
+            (&(Type::BOOL | Type::INT | Type::CHAR), CmpBinop::Greater) => {
                 int_cmp!(IntPredicate::SGT)
             }
-            (&Type::BOOL | &Type::INT | &Type::CHAR, CmpBinop::GreaterEq) => {
+            (&(Type::BOOL | Type::INT | Type::CHAR), CmpBinop::GreaterEq) => {
                 int_cmp!(IntPredicate::SGE)
             }
 
