@@ -1,5 +1,5 @@
 use self::unify::TypeVarId;
-use crate::hir::StructDefId;
+use crate::hir::{EnumDefId, StructDefId};
 
 mod infer;
 mod unify;
@@ -56,6 +56,13 @@ impl Type {
             params: vec![],
         }
     }
+    pub const fn enum_(id: EnumDefId) -> Self {
+        Self::App {
+            ctor: Ctor::Enum(id),
+            params: vec![],
+        }
+    }
+
     pub fn as_tuple(&self) -> Option<&[Self]> {
         match self {
             Self::App {
@@ -135,6 +142,7 @@ pub enum Ctor {
     Tuple,
     Fn,
     Struct(StructDefId),
+    Enum(EnumDefId),
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]

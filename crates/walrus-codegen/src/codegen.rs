@@ -105,6 +105,7 @@ impl<'ctx> Compiler<'ctx> {
                     .collect::<Vec<_>>();
                 self.llvm.struct_type(&field_types, false).into()
             }
+            ty::Ctor::Enum(_) => todo!(),
             ty::Ctor::Never => unreachable!(),
         }
     }
@@ -249,6 +250,7 @@ impl<'ctx> Compiler<'ctx> {
             Expr::Var(var) => Some(self.codegen_var(vars, id, *var)),
             Expr::Tuple(exprs) => self.codegen_tuple(vars, id, exprs),
             Expr::Struct { fields, .. } => self.codegen_struct(vars, id, fields),
+            Expr::Enum { .. } => todo!(),
             Expr::Field { expr, field } => self.codegen_field(vars, *expr, *field),
             Expr::If {
                 test,

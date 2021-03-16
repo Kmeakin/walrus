@@ -177,6 +177,11 @@ pub enum Expr {
         name: VarId,
         fields: Vec<StructExprField>,
     },
+    Enum {
+        name: VarId,
+        variant: VarId,
+        fields: Vec<StructExprField>,
+    },
     Unop {
         op: Unop,
         expr: ExprId,

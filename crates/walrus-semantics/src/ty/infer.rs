@@ -376,6 +376,7 @@ impl Ctx {
             Expr::Var(var) => self.resolve_var_expr(id, var),
             Expr::Tuple(exprs) => self.infer_tuple_expr(expected, &exprs),
             Expr::Struct { name, fields } => self.infer_struct_expr(id, name, &fields),
+            Expr::Enum { .. } => todo!(),
             Expr::If {
                 test,
                 then_branch,
