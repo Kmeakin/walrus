@@ -1,4 +1,4 @@
-use std::ops::Index;
+use std::{collections::HashMap, ops::Index};
 
 use super::{unify::InferenceTable, Type, *};
 use crate::{
@@ -376,7 +376,11 @@ impl Ctx {
             Expr::Var(var) => self.resolve_var_expr(id, var),
             Expr::Tuple(exprs) => self.infer_tuple_expr(expected, &exprs),
             Expr::Struct { name, fields } => self.infer_struct_expr(id, name, &fields),
-            Expr::Enum { .. } => todo!(),
+            Expr::Enum {
+                name,
+                variant,
+                fields,
+            } => self.infer_enum_expr(id, name, variant, &fields),
             Expr::If {
                 test,
                 then_branch,
@@ -409,54 +413,101 @@ impl Ctx {
         Type::tuple(tys)
     }
 
-    fn infer_struct_expr(&mut self, expr: ExprId, name: VarId, fields: &[StructExprField]) -> Type {
+    fn infer_struct_expr(&mut self, expr: ExprId, name: VarId, fields: &[FieldInit]) -> Type {
         let var = &self.module.data[name];
         let denotation = self.scopes.lookup_expr(expr, var);
         match denotation {
             Some(Denotation::Struct(id)) => {
                 let struct_def = self.module.data[id].clone();
                 let struct_type = Type::struct_(id);
-                for field in fields {
-                    let name = &self.module.data[field.name];
-                    let target_field = struct_def
-                        .fields
-                        .iter()
-                        .find(|f| &self.module.data[f.name] == name);
-                    match target_field {
-                        None => self.result.diagnostics.push(Diagnostic::NoSuchField {
-                            expr,
-                            field: Field::Named(field.name),
-                            ty: struct_type.clone(),
-                        }),
-                        Some(target_field) => {
-                            let expected = self.result.type_of_type[target_field.ty].clone();
-                            self.infer_expr(&expected, field.val);
-                        }
-                    }
-                }
-                for field in struct_def.fields {
-                    let name = &self.module.data[field.name];
-                    let provided_field = fields.iter().find(|f| &self.module.data[f.name] == name);
-                    match provided_field {
-                        Some(_) => {}
-                        None => {
-                            self.result.diagnostics.push(Diagnostic::MissingField {
-                                expr,
-                                field: Field::Named(field.name),
-                                ty: struct_type.clone(),
-                            });
-                        }
-                    }
-                }
+                self.infer_fields(expr, Some(&struct_def.fields), fields);
                 struct_type
             }
             _ => {
-                self.result.diagnostics.push(Diagnostic::UnboundVar {
-                    id: Left(expr),
-                    var: name,
-                    denotation,
-                });
+                self.infer_fields(expr, None, fields);
                 Type::Unknown
+            }
+        }
+    }
+
+    fn infer_enum_expr(
+        &mut self,
+        expr: ExprId,
+        name: VarId,
+        variant: VarId,
+        fields: &[FieldInit],
+    ) -> Type {
+        let var = &self.module.data[name];
+        let denotation = self.scopes.lookup_expr(expr, var);
+        match denotation {
+            Some(Denotation::Enum(id)) => {
+                let enum_def = self.module.data[id].clone();
+                let enum_type = Type::enum_(id);
+                let variant = enum_def
+                    .variants
+                    .iter()
+                    .find(|v| self.module.data[v.name] == self.module.data[variant]);
+                match variant {
+                    None => todo!("No such variant"),
+                    Some(variant) => {
+                        self.infer_fields(expr, Some(&variant.fields), fields);
+                    }
+                }
+                enum_type
+            }
+            _ => {
+                self.infer_fields(expr, None, fields);
+                Type::Unknown
+            }
+        }
+    }
+
+    fn infer_fields(&mut self, expr: ExprId, fields: Option<&[StructField]>, inits: &[FieldInit]) {
+        let mut first_init = HashMap::new();
+
+        for init in inits {
+            let name = self.module.data[init.name].clone();
+            match first_init.get(&name) {
+                None => {
+                    first_init.insert(name, init.val);
+                }
+                Some(_) => todo!("Duplicate field init"),
+            }
+
+            let expected = fields
+                .and_then(|fields| {
+                    let field = fields
+                        .iter()
+                        .find(|field| self.module.data[field.name] == self.module.data[init.name]);
+                    match field {
+                        None => {
+                            self.result.diagnostics.push(Diagnostic::NoSuchField {
+                                field: Field::Named(init.name),
+                                expr: init.val,
+                                possible_fields: Left(fields.to_vec()),
+                            });
+                            None
+                        }
+                        Some(field) => Some(self.result.type_of_type[field.ty].clone()),
+                    }
+                })
+                .unwrap_or(Type::Unknown);
+            self.infer_expr(&expected, init.val);
+        }
+
+        if let Some(fields) = fields {
+            for field in fields {
+                let name = &self.module.data[field.name];
+                let init = inits.iter().find(|f| &self.module.data[f.name] == name);
+                match init {
+                    Some(_) => {}
+                    None => {
+                        self.result.diagnostics.push(Diagnostic::MissingField {
+                            expr,
+                            field: Field::Named(field.name),
+                        });
+                    }
+                }
             }
         }
     }
@@ -544,7 +595,7 @@ impl Ctx {
                 Field::Tuple(_) | Field::Named(_) => {
                     self.result.diagnostics.push(Diagnostic::NoSuchField {
                         expr: base,
-                        ty: base_type,
+                        possible_fields: Right(params.len() as u32),
                         field,
                     });
                     Type::Unknown
@@ -553,35 +604,37 @@ impl Ctx {
             Type::App {
                 ctor: Ctor::Struct(id),
                 ..
-            } => match field {
-                Field::Named(name) => {
-                    let field_name = &self.module.data[name];
-                    let struct_def = &self.module.data[id];
-                    let target = struct_def
-                        .fields
-                        .iter()
-                        .find(|field| &self.module.data[field.name] == field_name);
-                    match target {
-                        Some(field) => self.result.type_of_type[field.ty].clone(),
-                        None => {
-                            self.result.diagnostics.push(Diagnostic::NoSuchField {
-                                expr: base,
-                                ty: base_type,
-                                field,
-                            });
-                            Type::Unknown
+            } => {
+                let struct_def = &self.module.data[id];
+                match field {
+                    Field::Named(name) => {
+                        let field_name = &self.module.data[name];
+                        let target = struct_def
+                            .fields
+                            .iter()
+                            .find(|field| &self.module.data[field.name] == field_name);
+                        match target {
+                            Some(field) => self.result.type_of_type[field.ty].clone(),
+                            None => {
+                                self.result.diagnostics.push(Diagnostic::NoSuchField {
+                                    expr: base,
+                                    possible_fields: Left(struct_def.fields.clone()),
+                                    field,
+                                });
+                                Type::Unknown
+                            }
                         }
                     }
+                    Field::Tuple(_) => {
+                        self.result.diagnostics.push(Diagnostic::NoSuchField {
+                            expr: base,
+                            possible_fields: Left(struct_def.fields.clone()),
+                            field,
+                        });
+                        Type::Unknown
+                    }
                 }
-                Field::Tuple(_) => {
-                    self.result.diagnostics.push(Diagnostic::NoSuchField {
-                        expr: base,
-                        ty: base_type,
-                        field,
-                    });
-                    Type::Unknown
-                }
-            },
+            }
             _ => {
                 self.result.diagnostics.push(Diagnostic::NoFields {
                     expr: base,

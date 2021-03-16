@@ -16,7 +16,7 @@ use std::ops::Index;
 use walrus_semantics::{
     builtins::Builtin,
     hir::{
-        self, ArithmeticBinop, Binop, CmpBinop, Expr, ExprId, Field, FieldExpr, FnDefId, LazyBinop,
+        self, ArithmeticBinop, Binop, CmpBinop, Expr, ExprId, Field, FieldInit, FnDefId, LazyBinop,
         Lit, Param, PatId, Unop, VarId,
     },
     scopes::{self, Denotation},
@@ -426,7 +426,7 @@ impl<'ctx> Compiler<'ctx> {
         Some(self.builder.build_load(tuple_alloca, "tuple"))
     }
 
-    fn codegen_struct(&self, vars: &mut Vars<'ctx>, expr: ExprId, fields: &[FieldExpr]) -> Value {
+    fn codegen_struct(&self, vars: &mut Vars<'ctx>, expr: ExprId, fields: &[FieldInit]) -> Value {
         let struct_id = self.types[expr].as_struct().unwrap();
         let struct_def = &self.hir[struct_id];
         let struct_name = &self.hir[struct_def.name];

@@ -175,12 +175,12 @@ pub enum Expr {
     },
     Struct {
         name: VarId,
-        fields: Vec<FieldExpr>,
+        fields: Vec<FieldInit>,
     },
     Enum {
         name: VarId,
         variant: VarId,
-        fields: Vec<FieldExpr>,
+        fields: Vec<FieldInit>,
     },
     Unop {
         op: Unop,
@@ -215,7 +215,7 @@ pub enum Expr {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct FieldExpr {
+pub struct FieldInit {
     pub name: VarId,
     pub val: ExprId,
 }

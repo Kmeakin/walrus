@@ -1,6 +1,7 @@
 ---
 source: crates/walrus-parser/src/grammar.rs
 expression: got
+
 ---
 Ok(
     (
@@ -19,7 +20,7 @@ Ok(
                     },
                     inner: Punctuated0 {
                         first: Some(
-                            StructExprField {
+                            FieldInit {
                                 name: Var(
                                     Ident {
                                         span: 5..6,
@@ -46,7 +47,7 @@ Ok(
                                 Comma {
                                     span: 9..10,
                                 },
-                                StructExprField {
+                                FieldInit {
                                     name: Var(
                                         Ident {
                                             span: 11..12,

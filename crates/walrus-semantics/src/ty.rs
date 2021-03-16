@@ -250,6 +250,18 @@ fn f() -> _ { Foo { x: 0, y: false } }
     );
 
     test_infer!(
+        enum_constructor,
+        r#"
+enum Foo {
+    X { x: Int },
+    Y { y: Bool },
+}
+fn f() -> _ { Foo::X { x: 0 } }
+"#,
+        Type::enum_(EnumDefId::new(0))
+    );
+
+    test_infer!(
         struct_destructure,
         r#"fn f() -> _ {let (x, y) = (1, false); (y, x)}"#,
         Type::tuple(vec![Type::BOOL, Type::INT])

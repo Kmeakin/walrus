@@ -1,5 +1,8 @@
 use crate::{
-    hir::{Binop, ExprId, Field, PatId, TypeId, VarId},
+    hir::{
+        Binop, EnumDefId, EnumVariant, ExprId, Field, PatId, StructDefId, StructField, TypeId,
+        VarId,
+    },
     scopes::Denotation,
     ty::{InferenceId, Type},
 };
@@ -61,8 +64,8 @@ pub enum Diagnostic {
     },
     NoSuchField {
         expr: ExprId,
-        ty: Type,
         field: Field,
+        possible_fields: Either<Vec<StructField>, u32>,
     },
     NoFields {
         expr: ExprId,
@@ -71,6 +74,5 @@ pub enum Diagnostic {
     MissingField {
         expr: ExprId,
         field: Field,
-        ty: Type,
     },
 }
