@@ -291,7 +291,7 @@ impl<'ctx> Compiler<'ctx> {
                 }
             }
             Expr::Field { expr, field } => {
-                let base_value = self.codegen_expr(vars, *expr)?;
+                let base_value = self.codegen_lvalue(vars, *expr)?;
 
                 let struct_id = self.types[*expr].as_struct().unwrap();
                 let struct_def = &self.hir[struct_id];
@@ -300,11 +300,7 @@ impl<'ctx> Compiler<'ctx> {
                 let value = match field {
                     Field::Tuple(idx) => self
                         .builder
-                        .build_struct_gep(
-                            base_value.into_pointer_value(),
-                            *idx as u32,
-                            &format!("{struct_name}.{idx}"),
-                        )
+                        .build_struct_gep(base_value, *idx as u32, &format!("{struct_name}.{idx}"))
                         .unwrap(),
                     Field::Named(name) => {
                         let name = &self.hir[*name];
@@ -315,7 +311,7 @@ impl<'ctx> Compiler<'ctx> {
                             .unwrap();
                         self.builder
                             .build_struct_gep(
-                                base_value.into_pointer_value(),
+                                base_value,
                                 idx as u32,
                                 &format!("{struct_name}.{name}"),
                             )
@@ -1380,17 +1376,16 @@ fn main() -> _ {
         6_i32
     );
 
-    // TODO
-    // test_codegen_and_run!(
-    //         assign_field,
-    //         r#"
-    //         struct S {x: Int}
+    test_codegen_and_run!(
+        assign_field,
+        r#"
+            struct S {x: Int}
 
-    //         fn main() -> _{
-    //             let s = S {x: 0};
-    //             s.x = 1;
-    //             s.x
-    //     }"#,
-    //         1_i32
-    //     );
+            fn main() -> _{
+                let s = S {x: 0};
+                s.x = 1;
+                s.x
+        }"#,
+        1_i32
+    );
 }
