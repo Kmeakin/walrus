@@ -34,20 +34,20 @@ fn lambda_expr(input: Input) -> IResult<Expr> {
 }
 fn struct_expr(input: Input) -> IResult<Expr> {
     let (input, name) = var.parse(input)?;
-    let (input, fields) = curly(punctuated0(struct_expr_field, comma)).parse(input)?;
+    let (input, fields) = curly(punctuated0(field_init, comma)).parse(input)?;
     Ok((input, Expr::Struct(StructExpr { name, fields })))
 }
-fn struct_expr_field(input: Input) -> IResult<StructExprField> {
+fn field_init(input: Input) -> IResult<FieldInit> {
     let (input, name) = var.parse(input)?;
     let (input, colon) = colon.parse(input)?;
     let (input, val) = expr.parse(input)?;
-    Ok((input, StructExprField { name, colon, val }))
+    Ok((input, FieldInit { name, colon, val }))
 }
 fn enum_expr(input: Input) -> IResult<Expr> {
     let (input, name) = var.parse(input)?;
     let (input, colon_colon) = colon_colon.parse(input)?;
     let (input, variant) = var.parse(input)?;
-    let (input, fields) = curly(punctuated0(struct_expr_field, comma)).parse(input)?;
+    let (input, fields) = curly(punctuated0(field_init, comma)).parse(input)?;
     Ok((
         input,
         Expr::Enum(EnumExpr {

@@ -81,7 +81,7 @@ pub enum Field {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct StructExpr {
     pub name: Var,
-    pub fields: Curly<Punctuated0<StructExprField, Comma>>,
+    pub fields: Curly<Punctuated0<FieldInit, Comma>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -89,11 +89,11 @@ pub struct EnumExpr {
     pub name: Var,
     pub colon_colon: ColonColon,
     pub variant: Var,
-    pub fields: Curly<Punctuated0<StructExprField, Comma>>,
+    pub fields: Curly<Punctuated0<FieldInit, Comma>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct StructExprField {
+pub struct FieldInit {
     pub name: Var,
     pub colon: Colon,
     pub val: Expr,
