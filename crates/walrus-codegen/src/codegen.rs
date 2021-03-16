@@ -1051,19 +1051,21 @@ mod tests {
     // LLVM tuples are not ABI-compatible with rust
     #[repr(C)]
     #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-    struct Tuple2<T, V>(T, V);
+    struct Tuple2(i32, i32);
 
-    // LLVM tuples are not ABI-compatible with rust
+    #[cfg(FALSE)]
+    test_codegen_and_run!(tuple2, r#"fn main() -> _ { (1, 2) }"#, Tuple2(1, 2));
+
     #[repr(C)]
     #[derive(Debug, Copy, Clone, PartialEq, Eq)]
     struct Tuple3<T, V, U>(T, V, U);
 
-    // test_codegen_and_run!(tuple2, r#"fn main() -> _ { (1, 2) }"#, Tuple2(1_i32,
-    // 2_i32)); test_codegen_and_run!(
-    //     tuple3,
-    //     r#"fn main() -> _ { (1, false, 3) }"#,
-    //     Tuple3(1_i32, false, 3_i32)
-    // );
+    #[cfg(FALSE)]
+    test_codegen_and_run!(
+        tuple3,
+        r#"fn main() -> _ { (1, false, 3) }"#,
+        Tuple3(1_i32, false, 3_i32)
+    );
 
     test_codegen_and_run!(
         if_then_else_true,
