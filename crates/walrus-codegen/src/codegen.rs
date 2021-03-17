@@ -8,7 +8,8 @@ use inkwell::{
     context::Context,
     memory_buffer::MemoryBuffer,
     module::Module,
-    types::{BasicType, BasicTypeEnum, FunctionType, StructType},
+    targets::TargetData,
+    types::{AnyType, BasicType, BasicTypeEnum, FunctionType, IntType, StructType},
     values::{BasicValue, BasicValueEnum, FunctionValue, PointerValue},
     AddressSpace, FloatPredicate, IntPredicate,
 };
@@ -17,7 +18,7 @@ use walrus_semantics::{
     builtins::Builtin,
     hir::{
         self, ArithmeticBinop, Binop, CmpBinop, EnumDefId, Expr, ExprId, Field, FieldInit, FnDefId,
-        LazyBinop, Lit, Param, PatId, StructDefId, Unop, VarId,
+        LazyBinop, Lit, Param, PatId, StructDefId, StructField, Unop, VarId,
     },
     scopes::{self, Denotation},
     ty,
@@ -76,6 +77,22 @@ impl<'ctx> Compiler<'ctx> {
         self.llvm.i8_type().ptr_type(AddressSpace::Generic).into()
     }
 
+    fn discriminant_type(&self, n: usize) -> Option<IntType> {
+        const I0: usize = 1;
+        const I8: usize = 2_usize.pow(8);
+        const I16: usize = 2_usize.pow(16);
+        const I32: usize = 2_usize.pow(32);
+
+        let ty = match n {
+            0..=I0 => return None,
+            0..=I8 => self.llvm.i8_type(),
+            0..=I16 => self.llvm.i16_type(),
+            0..=I32 => self.llvm.i32_type(),
+            _ => self.llvm.i64_type(),
+        };
+        Some(ty)
+    }
+
     fn value_type(&self, ty: &Type) -> BasicTypeEnum<'ctx> {
         match ty {
             Type::Fn(func) => self.closure_type(func),
@@ -132,18 +149,41 @@ impl<'ctx> Compiler<'ctx> {
 
     fn unit_type(&self) -> StructType<'ctx> { self.tuple_type(&[]) }
 
-    fn struct_type(&self, id: StructDefId) -> StructType<'ctx> {
-        let struct_def = &self.hir[id];
+    fn aggregate_type(&self, types: &[StructField]) -> StructType<'ctx> {
         self.llvm.struct_type(
-            &struct_def
-                .fields
+            &types
                 .iter()
                 .map(|field| self.value_type(&self.types[field.ty]))
                 .collect::<Vec<_>>(),
             false,
         )
     }
-    fn enum_type(&self, id: EnumDefId) -> StructType<'ctx> { todo!() }
+
+    fn struct_type(&self, id: StructDefId) -> StructType<'ctx> {
+        let struct_def = &self.hir[id];
+        self.aggregate_type(&struct_def.fields)
+    }
+
+    fn enum_type(&self, id: EnumDefId) -> StructType<'ctx> {
+        let enum_def = &self.hir[id];
+
+        let discriminant = self
+            .discriminant_type(enum_def.variants.len())
+            .map_or_else(|| self.unit_type().into(), Into::into);
+
+        let target_triple = self.module.get_triple();
+        let target_str = target_triple.as_str().to_str().unwrap();
+        let layout = TargetData::create(target_str);
+        let largest_payload = enum_def
+            .variants
+            .iter()
+            .map(|variant| self.aggregate_type(&variant.fields))
+            .max_by_key(|ty| layout.get_bit_size(&ty.as_any_type_enum()))
+            .unwrap_or_else(|| self.unit_type());
+
+        self.llvm
+            .struct_type(&[discriminant, largest_payload.into()], false)
+    }
 
     fn codegen_module(self) -> Module<'ctx> {
         let builtins_source = include_str!("builtins.ll");
@@ -246,7 +286,9 @@ impl<'ctx> Compiler<'ctx> {
             Expr::Var(var) => Some(self.codegen_var(vars, id, *var)),
             Expr::Tuple(exprs) => self.codegen_tuple(vars, id, exprs),
             Expr::Struct { fields, .. } => self.codegen_struct(vars, id, fields),
-            Expr::Enum { .. } => todo!(),
+            Expr::Enum {
+                variant, fields, ..
+            } => self.codegen_enum(vars, id, *variant, fields),
             Expr::Field { expr, field } => self.codegen_field(vars, *expr, *field),
             Expr::If {
                 test,
@@ -450,6 +492,87 @@ impl<'ctx> Compiler<'ctx> {
             self.builder.build_store(gep, (*value)?);
         }
         Some(self.builder.build_load(struct_alloca, struct_name.as_str()))
+    }
+
+    fn codegen_enum(
+        &self,
+        vars: &mut Vars<'ctx>,
+        expr: ExprId,
+        variant: VarId,
+        inits: &[FieldInit],
+    ) -> Value {
+        let enum_id = self.types[expr].as_enum().unwrap();
+        let enum_def = &self.hir[enum_id];
+        let enum_name = &self.hir[enum_def.name];
+
+        let ty = &self.types[expr];
+        let value_type = self.value_type(ty);
+
+        let variant_name = self.hir[variant].as_str();
+        let (variant_idx, variant) = enum_def
+            .variants
+            .iter()
+            .enumerate()
+            .find(|(idx, var)| self.hir[var.name] == self.hir[variant])
+            .unwrap();
+
+        let (discriminant_type, discriminant_value) =
+            match self.discriminant_type(enum_def.variants.len()) {
+                None => (self.unit_type().into(), self.codegen_unit()),
+                Some(int_type) => (
+                    int_type.into(),
+                    int_type.const_int(variant_idx as u64, false).into(),
+                ),
+            };
+
+        let ty = self.llvm.struct_type(
+            &[
+                discriminant_type,
+                self.aggregate_type(&variant.fields).into(),
+            ],
+            false,
+        );
+
+        let alloca = self
+            .builder
+            .build_alloca(ty, &format!("{enum_name}::{variant_name}.alloca"));
+
+        dbg!(alloca);
+        let discriminant_gep = self
+            .builder
+            .build_struct_gep(alloca, 0, &format!("{enum_name}.discriminant.gep"))
+            .unwrap();
+        self.builder
+            .build_store(discriminant_gep, discriminant_value);
+
+        for (idx, init) in inits.iter().enumerate() {
+            let value = self.codegen_expr(vars, init.val)?;
+            let (idx, field) = variant
+                .fields
+                .iter()
+                .enumerate()
+                .find(|(idx, field)| self.hir[field.name] == self.hir[init.name])
+                .unwrap();
+            let field_name = self.hir[field.name].as_str();
+            let payload_gep = self
+                .builder
+                .build_struct_gep(alloca, 1, "payload.gep")
+                .unwrap();
+            let field_gep = self
+                .builder
+                .build_struct_gep(
+                    payload_gep,
+                    idx as u32,
+                    &format!("{enum_name}::{variant_name}.{field_name}.gep"),
+                )
+                .unwrap();
+            self.builder.build_store(field_gep, value);
+        }
+
+        let load = self
+            .builder
+            .build_load(alloca, &format!("{enum_name}::{variant_name}"));
+        Some(load)
     }
 
     fn codegen_field(&self, vars: &mut Vars<'ctx>, expr: ExprId, field: Field) -> Value {
@@ -1368,5 +1491,43 @@ fn main() -> _ {
                 s.x
         }"#,
         1_i32
+    );
+
+    test_codegen_and_run!(
+        enum0,
+        r#"
+        enum Void {}
+        fn main() -> _ {
+            let impossible: Void = exit(0);
+            impossible
+        }
+    "#,
+        ()
+    );
+
+    test_codegen_and_run!(
+        enum1,
+        r#"
+        enum Foo { 
+            Bar {} 
+        }
+        fn main() -> _ {
+            Foo::Bar{}
+        }
+    "#,
+        ()
+    );
+
+    test_codegen_and_run!(
+        enum1_with_payload,
+        r#"
+        enum Foo { 
+            Bar {x: Int} 
+        }
+        fn main() -> _ {
+            Foo::Bar{x: 5}
+        }
+    "#,
+        5_i32
     );
 }

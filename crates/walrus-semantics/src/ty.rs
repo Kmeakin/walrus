@@ -85,6 +85,13 @@ impl Type {
             _ => None,
         }
     }
+    pub const fn as_enum(&self) -> Option<EnumDefId> {
+        match self {
+            Self::Enum(id) => Some(*id),
+            _ => None,
+        }
+    }
+
     fn walk_mut(&mut self, f: &mut impl FnMut(&mut Self)) {
         f(self);
         match self {
