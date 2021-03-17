@@ -17,6 +17,22 @@ pub enum Type {
     Unknown,
 }
 
+impl Type {
+    pub const fn is_integral(&self) -> bool {
+        matches!(
+            self,
+            Type::Primitive(PrimitiveType::Int | PrimitiveType::Char | PrimitiveType::Bool)
+        )
+    }
+
+    pub const fn is_floating(&self) -> bool {
+        matches!(self, Type::Primitive(PrimitiveType::Float))
+    }
+
+    pub const fn is_int(&self) -> bool { matches!(self, Type::Primitive(PrimitiveType::Int)) }
+    pub const fn is_float(&self) -> bool { matches!(self, Type::Primitive(PrimitiveType::Float)) }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FnType {
     pub params: Vec<Type>,

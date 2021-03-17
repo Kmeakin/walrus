@@ -21,7 +21,7 @@ use walrus_semantics::{
     },
     scopes::{self, Denotation},
     ty,
-    ty::{FnType, Type},
+    ty::{FnType, PrimitiveType, Type},
 };
 
 use crate::free_vars::FreeVars;
@@ -82,28 +82,33 @@ impl<'ctx> Compiler<'ctx> {
             Type::Struct(id) => self.struct_type(*id).into(),
             Type::Enum(id) => self.enum_type(*id).into(),
             Type::Tuple(tys) => self.tuple_type(tys).into(),
-            &Type::BOOL => self.llvm.bool_type().into(),
-            &(Type::INT | Type::CHAR) => self.llvm.i32_type().into(),
-            &Type::FLOAT => self.llvm.f32_type().into(),
-            &Type::NEVER | Type::Infer(_) | Type::Unknown => unreachable!(),
+            Type::Primitive(PrimitiveType::Bool) => self.llvm.bool_type().into(),
+            Type::Primitive(PrimitiveType::Int | PrimitiveType::Char) => {
+                self.llvm.i32_type().into()
+            }
+            Type::Primitive(PrimitiveType::Float) => self.llvm.f32_type().into(),
+            Type::Primitive(PrimitiveType::Never) | Type::Infer(_) | Type::Unknown => {
+                unreachable!()
+            }
         }
     }
 
     fn fn_type(&self, ty: &FnType) -> FunctionType<'ctx> {
         let FnType { params, ret } = ty;
-        match *ret.as_ref() {
-            Type::NEVER => self.llvm.void_type().fn_type(
+        if ret.as_ref() == &Type::NEVER {
+            self.llvm.void_type().fn_type(
                 &std::iter::once(self.void_ptr_type())
                     .chain(params.iter().map(|ty| self.value_type(ty)))
                     .collect::<Vec<_>>(),
                 false,
-            ),
-            _ => self.value_type(ret).fn_type(
+            )
+        } else {
+            self.value_type(ret).fn_type(
                 &std::iter::once(self.void_ptr_type())
                     .chain(params.iter().map(|ty| self.value_type(ty)))
                     .collect::<Vec<_>>(),
                 false,
-            ),
+            )
         }
     }
 
@@ -769,26 +774,28 @@ impl<'ctx> Compiler<'ctx> {
     fn codegen_unop(&self, vars: &mut Vars<'ctx>, op: Unop, expr: ExprId) -> Value {
         let ty = &self.types[expr];
         let value = self.codegen_expr(vars, expr)?;
-        let value = match (op, ty) {
-            (Unop::Not, _) => self
+        let value = match op {
+            Unop::Not if ty == &Type::BOOL => self
                 .builder
                 .build_int_compare(
                     IntPredicate::EQ,
                     value.into_int_value(),
-                    self.llvm.bool_type().const_int(0, false),
+                    self.llvm.bool_type().const_zero(),
                     "",
                 )
                 .into(),
-            (Unop::Sub, &Type::INT) => self
+            Unop::Sub if ty == &Type::INT => self
                 .builder
                 .build_int_neg(value.into_int_value(), "")
                 .into(),
-            (Unop::Sub, &Type::FLOAT) => self
+
+            Unop::Sub if ty == &Type::FLOAT => self
                 .builder
                 .build_float_neg(value.into_float_value(), "")
                 .into(),
-            (Unop::Sub, _) => unreachable!(),
-            (Unop::Add, _) => value,
+
+            Unop::Sub | Unop::Not => unreachable!(),
+            Unop::Add => value,
         };
         Some(value)
     }
@@ -866,15 +873,17 @@ impl<'ctx> Compiler<'ctx> {
             ($op:ident) => {self.builder.$op(lhs_value.into_float_value(), rhs_value.into_float_value(), "") .into()};
         }
 
-        let value = match (ty, op) {
-            (&Type::INT, ArithmeticBinop::Add) => int_op!(build_int_add),
-            (&Type::INT, ArithmeticBinop::Sub) => int_op!(build_int_sub),
-            (&Type::INT, ArithmeticBinop::Mul) => int_op!(build_int_mul),
-            (&Type::INT, ArithmeticBinop::Div) => int_op!(build_int_signed_div),
-            (&Type::FLOAT, ArithmeticBinop::Add) => float_op!(build_float_add),
-            (&Type::FLOAT, ArithmeticBinop::Sub) => float_op!(build_float_sub),
-            (&Type::FLOAT, ArithmeticBinop::Mul) => float_op!(build_float_mul),
-            (&Type::FLOAT, ArithmeticBinop::Div) => float_op!(build_float_div),
+        let value = match op {
+            ArithmeticBinop::Add if ty.is_int() => int_op!(build_int_add),
+            ArithmeticBinop::Sub if ty.is_int() => int_op!(build_int_sub),
+            ArithmeticBinop::Mul if ty.is_int() => int_op!(build_int_mul),
+            ArithmeticBinop::Div if ty.is_int() => int_op!(build_int_signed_div),
+
+            ArithmeticBinop::Add if ty.is_float() => float_op!(build_float_add),
+            ArithmeticBinop::Sub if ty.is_float() => float_op!(build_float_sub),
+            ArithmeticBinop::Mul if ty.is_float() => float_op!(build_float_mul),
+            ArithmeticBinop::Div if ty.is_float() => float_op!(build_float_div),
+
             _ => unreachable!(format!("cannot perform binop {lhs_ty:?} {op} {rhs_ty:?}")),
         };
         Some(value)
@@ -905,44 +914,21 @@ impl<'ctx> Compiler<'ctx> {
             ($op:expr) => {self.builder.build_float_compare($op,lhs_value.into_float_value(), rhs_value.into_float_value(), "") .into()};
         }
 
-        let value = match (ty, op) {
-            (&(Type::BOOL | Type::INT | Type::CHAR), CmpBinop::Eq) => {
-                int_cmp!(IntPredicate::EQ)
-            }
-            (&(Type::BOOL | Type::INT | Type::CHAR), CmpBinop::NotEq) => {
-                int_cmp!(IntPredicate::NE)
-            }
-            (&(Type::BOOL | Type::INT | Type::CHAR), CmpBinop::Less) => {
-                int_cmp!(IntPredicate::SLT)
-            }
-            (&(Type::BOOL | Type::INT | Type::CHAR), CmpBinop::LessEq) => {
-                int_cmp!(IntPredicate::SLE)
-            }
-            (&(Type::BOOL | Type::INT | Type::CHAR), CmpBinop::Greater) => {
-                int_cmp!(IntPredicate::SGT)
-            }
-            (&(Type::BOOL | Type::INT | Type::CHAR), CmpBinop::GreaterEq) => {
-                int_cmp!(IntPredicate::SGE)
-            }
+        let value = match op {
+            CmpBinop::Eq if ty.is_integral() => int_cmp!(IntPredicate::EQ),
+            CmpBinop::NotEq if ty.is_integral() => int_cmp!(IntPredicate::NE),
+            CmpBinop::Less if ty.is_integral() => int_cmp!(IntPredicate::SLT),
+            CmpBinop::LessEq if ty.is_integral() => int_cmp!(IntPredicate::SLE),
+            CmpBinop::Greater if ty.is_integral() => int_cmp!(IntPredicate::SGT),
+            CmpBinop::GreaterEq if ty.is_integral() => int_cmp!(IntPredicate::SGE),
 
-            (&Type::FLOAT, CmpBinop::Eq) => {
-                float_cmp!(FloatPredicate::OEQ)
-            }
-            (&Type::FLOAT, CmpBinop::NotEq) => {
-                float_cmp!(FloatPredicate::ONE)
-            }
-            (&Type::FLOAT, CmpBinop::Less) => {
-                float_cmp!(FloatPredicate::OLT)
-            }
-            (&Type::FLOAT, CmpBinop::LessEq) => {
-                float_cmp!(FloatPredicate::OLE)
-            }
-            (&Type::FLOAT, CmpBinop::Greater) => {
-                float_cmp!(FloatPredicate::OGT)
-            }
-            (&Type::FLOAT, CmpBinop::GreaterEq) => {
-                float_cmp!(FloatPredicate::OGE)
-            }
+            CmpBinop::Eq if ty.is_floating() => float_cmp!(FloatPredicate::OEQ),
+            CmpBinop::NotEq if ty.is_floating() => float_cmp!(FloatPredicate::ONE),
+            CmpBinop::Less if ty.is_floating() => float_cmp!(FloatPredicate::OLT),
+            CmpBinop::LessEq if ty.is_floating() => float_cmp!(FloatPredicate::OLE),
+            CmpBinop::Greater if ty.is_floating() => float_cmp!(FloatPredicate::OGT),
+            CmpBinop::GreaterEq if ty.is_floating() => float_cmp!(FloatPredicate::OGE),
+
             _ => unreachable!(format!("cannot perform binop {lhs_ty:?} {op} {rhs_ty:?}")),
         };
         Some(value)
