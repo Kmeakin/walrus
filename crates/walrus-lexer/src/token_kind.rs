@@ -1,3 +1,5 @@
+#![allow(clippy::use_self)] // Gives a false positive on the Logos proc-macro
+
 use logos::Logos;
 
 pub type Lexer<'a> = logos::Lexer<'a, TokenKind>;

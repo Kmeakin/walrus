@@ -217,6 +217,7 @@ impl Ctx {
     }
 
     fn try_to_unify(&mut self, id: Either<ExprId, PatId>, expected: &Type, got: &Type) -> Type {
+        #[allow(clippy::match_bool)]
         match self.coerce(got, expected) {
             false => {
                 self.result.diagnostics.push(Diagnostic::TypeMismatch {
@@ -598,7 +599,7 @@ impl Ctx {
                 Field::Tuple(_) | Field::Named(_) => {
                     self.result.diagnostics.push(Diagnostic::NoSuchField {
                         expr: base,
-                        possible_fields: Right(params.len() as u32),
+                        possible_fields: Right(params.len()),
                         field,
                     });
                     Type::Unknown
@@ -790,9 +791,8 @@ impl Binop {
 
     fn return_type(self, rhs_type: &Type) -> Type {
         match self {
-            Self::Lazy(LazyBinop::And | LazyBinop::Or) => Type::BOOL,
+            Self::Lazy(LazyBinop::And | LazyBinop::Or) | Self::Cmp(_) => Type::BOOL,
             Self::Arithmetic(_) => rhs_type.clone(),
-            Self::Cmp(_) => Type::BOOL,
             Self::Assign => Type::UNIT,
         }
     }

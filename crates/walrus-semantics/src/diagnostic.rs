@@ -62,7 +62,7 @@ pub enum Diagnostic {
     NoSuchField {
         expr: ExprId,
         field: Field,
-        possible_fields: Either<Vec<StructField>, u32>,
+        possible_fields: Either<Vec<StructField>, usize>,
     },
     NoFields {
         expr: ExprId,
