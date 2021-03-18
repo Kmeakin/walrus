@@ -505,6 +505,8 @@ impl<'ctx> Compiler<'ctx> {
         let enum_def = &self.hir[enum_id];
         let enum_name = &self.hir[enum_def.name];
 
+        let enum_ty = self.enum_type(enum_id);
+
         let variant_name = self.hir[variant].as_str();
         let (variant_idx, variant) = enum_def
             .variants
@@ -565,9 +567,13 @@ impl<'ctx> Compiler<'ctx> {
             self.builder.build_store(field_gep, value);
         }
 
+        let casted = self
+            .builder
+            .build_bitcast(alloca, enum_ty.ptr_type(AddressSpace::Generic), "")
+            .into_pointer_value();
         let load = self
             .builder
-            .build_load(alloca, &format!("{enum_name}::{variant_name}"));
+            .build_load(casted, &format!("{enum_name}::{variant_name}"));
         Some(load)
     }
 

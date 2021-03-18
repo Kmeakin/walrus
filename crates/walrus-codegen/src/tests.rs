@@ -533,7 +533,7 @@ mod enums {
             Foo::Baz{y: true}
         }
     "#,
-            (0_u8, true),
+            (1_u8, 1_i32),
         )
     }
 }

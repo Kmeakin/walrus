@@ -1,0 +1,35 @@
+---
+source: crates/walrus-codegen/src/tests.rs
+expression: llvm_module.print_to_string().to_string()
+
+---
+; ModuleID = 'module'
+source_filename = "module"
+
+define void @builtins.exit.wrapper(i8* %env, i32 %status) {
+  call void @exit(i32 %status)
+  unreachable
+}
+
+declare void @exit(i32)
+
+define i32 @builtins.putchar.wrapper(i8* %env, i32 %c) {
+  %1 = call i32 @putchar(i32 %c)
+  ret i32 %1
+}
+
+declare i32 @putchar(i32)
+
+define { i8, { i32 } } @main(i8* %main.env) {
+main.entry:
+  %"Foo::Baz.alloca" = alloca { i8, { i1 } }, align 8
+  %Foo.discriminant.gep = getelementptr inbounds { i8, { i1 } }, { i8, { i1 } }* %"Foo::Baz.alloca", i32 0, i32 0
+  store i8 1, i8* %Foo.discriminant.gep, align 1
+  %payload.gep = getelementptr inbounds { i8, { i1 } }, { i8, { i1 } }* %"Foo::Baz.alloca", i32 0, i32 1
+  %"Foo::Baz.y.gep" = getelementptr inbounds { i1 }, { i1 }* %payload.gep, i32 0, i32 0
+  store i1 true, i1* %"Foo::Baz.y.gep", align 1
+  %0 = bitcast { i8, { i1 } }* %"Foo::Baz.alloca" to { i8, { i32 } }*
+  %"Foo::Baz" = load { i8, { i32 } }, { i8, { i32 } }* %0, align 4
+  ret { i8, { i32 } } %"Foo::Baz"
+}
+
