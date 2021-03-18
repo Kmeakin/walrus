@@ -221,6 +221,11 @@ impl Scopes {
         let pat = &module.data[id];
         match pat {
             Pat::Var(var) => self.insert_denotation(module, vars, *var, Denotation::Local(id)),
+            Pat::Struct { fields, .. } | Pat::Enum { fields, .. } => {
+                for field in fields {
+                    self.pat_scope(module, vars, field.pat)
+                }
+            }
             pat => pat.walk_child_pats(|id| self.pat_scope(module, vars, id)),
         }
     }
