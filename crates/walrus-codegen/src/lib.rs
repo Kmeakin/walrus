@@ -28,3 +28,6 @@
 
 mod codegen;
 mod free_vars;
+
+#[cfg(test)]
+mod tests;
