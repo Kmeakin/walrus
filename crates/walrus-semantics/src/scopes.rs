@@ -58,16 +58,6 @@ impl Scopes {
         self.lookup_in_scope(scope, var)
     }
 
-    pub fn lookup_expr(&self, expr: ExprId, var: &Var) -> Option<Denotation> {
-        let scope = self.scope_of_expr[expr];
-        self.lookup_in_scope(scope, var)
-    }
-
-    pub fn lookup_type(&self, ty: TypeId, var: &Var) -> Option<Denotation> {
-        let scope = self.scope_of_type[ty];
-        self.lookup_in_scope(scope, var)
-    }
-
     pub fn scope_of_var(&self, id: VarId) -> &Scope { &self.scopes[self.scope_of_var[id]] }
     pub fn scope_of_expr(&self, id: ExprId) -> &Scope { &self.scopes[self.scope_of_expr[id]] }
     pub fn scope_of_type(&self, id: TypeId) -> &Scope { &self.scopes[self.scope_of_type[id]] }
