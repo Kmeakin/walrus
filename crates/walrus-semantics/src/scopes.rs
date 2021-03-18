@@ -15,7 +15,7 @@ type LambdaDepth = u32;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Denotation {
-    Local(PatId),
+    Local(VarId),
     Fn(FnDefId),
     Struct(StructDefId),
     Enum(EnumDefId),
@@ -36,6 +36,7 @@ pub struct Scopes {
     scope_of_expr: ArenaMap<ExprId, ScopeId>,
     scope_of_type: ArenaMap<TypeId, ScopeId>,
     scope_of_pat: ArenaMap<PatId, ScopeId>,
+    scope_of_var: ArenaMap<VarId, ScopeId>,
     pub diagnostics: Vec<Diagnostic>,
 }
 
@@ -62,6 +63,7 @@ impl Scopes {
         self.lookup_in_scope(scope, var)
     }
 
+    pub fn scope_of_var(&self, id: VarId) -> &Scope { &self.scopes[self.scope_of_var[id]] }
     pub fn scope_of_expr(&self, id: ExprId) -> &Scope { &self.scopes[self.scope_of_expr[id]] }
     pub fn scope_of_type(&self, id: TypeId) -> &Scope { &self.scopes[self.scope_of_type[id]] }
     pub fn scope_of_pat(&self, id: PatId) -> &Scope { &self.scopes[self.scope_of_pat[id]] }
@@ -78,6 +80,7 @@ impl Scopes {
             scope_of_expr: ArenaMap::default(),
             scope_of_type: ArenaMap::default(),
             scope_of_pat: ArenaMap::default(),
+            scope_of_var: ArenaMap::default(),
             diagnostics: Vec::new(),
         }
     }
@@ -92,6 +95,10 @@ impl Scopes {
 
     fn set_scope_of_pat(&mut self, id: PatId, scope: ScopeId) {
         self.scope_of_pat.insert(id, scope);
+    }
+
+    fn set_scope_of_var(&mut self, id: VarId, scope: ScopeId) {
+        self.scope_of_var.insert(id, scope);
     }
 
     fn child_scope(&mut self, scope: ScopeId, lambda_depth: LambdaDepth) -> ScopeId {
@@ -130,6 +137,7 @@ impl Scopes {
     }
 
     fn insert_var(&mut self, module: &Module, vars: &mut Vars, id: VarId) -> bool {
+        self.set_scope_of_var(id, self.scope);
         let var = module.data[id].clone();
         match vars.get(&var) {
             None => {
@@ -220,10 +228,18 @@ impl Scopes {
         self.set_scope_of_pat(id, self.scope);
         let pat = &module.data[id];
         match pat {
-            Pat::Var(var) => self.insert_denotation(module, vars, *var, Denotation::Local(id)),
+            Pat::Var(var) => self.insert_denotation(module, vars, *var, Denotation::Local(*var)),
             Pat::Struct { fields, .. } | Pat::Enum { fields, .. } => {
+                let mut seen_fields = Vars::new();
                 for field in fields {
-                    self.pat_scope(module, vars, field.pat)
+                    self.insert_var(module, &mut seen_fields, field.name);
+
+                    match field {
+                        FieldPat { pat: Some(pat), .. } => self.pat_scope(module, vars, *pat),
+                        FieldPat { name, pat: None } => {
+                            self.insert_denotation(module, vars, *name, Denotation::Local(*name))
+                        }
+                    }
                 }
             }
             pat => pat.walk_child_pats(|id| self.pat_scope(module, vars, id)),

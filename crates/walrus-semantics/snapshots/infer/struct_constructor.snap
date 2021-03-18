@@ -4,6 +4,14 @@ expression: types
 
 ---
 InferenceResult {
+    type_of_var: {
+        2: Primitive(
+            Int,
+        ),
+        4: Primitive(
+            Bool,
+        ),
+    },
     type_of_expr: {
         0: Primitive(
             Int,

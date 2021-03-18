@@ -19,6 +19,7 @@ pub fn infer(module: Module, scopes: Scopes) -> InferenceResult {
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct InferenceResult {
+    pub type_of_var: ArenaMap<VarId, Type>,
     pub type_of_expr: ArenaMap<ExprId, Type>,
     pub type_of_type: ArenaMap<TypeId, Type>,
     pub type_of_pat: ArenaMap<PatId, Type>,
@@ -26,6 +27,10 @@ pub struct InferenceResult {
     pub diagnostics: Vec<Diagnostic>,
 }
 
+impl Index<VarId> for InferenceResult {
+    type Output = Type;
+    fn index(&self, id: VarId) -> &Self::Output { &self.type_of_var[id] }
+}
 impl Index<ExprId> for InferenceResult {
     type Output = Type;
     fn index(&self, id: ExprId) -> &Self::Output { &self.type_of_expr[id] }
@@ -46,6 +51,7 @@ impl Index<FnDefId> for InferenceResult {
 /// An id representing any "thing" whose type is infered.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum InferenceId {
+    Var(VarId),
     Expr(ExprId),
     Type(TypeId),
     Pat(PatId),
@@ -74,6 +80,17 @@ impl Ctx {
 
     fn finish(mut self) -> InferenceResult {
         let mut result = std::mem::take(&mut self.result);
+
+        for (id, ty) in result.type_of_var.iter_mut() {
+            let was_unknown = ty == &Type::Unknown;
+            *ty = self.propagate_type_completely(ty);
+            if !was_unknown && ty == &Type::Unknown {
+                result
+                    .diagnostics
+                    .push(Diagnostic::InferenceFail(InferenceId::Var(id)))
+            }
+        }
+
         for (id, ty) in result.type_of_expr.iter_mut() {
             let was_unknown = ty == &Type::Unknown;
             *ty = self.propagate_type_completely(ty);
@@ -127,6 +144,7 @@ impl Ctx {
         ret
     }
 
+    fn set_var_type(&mut self, id: VarId, ty: Type) { self.result.type_of_var.insert(id, ty); }
     fn set_expr_type(&mut self, id: ExprId, ty: Type) { self.result.type_of_expr.insert(id, ty); }
     fn set_pat_type(&mut self, id: PatId, ty: Type) { self.result.type_of_pat.insert(id, ty); }
     fn set_type_type(&mut self, id: TypeId, ty: Type) { self.result.type_of_type.insert(id, ty); }
@@ -157,7 +175,7 @@ impl Ctx {
     fn resolve_var_type(&mut self, id: TypeId, var_id: VarId) -> Type {
         let var = &self.module.data[var_id];
         let denotation = self.scopes.lookup_type(id, var);
-        match denotation {
+        let ty = match denotation {
             Some(Denotation::Builtin(b)) if b.kind() == BuiltinKind::Type => b.ty(),
             Some(Denotation::Struct(id)) => Type::Struct(id),
             Some(Denotation::Enum(id)) => Type::Enum(id),
@@ -169,15 +187,17 @@ impl Ctx {
                 });
                 Type::Unknown
             }
-        }
+        };
+        self.set_var_type(var_id, ty.clone());
+        ty
     }
 
     fn resolve_var_expr(&mut self, id: ExprId, var_id: VarId) -> Type {
         let var = &self.module.data[var_id];
         let denotation = self.scopes.lookup_expr(id, var);
-        match denotation {
-            Some(Denotation::Local(id)) => self.result.type_of_pat[id].clone(),
-            Some(Denotation::Fn(id)) => self.result.type_of_fn[id].clone().into(),
+        let ty = match denotation {
+            Some(Denotation::Local(id)) => self.result[id].clone(),
+            Some(Denotation::Fn(id)) => self.result[id].clone().into(),
             Some(Denotation::Builtin(b)) if b.kind() == BuiltinKind::Value => b.ty(),
             _ => {
                 self.result.diagnostics.push(Diagnostic::UnboundVar {
@@ -187,7 +207,9 @@ impl Ctx {
                 });
                 Type::Unknown
             }
-        }
+        };
+        self.set_var_type(var_id, ty.clone());
+        ty
     }
 
     /// Propagates the type as far as currently possible, replacing type
@@ -359,7 +381,11 @@ impl Ctx {
     fn infer_pat(&mut self, expected: &Type, id: PatId) -> Type {
         let pat = self.module.data[id].clone();
         let ty = match pat {
-            Pat::Var(_) | Pat::Ignore => expected.clone(),
+            Pat::Ignore => expected.clone(),
+            Pat::Var(var) => {
+                self.set_var_type(var, expected.clone());
+                expected.clone()
+            }
             Pat::Tuple(pats) => {
                 let expectations = expected.as_tuple().unwrap_or(&[]);
                 let expectations = expectations.iter().chain(std::iter::repeat(&Type::Unknown));

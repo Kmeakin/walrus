@@ -4,6 +4,74 @@ expression: types
 
 ---
 InferenceResult {
+    type_of_var: {
+        1: Fn(
+            FnType {
+                params: [
+                    Primitive(
+                        Int,
+                    ),
+                ],
+                ret: Primitive(
+                    Bool,
+                ),
+            },
+        ),
+        2: Fn(
+            FnType {
+                params: [
+                    Primitive(
+                        Int,
+                    ),
+                ],
+                ret: Primitive(
+                    Bool,
+                ),
+            },
+        ),
+        4: Primitive(
+            Int,
+        ),
+        5: Primitive(
+            Int,
+        ),
+        6: Fn(
+            FnType {
+                params: [
+                    Primitive(
+                        Int,
+                    ),
+                ],
+                ret: Primitive(
+                    Bool,
+                ),
+            },
+        ),
+        7: Primitive(
+            Int,
+        ),
+        9: Primitive(
+            Int,
+        ),
+        10: Primitive(
+            Int,
+        ),
+        11: Fn(
+            FnType {
+                params: [
+                    Primitive(
+                        Int,
+                    ),
+                ],
+                ret: Primitive(
+                    Bool,
+                ),
+            },
+        ),
+        12: Primitive(
+            Int,
+        ),
+    },
     type_of_expr: {
         0: Fn(
             FnType {

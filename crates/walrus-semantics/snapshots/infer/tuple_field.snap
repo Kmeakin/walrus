@@ -4,6 +4,38 @@ expression: types
 
 ---
 InferenceResult {
+    type_of_var: {
+        1: Tuple(
+            [
+                Primitive(
+                    Int,
+                ),
+                Primitive(
+                    Bool,
+                ),
+            ],
+        ),
+        2: Tuple(
+            [
+                Primitive(
+                    Int,
+                ),
+                Primitive(
+                    Bool,
+                ),
+            ],
+        ),
+        3: Tuple(
+            [
+                Primitive(
+                    Int,
+                ),
+                Primitive(
+                    Bool,
+                ),
+            ],
+        ),
+    },
     type_of_expr: {
         0: Primitive(
             Int,

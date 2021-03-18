@@ -346,7 +346,7 @@ pub enum Pat {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct FieldPat {
     pub name: VarId,
-    pub pat: PatId,
+    pub pat: Option<PatId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

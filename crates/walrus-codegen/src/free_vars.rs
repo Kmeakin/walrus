@@ -1,11 +1,11 @@
 use crate::codegen::Compiler;
 use arena::ArenaMap;
 use walrus_semantics::{
-    hir::{Expr, ExprId, PatId},
+    hir::{Expr, ExprId, PatId, VarId},
     scopes::Denotation,
 };
 
-pub type FreeVars = ArenaMap<PatId, ()>;
+pub type FreeVars = ArenaMap<VarId, ()>;
 
 impl<'ctx> Compiler<'ctx> {
     pub fn free_vars(&self, expr: ExprId) -> FreeVars {
@@ -22,7 +22,7 @@ impl<'ctx> Compiler<'ctx> {
                 let usage_scope = self.scopes.scope_of_expr(expr_id);
                 let denotation = self.scopes.lookup_expr(expr_id, var).unwrap();
                 if let Denotation::Local(pat_id) = denotation {
-                    let defining_scope = self.scopes.scope_of_pat(pat_id);
+                    let defining_scope = self.scopes.scope_of_var(*var_id);
                     if usage_scope.lambda_depth != defining_scope.lambda_depth {
                         free_vars.insert(pat_id, ());
                     }

@@ -4,6 +4,11 @@ expression: types
 
 ---
 InferenceResult {
+    type_of_var: {
+        1: Primitive(
+            Never,
+        ),
+    },
     type_of_expr: {
         0: Tuple(
             [],

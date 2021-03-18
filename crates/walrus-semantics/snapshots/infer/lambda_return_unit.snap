@@ -4,6 +4,7 @@ expression: types
 
 ---
 InferenceResult {
+    type_of_var: {},
     type_of_expr: {
         0: Primitive(
             Never,

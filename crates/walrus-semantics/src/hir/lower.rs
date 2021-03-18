@@ -213,13 +213,7 @@ impl Ctx {
         let syntax::FieldPat { name, pat } = syntax;
         FieldPat {
             name: self.lower_var(name.clone()),
-            pat: pat
-                .as_ref()
-                .map(|(_, pat)| self.lower_pat(pat))
-                .unwrap_or_else(|| {
-                    let pat = Pat::Dummy;
-                    self.data.pats.alloc(pat)
-                }),
+            pat: pat.as_ref().map(|(_, pat)| self.lower_pat(pat)),
         }
     }
 

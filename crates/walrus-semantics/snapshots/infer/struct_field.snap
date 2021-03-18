@@ -4,6 +4,23 @@ expression: types
 
 ---
 InferenceResult {
+    type_of_var: {
+        2: Primitive(
+            Int,
+        ),
+        4: Primitive(
+            Bool,
+        ),
+        6: Struct(
+            0,
+        ),
+        10: Struct(
+            0,
+        ),
+        12: Struct(
+            0,
+        ),
+    },
     type_of_expr: {
         0: Primitive(
             Int,

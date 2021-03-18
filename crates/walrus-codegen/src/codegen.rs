@@ -56,14 +56,14 @@ pub struct Loop<'ctx> {
 
 #[derive(Debug, Clone, Default)]
 pub struct Vars<'a> {
-    locals: ArenaMap<PatId, PointerValue<'a>>,
+    locals: ArenaMap<VarId, PointerValue<'a>>,
     fns: ArenaMap<FnDefId, FunctionValue<'a>>,
     current_loop: Option<Loop<'a>>,
 }
 
-impl<'a> Index<PatId> for Vars<'a> {
+impl<'a> Index<VarId> for Vars<'a> {
     type Output = PointerValue<'a>;
-    fn index(&self, id: PatId) -> &Self::Output { &self.locals[id] }
+    fn index(&self, id: VarId) -> &Self::Output { &self.locals[id] }
 }
 impl<'a> Index<FnDefId> for Vars<'a> {
     type Output = FunctionValue<'a>;
@@ -105,7 +105,7 @@ impl<'ctx> Compiler<'ctx> {
             }
             Type::Primitive(PrimitiveType::Float) => self.llvm.f32_type().into(),
             Type::Primitive(PrimitiveType::Never) | Type::Infer(_) | Type::Unknown => {
-                unreachable!()
+                unreachable!("This type should not exist at codegen: {:?}", ty)
             }
         }
     }
@@ -238,7 +238,7 @@ impl<'ctx> Compiler<'ctx> {
             .enumerate()
             .for_each(|(idx, (llvm_param, hir_param))| {
                 llvm_param.set_name(&format!("{name}.params.{idx}"));
-                self.codegen_local_var(vars, hir_param.pat, llvm_param)
+                self.codegen_local_pat(vars, hir_param.pat, llvm_param)
             });
 
         if let Some(value) = self.codegen_expr(vars, fn_def.expr) {
@@ -246,25 +246,21 @@ impl<'ctx> Compiler<'ctx> {
         }
     }
 
-    fn codegen_local_var(&self, vars: &mut Vars<'ctx>, id: PatId, val: BasicValueEnum) {
+    fn codegen_local_var(&self, vars: &mut Vars<'ctx>, var_id: VarId, val: BasicValueEnum) {
+        let var = &self.hir[var_id];
+        let var_type = &self.types[var_id];
+        let name = format!("{}.alloca", self.hir[var_id]);
+        let alloca = self.builder.build_alloca(self.value_type(var_type), &name);
+        vars.locals.insert(var_id, alloca);
+        self.builder.build_store(alloca, val);
+    }
+
+    fn codegen_local_pat(&self, vars: &mut Vars<'ctx>, id: PatId, val: BasicValueEnum) {
         let pat = &self.hir[id];
         let pat_type = &self.types[id];
         match pat {
-            hir::Pat::Var(var) => {
-                let name = format!("{}.alloca", self.hir[*var]);
-                let alloca = self.builder.build_alloca(self.value_type(pat_type), &name);
-                vars.locals.insert(id, alloca);
-                self.builder.build_store(vars[id], val);
-            }
-            hir::Pat::Ignore => {
-                // `Pat::Ignore` still evaluates its arguments, for side effects
-                // eg `let _ = print(5);`
-                let alloca = self
-                    .builder
-                    .build_alloca(self.value_type(pat_type), "_.alloca");
-                vars.locals.insert(id, alloca);
-                self.builder.build_store(vars[id], val);
-            }
+            hir::Pat::Ignore => {}
+            hir::Pat::Var(var) => self.codegen_local_var(vars, *var, val),
             hir::Pat::Tuple(pats) => pats.iter().enumerate().for_each(|(idx, id)| {
                 let val = self
                     .builder
@@ -274,7 +270,7 @@ impl<'ctx> Compiler<'ctx> {
                         &format!("tuple.{idx}"),
                     )
                     .unwrap();
-                self.codegen_local_var(vars, *id, val)
+                self.codegen_local_pat(vars, *id, val)
             }),
             _ => todo!(),
         }
@@ -312,7 +308,7 @@ impl<'ctx> Compiler<'ctx> {
                         }
                         hir::Stmt::Let { pat, expr, .. } => {
                             let val = self.codegen_expr(vars, *expr)?;
-                            self.codegen_local_var(vars, *pat, val);
+                            self.codegen_local_pat(vars, *pat, val);
                         }
                     }
                 }
@@ -876,7 +872,7 @@ impl<'ctx> Compiler<'ctx> {
             .enumerate()
             .for_each(|(idx, (llvm_param, hir_param))| {
                 llvm_param.set_name(&format!("params.{idx}"));
-                self.codegen_local_var(vars, hir_param.pat, llvm_param)
+                self.codegen_local_pat(vars, hir_param.pat, llvm_param)
             });
 
         if let Some(value) = self.codegen_expr(vars, body) {
