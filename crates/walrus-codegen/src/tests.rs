@@ -474,4 +474,66 @@ mod enums {
             5_i32,
         )
     }
+
+    fn enum2_variant0() {
+        test_codegen_and_run(
+            r#"
+        enum Foo { 
+            Bar {x: Int},
+            Baz {y: Bool} 
+        }
+        fn main() -> _ {
+            Foo::Bar{x: 5}
+        }
+    "#,
+            0_u8,
+        );
+    }
+    fn enum2_variant1() {
+        test_codegen_and_run(
+            r#"
+        enum Foo { 
+            Bar {}
+            Baz {}
+        }
+        fn main() -> _ {
+            Foo::Bar{}
+        }
+    "#,
+            1_u8,
+        )
+    }
+
+    #[test]
+    fn enum2_with_payload_variant0() {
+        test_codegen_and_run(
+            r#"
+        enum Foo { 
+            Bar {x: Int},
+            Baz {y: Bool} 
+        }
+        fn main() -> _ {
+            Foo::Bar{x: 5}
+        }
+    "#,
+            (0_u8, 5_i64),
+        )
+    }
+
+    #[test]
+    #[ignore]
+    fn enum2_with_payload_variant1() {
+        test_codegen_and_run(
+            r#"
+        enum Foo { 
+            Bar {x: Int}, 
+            Baz {y: Bool} 
+        }
+        fn main() -> _ {
+            Foo::Baz{y: true}
+        }
+    "#,
+            (0_u8, true),
+        )
+    }
 }

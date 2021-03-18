@@ -534,7 +534,6 @@ impl<'ctx> Compiler<'ctx> {
             .builder
             .build_alloca(ty, &format!("{enum_name}::{variant_name}.alloca"));
 
-        dbg!(alloca);
         let discriminant_gep = self
             .builder
             .build_struct_gep(alloca, 0, &format!("{enum_name}.discriminant.gep"))
