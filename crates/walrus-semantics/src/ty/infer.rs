@@ -500,17 +500,7 @@ impl Ctx {
     }
 
     fn infer_fields(&mut self, expr: ExprId, fields: Option<&[StructField]>, inits: &[FieldInit]) {
-        let mut first_init = HashMap::new();
-
         for init in inits {
-            let name = self.module.data[init.name].clone();
-            match first_init.get(&name) {
-                None => {
-                    first_init.insert(name, init.val);
-                }
-                Some(_) => todo!("Duplicate field init"),
-            }
-
             let expected = fields
                 .and_then(|fields| {
                     let field = fields

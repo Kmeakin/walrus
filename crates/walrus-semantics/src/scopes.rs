@@ -267,7 +267,9 @@ impl Scopes {
             Expr::Var(var) => self.set_scope_of_var(*var, self.scope),
             Expr::Struct { name, fields } | Expr::Enum { name, fields, .. } => {
                 self.set_scope_of_var(*name, self.scope);
+                let mut seen_fields = Vars::new();
                 for field in fields {
+                    self.insert_var(module, &mut seen_fields, field.name);
                     self.set_scope_of_var(field.name, self.scope);
                     self.expr_scope(module, field.val)
                 }
