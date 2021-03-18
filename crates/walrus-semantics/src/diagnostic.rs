@@ -1,7 +1,7 @@
 use crate::{
     hir::{Binop, ExprId, Field, PatId, StructField, TypeId, VarId},
     scopes::Denotation,
-    ty::{FnType, InferenceId, Type},
+    ty::{FnType, InferenceId, Type, VarMode},
 };
 use either::Either;
 use std::num::{ParseFloatError, ParseIntError};
@@ -24,7 +24,7 @@ pub enum Diagnostic {
     },
     UnboundVar {
         var: VarId,
-        id: Either<ExprId, TypeId>,
+        mode: VarMode,
         denotation: Option<Denotation>,
     },
     TypeMismatch {

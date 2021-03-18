@@ -4,7 +4,7 @@ use crate::hir::{EnumDefId, StructDefId};
 mod infer;
 mod unify;
 
-pub use self::infer::{infer, InferenceId, InferenceResult};
+pub use self::infer::{infer, InferenceId, InferenceResult, VarMode};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Type {

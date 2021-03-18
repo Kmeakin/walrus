@@ -53,6 +53,11 @@ impl Scopes {
             .or_else(|| Builtin::lookup(var).map(Denotation::Builtin))
     }
 
+    pub fn lookup_var(&self, id: VarId, var: &Var) -> Option<Denotation> {
+        let scope = self.scope_of_var[id];
+        self.lookup_in_scope(scope, var)
+    }
+
     pub fn lookup_expr(&self, expr: ExprId, var: &Var) -> Option<Denotation> {
         let scope = self.scope_of_expr[expr];
         self.lookup_in_scope(scope, var)
@@ -249,7 +254,10 @@ impl Scopes {
     fn type_scope(&mut self, module: &Module, id: TypeId) {
         self.set_scope_of_type(id, self.scope);
         let ty = &module.data[id];
-        ty.walk_child_types(|id| self.type_scope(module, id))
+        match ty {
+            Type::Var(var) => self.set_scope_of_var(*var, self.scope),
+            ty => ty.walk_child_types(|id| self.type_scope(module, id)),
+        }
     }
 
     fn expr_scope(&mut self, module: &Module, id: ExprId) {
@@ -266,6 +274,7 @@ impl Scopes {
                 }
                 this.expr_scope(module, *expr)
             }),
+            Expr::Var(var) => self.set_scope_of_var(*var, self.scope),
             expr => expr.walk_child_exprs(|id| self.expr_scope(module, id)),
         }
     }

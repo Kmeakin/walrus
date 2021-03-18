@@ -48,6 +48,12 @@ impl Index<FnDefId> for InferenceResult {
     fn index(&self, id: FnDefId) -> &Self::Output { &self.type_of_fn[id] }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum VarMode {
+    Value,
+    Type,
+}
+
 /// An id representing any "thing" whose type is infered.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum InferenceId {
@@ -154,6 +160,35 @@ impl Ctx {
 
     fn new_type_var(&mut self) -> Type { Type::Infer(InferType::Var(self.table.new_type_var())) }
 
+    fn resolve_var(&mut self, id: VarId, mode: VarMode) -> Type {
+        let var = &self.module.data[id];
+        let denotation = self.scopes.lookup_var(id, &var);
+        let ty = match (mode, denotation) {
+            (VarMode::Value, Some(Denotation::Builtin(b))) if b.kind() == BuiltinKind::Type => {
+                b.ty()
+            }
+            (VarMode::Value, Some(Denotation::Local(id))) => self.result[id].clone(),
+            (VarMode::Value, Some(Denotation::Fn(id))) => self.result[id].clone().into(),
+
+            (VarMode::Type, Some(Denotation::Builtin(b))) if b.kind() == BuiltinKind::Type => {
+                b.ty()
+            }
+            (VarMode::Type, Some(Denotation::Struct(id))) => Type::Struct(id),
+            (VarMode::Type, Some(Denotation::Enum(id))) => Type::Enum(id),
+
+            _ => {
+                self.result.diagnostics.push(Diagnostic::UnboundVar {
+                    var: id,
+                    mode,
+                    denotation,
+                });
+                Type::Unknown
+            }
+        };
+        self.set_var_type(id, ty.clone());
+        ty
+    }
+
     fn resolve_type(&mut self, id: TypeId) -> Type {
         let ty = self.module.data[id].clone();
         let ty = match ty {
@@ -173,43 +208,11 @@ impl Ctx {
     }
 
     fn resolve_var_type(&mut self, id: TypeId, var_id: VarId) -> Type {
-        let var = &self.module.data[var_id];
-        let denotation = self.scopes.lookup_type(id, var);
-        let ty = match denotation {
-            Some(Denotation::Builtin(b)) if b.kind() == BuiltinKind::Type => b.ty(),
-            Some(Denotation::Struct(id)) => Type::Struct(id),
-            Some(Denotation::Enum(id)) => Type::Enum(id),
-            _ => {
-                self.result.diagnostics.push(Diagnostic::UnboundVar {
-                    id: Right(id),
-                    var: var_id,
-                    denotation,
-                });
-                Type::Unknown
-            }
-        };
-        self.set_var_type(var_id, ty.clone());
-        ty
+        self.resolve_var(var_id, VarMode::Type)
     }
 
     fn resolve_var_expr(&mut self, id: ExprId, var_id: VarId) -> Type {
-        let var = &self.module.data[var_id];
-        let denotation = self.scopes.lookup_expr(id, var);
-        let ty = match denotation {
-            Some(Denotation::Local(id)) => self.result[id].clone(),
-            Some(Denotation::Fn(id)) => self.result[id].clone().into(),
-            Some(Denotation::Builtin(b)) if b.kind() == BuiltinKind::Value => b.ty(),
-            _ => {
-                self.result.diagnostics.push(Diagnostic::UnboundVar {
-                    id: Left(id),
-                    var: var_id,
-                    denotation,
-                });
-                Type::Unknown
-            }
-        };
-        self.set_var_type(var_id, ty.clone());
-        ty
+        self.resolve_var(var_id, VarMode::Value)
     }
 
     /// Propagates the type as far as currently possible, replacing type
