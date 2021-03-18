@@ -276,6 +276,7 @@ impl<'ctx> Compiler<'ctx> {
                     .unwrap();
                 self.codegen_local_var(vars, *id, val)
             }),
+            _ => todo!(),
         }
     }
 

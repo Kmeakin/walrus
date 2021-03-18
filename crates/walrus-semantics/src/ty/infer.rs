@@ -370,6 +370,7 @@ impl Ctx {
                     .collect();
                 Type::Tuple(tys)
             }
+            _ => todo!(),
         };
         let ty = self.propagate_type_as_far_as_possible(&ty);
         self.set_pat_type(id, ty.clone());

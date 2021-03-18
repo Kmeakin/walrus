@@ -1,6 +1,7 @@
 use super::*;
 use crate::diagnostic::LitError;
 use ordered_float::OrderedFloat;
+use syntax::{EnumPat, StructPat};
 
 pub fn lower(syntax: &syntax::SourceFile) -> Module {
     let mut ctx = Ctx::default();
@@ -182,9 +183,38 @@ impl Ctx {
             syntax::Pat::Tuple(pats) => {
                 Pat::Tuple(pats.inner.iter().map(|pat| self.lower_pat(pat)).collect())
             }
-            _ => todo!(),
+            syntax::Pat::Struct(StructPat { name, fields }) => Pat::Struct {
+                name: self.lower_var(name.clone()),
+                fields: fields
+                    .inner
+                    .iter()
+                    .map(|field| self.lower_field_pat(field))
+                    .collect(),
+            },
+            syntax::Pat::Enum(EnumPat {
+                name,
+                variant,
+                fields,
+                ..
+            }) => Pat::Enum {
+                name: self.lower_var(name.clone()),
+                variant: self.lower_var(variant.clone()),
+                fields: fields
+                    .inner
+                    .iter()
+                    .map(|field| self.lower_field_pat(field))
+                    .collect(),
+            },
         };
         self.alloc_pat(syntax.clone(), hir)
+    }
+
+    fn lower_field_pat(&mut self, syntax: &syntax::FieldPat) -> FieldPat {
+        let syntax::FieldPat { name, pat } = syntax;
+        FieldPat {
+            name: self.lower_var(name.clone()),
+            pat: pat.as_ref().map(|(_, pat)| self.lower_pat(&pat)),
+        }
     }
 
     fn lower_stmt(&mut self, syntax: &syntax::Stmt) -> Option<Stmt> {

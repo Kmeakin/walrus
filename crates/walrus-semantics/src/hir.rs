@@ -329,6 +329,21 @@ pub enum Pat {
     Var(VarId),
     Ignore,
     Tuple(Vec<PatId>),
+    Struct {
+        name: VarId,
+        fields: Vec<FieldPat>,
+    },
+    Enum {
+        name: VarId,
+        variant: VarId,
+        fields: Vec<FieldPat>,
+    },
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct FieldPat {
+    pub name: VarId,
+    pub pat: Option<PatId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
