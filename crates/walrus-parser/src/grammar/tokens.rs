@@ -26,6 +26,7 @@ token_parser!(kw_fn, KwFn);
 token_parser!(kw_if, KwIf);
 token_parser!(kw_let, KwLet);
 token_parser!(kw_loop, KwLoop);
+token_parser!(kw_match, KwMatch);
 token_parser!(kw_return, KwReturn);
 token_parser!(kw_struct, KwStruct);
 token_parser!(kw_true, KwTrue);

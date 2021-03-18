@@ -182,6 +182,7 @@ impl Ctx {
             syntax::Pat::Tuple(pats) => {
                 Pat::Tuple(pats.inner.iter().map(|pat| self.lower_pat(pat)).collect())
             }
+            _ => todo!(),
         };
         self.alloc_pat(syntax.clone(), hir)
     }
@@ -276,6 +277,7 @@ impl Ctx {
                     .collect(),
             },
             syntax::Expr::If(expr) => self.lower_if_expr(expr),
+            syntax::Expr::Match(_) => todo!(),
             syntax::Expr::Return(expr) => {
                 Expr::Return(expr.expr.as_ref().map(|expr| self.lower_expr(expr)))
             }

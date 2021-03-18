@@ -1,0 +1,81 @@
+---
+source: crates/walrus-parser/src/grammar.rs
+expression: got
+
+---
+Ok(
+    (
+        [],
+        Enum(
+            EnumPat {
+                name: Var(
+                    Ident {
+                        span: 0..3,
+                        text: "Foo",
+                    },
+                ),
+                colon_colon: ColonColon {
+                    span: 3..5,
+                },
+                variant: Var(
+                    Ident {
+                        span: 5..8,
+                        text: "Bar",
+                    },
+                ),
+                fields: Delimited {
+                    open: LCurly {
+                        span: 9..10,
+                    },
+                    inner: Punctuated0 {
+                        first: Some(
+                            FieldPat {
+                                name: Var(
+                                    Ident {
+                                        span: 10..11,
+                                        text: "x",
+                                    },
+                                ),
+                                pat: Some(
+                                    (
+                                        Colon {
+                                            span: 11..12,
+                                        },
+                                        Var(
+                                            Var(
+                                                Ident {
+                                                    span: 13..14,
+                                                    text: "y",
+                                                },
+                                            ),
+                                        ),
+                                    ),
+                                ),
+                            },
+                        ),
+                        tail: [
+                            (
+                                Comma {
+                                    span: 14..15,
+                                },
+                                FieldPat {
+                                    name: Var(
+                                        Ident {
+                                            span: 16..17,
+                                            text: "z",
+                                        },
+                                    ),
+                                    pat: None,
+                                },
+                            ),
+                        ],
+                        trail: None,
+                    },
+                    close: RCurly {
+                        span: 17..18,
+                    },
+                },
+            },
+        ),
+    ),
+)

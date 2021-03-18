@@ -226,6 +226,7 @@ fn atom_expr(input: Input) -> IResult<Expr> {
         .or(tuple_expr)
         .or(loop_expr)
         .or(if_expr)
+        .or(match_expr)
         .or(block_expr)
         .parse(input)
 }
@@ -260,6 +261,32 @@ fn else_expr(input: Input) -> IResult<ElseExpr> {
     }))
     .parse(input)
 }
+fn match_expr(input: Input) -> IResult<Expr> {
+    let (input, kw_match) = kw_match.parse(input)?;
+    let (input, test_expr) = block_expr.parse(input)?;
+    let (input, cases) = curly(punctuated0(match_case, comma)).parse(input)?;
+    Ok((
+        input,
+        Expr::Match(MatchExpr {
+            kw_match,
+            test_expr: box test_expr,
+            cases,
+        }),
+    ))
+}
+fn match_case(input: Input) -> IResult<MatchCase> {
+    let (input, pat) = pat.parse(input)?;
+    let (input, fat_arrow) = fat_arrow.parse(input)?;
+    let (input, expr) = expr.parse(input)?;
+    Ok((
+        input,
+        MatchCase {
+            pat,
+            fat_arrow,
+            expr,
+        },
+    ))
+}
 fn loop_expr(input: Input) -> IResult<Expr> {
     let (input, kw_loop) = kw_loop.parse(input)?;
     let (input, expr) = block_expr.parse(input)?;
@@ -271,6 +298,7 @@ fn loop_expr(input: Input) -> IResult<Expr> {
         }),
     ))
 }
+
 pub fn block(input: Input) -> IResult<Block> {
     let (input, lcurly) = lcurly.parse(input)?;
     let (input, stmts) = many0(stmt).parse(input)?;

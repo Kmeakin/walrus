@@ -14,6 +14,7 @@ pub enum Expr {
     Struct(StructExpr),
     Enum(EnumExpr),
     If(IfExpr),
+    Match(MatchExpr),
     Return(ReturnExpr),
     Break(BreakExpr),
     Continue(ContinueExpr),
@@ -111,6 +112,20 @@ pub struct IfExpr {
 pub enum ElseExpr {
     ElseBlock { kw_else: KwElse, block: Box<Expr> },
     ElseIf { kw_else: KwElse, if_expr: Box<Expr> },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct MatchExpr {
+    pub kw_match: KwMatch,
+    pub test_expr: Box<Expr>,
+    pub cases: Curly<Punctuated0<MatchCase, Comma>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct MatchCase {
+    pub pat: Pat,
+    pub fat_arrow: FatArrow,
+    pub expr: Expr,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

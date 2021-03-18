@@ -1,0 +1,72 @@
+---
+source: crates/walrus-parser/src/grammar.rs
+expression: got
+
+---
+Ok(
+    (
+        [],
+        Struct(
+            StructPat {
+                name: Var(
+                    Ident {
+                        span: 0..3,
+                        text: "Foo",
+                    },
+                ),
+                fields: Delimited {
+                    open: LCurly {
+                        span: 4..5,
+                    },
+                    inner: Punctuated0 {
+                        first: Some(
+                            FieldPat {
+                                name: Var(
+                                    Ident {
+                                        span: 5..6,
+                                        text: "x",
+                                    },
+                                ),
+                                pat: Some(
+                                    (
+                                        Colon {
+                                            span: 6..7,
+                                        },
+                                        Var(
+                                            Var(
+                                                Ident {
+                                                    span: 8..9,
+                                                    text: "y",
+                                                },
+                                            ),
+                                        ),
+                                    ),
+                                ),
+                            },
+                        ),
+                        tail: [
+                            (
+                                Comma {
+                                    span: 9..10,
+                                },
+                                FieldPat {
+                                    name: Var(
+                                        Ident {
+                                            span: 11..12,
+                                            text: "z",
+                                        },
+                                    ),
+                                    pat: None,
+                                },
+                            ),
+                        ],
+                        trail: None,
+                    },
+                    close: RCurly {
+                        span: 12..13,
+                    },
+                },
+            },
+        ),
+    ),
+)
