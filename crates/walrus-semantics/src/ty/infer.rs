@@ -452,7 +452,7 @@ impl Ctx {
 
     fn infer_struct_expr(&mut self, expr: ExprId, name: VarId, fields: &[FieldInit]) -> Type {
         let var = &self.module.data[name];
-        let denotation = self.scopes.lookup_expr(expr, var);
+        let denotation = self.scopes.lookup_var(name, var);
         match denotation {
             Some(Denotation::Struct(id)) => {
                 let struct_def = self.module.data[id].clone();
@@ -475,7 +475,7 @@ impl Ctx {
         fields: &[FieldInit],
     ) -> Type {
         let var = &self.module.data[name];
-        let denotation = self.scopes.lookup_expr(expr, var);
+        let denotation = self.scopes.lookup_var(name, var);
         match denotation {
             Some(Denotation::Enum(id)) => {
                 let enum_def = self.module.data[id].clone();

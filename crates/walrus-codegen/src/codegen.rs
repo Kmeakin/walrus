@@ -280,7 +280,7 @@ impl<'ctx> Compiler<'ctx> {
         let expr = &self.hir[id];
         match expr {
             Expr::Lit(lit) => Some(self.codegen_lit(*lit)),
-            Expr::Var(var) => Some(self.codegen_var(vars, id, *var)),
+            Expr::Var(var) => Some(self.codegen_var(vars, *var)),
             Expr::Tuple(exprs) => self.codegen_tuple(vars, id, exprs),
             Expr::Struct { fields, .. } => self.codegen_struct(vars, id, fields),
             Expr::Enum {
@@ -323,9 +323,9 @@ impl<'ctx> Compiler<'ctx> {
     fn codegen_lvalue(&self, vars: &mut Vars<'ctx>, id: ExprId) -> Option<PointerValue> {
         let expr = &self.hir[id];
         match expr {
-            Expr::Var(var) => {
-                let var = &self.hir[*var];
-                let denotation = self.scopes.lookup_expr(id, var);
+            Expr::Var(var_id) => {
+                let var = &self.hir[*var_id];
+                let denotation = self.scopes.lookup_var(*var_id, var);
                 match denotation {
                     Some(Denotation::Local(id)) => Some(vars[id]),
                     _ => unreachable!(),
@@ -379,17 +379,17 @@ impl<'ctx> Compiler<'ctx> {
         }
     }
 
-    fn codegen_var(&self, vars: &Vars<'ctx>, expr: ExprId, var: VarId) -> BasicValueEnum {
-        let var = &self.hir[var];
-        let denotation = self.scopes.lookup_expr(expr, var);
+    fn codegen_var(&self, vars: &Vars<'ctx>, id: VarId) -> BasicValueEnum {
+        let var = &self.hir[id];
+        let denotation = self.scopes.lookup_var(id, var);
         match denotation {
             Some(Denotation::Local(id)) => self.builder.build_load(vars[id], var.as_str()),
             Some(Denotation::Fn(id)) => {
                 let fn_def = &self.hir[id];
                 let fn_name = &self.hir[fn_def.name].as_str();
-                let fn_type = self.types[expr].as_fn().unwrap();
+                let fn_type = &self.types[id];
                 let fn_value = vars[id];
-                self.codegen_fn_value(fn_name, fn_value, fn_type)
+                self.codegen_fn_value(fn_name, fn_value, &fn_type)
             }
             Some(Denotation::Builtin(b)) => self.codegen_builtin(b),
             _ => unreachable!(),

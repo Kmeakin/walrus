@@ -275,6 +275,13 @@ impl Scopes {
                 this.expr_scope(module, *expr)
             }),
             Expr::Var(var) => self.set_scope_of_var(*var, self.scope),
+            Expr::Struct { name, fields } | Expr::Enum { name, fields, .. } => {
+                self.set_scope_of_var(*name, self.scope);
+                for field in fields {
+                    self.set_scope_of_var(field.name, self.scope);
+                    self.expr_scope(module, field.val)
+                }
+            }
             expr => expr.walk_child_exprs(|id| self.expr_scope(module, id)),
         }
     }
