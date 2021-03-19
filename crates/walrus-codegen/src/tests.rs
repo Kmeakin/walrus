@@ -456,7 +456,7 @@ mod enums {
             Foo::Bar{}
         }
     "#,
-            (),
+            ((), ()),
         )
     }
 
@@ -471,36 +471,38 @@ mod enums {
             Foo::Bar{x: 5}
         }
     "#,
-            5_i32,
+            (5_i32, ()),
         )
     }
 
+    #[test]
     fn enum2_variant0() {
         test_codegen_and_run(
             r#"
         enum Foo { 
-            Bar {x: Int},
-            Baz {y: Bool} 
-        }
-        fn main() -> _ {
-            Foo::Bar{x: 5}
-        }
-    "#,
-            0_u8,
-        );
-    }
-    fn enum2_variant1() {
-        test_codegen_and_run(
-            r#"
-        enum Foo { 
-            Bar {}
+            Bar {},
             Baz {}
         }
         fn main() -> _ {
             Foo::Bar{}
         }
     "#,
-            1_u8,
+            (0_u8, ()),
+        );
+    }
+    #[test]
+    fn enum2_variant1() {
+        test_codegen_and_run(
+            r#"
+        enum Foo { 
+            Bar {},
+            Baz {}
+        }
+        fn main() -> _ {
+            Foo::Baz{}
+        }
+    "#,
+            (1_u8, ()),
         )
     }
 

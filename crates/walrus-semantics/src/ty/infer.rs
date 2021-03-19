@@ -1,5 +1,3 @@
-use std::{collections::HashMap, ops::Index};
-
 use super::{unify::InferenceTable, Type, *};
 use crate::{
     builtins::BuiltinKind,
@@ -10,6 +8,7 @@ use crate::{
 };
 use arena::ArenaMap;
 use either::{Either, Either::*};
+use std::ops::Index;
 
 pub fn infer(module: Module, scopes: Scopes) -> InferenceResult {
     let mut ctx = Ctx::new(module, scopes);
@@ -200,18 +199,18 @@ impl Ctx {
                 params.iter().map(|ty| self.resolve_type(*ty)).collect(),
                 self.resolve_type(ret),
             ),
-            hir::Type::Var(var) => self.resolve_var_type(id, var),
+            hir::Type::Var(var) => self.resolve_var_type(var),
         };
         let ty = self.propagate_type_as_far_as_possible(&ty);
         self.set_type_type(id, ty.clone());
         ty
     }
 
-    fn resolve_var_type(&mut self, id: TypeId, var_id: VarId) -> Type {
+    fn resolve_var_type(&mut self, var_id: VarId) -> Type {
         self.resolve_var(var_id, VarMode::Type)
     }
 
-    fn resolve_var_expr(&mut self, id: ExprId, var_id: VarId) -> Type {
+    fn resolve_var_expr(&mut self, var_id: VarId) -> Type {
         self.resolve_var(var_id, VarMode::Value)
     }
 
@@ -410,7 +409,7 @@ impl Ctx {
         let expr = self.module.data[id].clone();
         let ty = match expr {
             Expr::Lit(lit) => lit.ty(),
-            Expr::Var(var) => self.resolve_var_expr(id, var),
+            Expr::Var(var) => self.resolve_var_expr(var),
             Expr::Tuple(exprs) => self.infer_tuple_expr(expected, &exprs),
             Expr::Struct { name, fields } => self.infer_struct_expr(id, name, &fields),
             Expr::Enum {
@@ -480,13 +479,10 @@ impl Ctx {
             Some(Denotation::Enum(id)) => {
                 let enum_def = self.module.data[id].clone();
                 let enum_type = Type::Enum(id);
-                let variant = enum_def
-                    .variants
-                    .iter()
-                    .find(|v| self.module.data[v.name] == self.module.data[variant]);
+                let variant = enum_def.find_variant(&self.module.data, variant);
                 match variant {
                     None => todo!("No such variant"),
-                    Some(variant) => {
+                    Some((_, variant)) => {
                         self.infer_fields(expr, Some(&variant.fields), fields);
                     }
                 }

@@ -247,7 +247,6 @@ impl<'ctx> Compiler<'ctx> {
     }
 
     fn codegen_local_var(&self, vars: &mut Vars<'ctx>, var_id: VarId, val: BasicValueEnum) {
-        let var = &self.hir[var_id];
         let var_type = &self.types[var_id];
         let name = format!("{}.alloca", self.hir[var_id]);
         let alloca = self.builder.build_alloca(self.value_type(var_type), &name);
@@ -257,7 +256,6 @@ impl<'ctx> Compiler<'ctx> {
 
     fn codegen_local_pat(&self, vars: &mut Vars<'ctx>, id: PatId, val: BasicValueEnum) {
         let pat = &self.hir[id];
-        let pat_type = &self.types[id];
         match pat {
             hir::Pat::Ignore => {}
             hir::Pat::Var(var) => self.codegen_local_var(vars, *var, val),
@@ -505,13 +503,7 @@ impl<'ctx> Compiler<'ctx> {
         let enum_ty = self.enum_type(enum_id);
 
         let variant_name = self.hir[variant].as_str();
-        let (variant_idx, variant) = enum_def
-            .variants
-            .iter()
-            .enumerate()
-            .find(|(_, var)| self.hir[var.name] == self.hir[variant])
-            .unwrap();
-
+        let (variant_idx, variant) = enum_def.find_variant(&self.hir, variant).unwrap();
         let (discriminant_type, discriminant_value) =
             match self.discriminant_type(enum_def.variants.len()) {
                 None => (self.unit_type().into(), self.codegen_unit()),

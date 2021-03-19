@@ -152,6 +152,19 @@ pub struct EnumDef {
     pub variants: Vec<EnumVariant>,
 }
 
+impl EnumDef {
+    pub fn find_variant(
+        &self,
+        module: &ModuleData,
+        variant: VarId,
+    ) -> Option<(usize, &EnumVariant)> {
+        self.variants
+            .iter()
+            .enumerate()
+            .find(|(_, v)| module[variant] == module[v.name])
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct EnumVariant {
     pub name: VarId,

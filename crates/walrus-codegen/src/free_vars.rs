@@ -1,7 +1,7 @@
 use crate::codegen::Compiler;
 use arena::ArenaMap;
 use walrus_semantics::{
-    hir::{Expr, ExprId, PatId, VarId},
+    hir::{Expr, ExprId, VarId},
     scopes::Denotation,
 };
 
