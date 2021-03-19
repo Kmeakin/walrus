@@ -339,9 +339,6 @@ pub enum Lit {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Pat {
-    /// Used as a placeholder for the invisible pattern in `Foo {x}` which is
-    /// sugar for `Foo {x: x}`
-    Dummy,
     Var(VarId),
     Ignore,
     Tuple(Vec<PatId>),

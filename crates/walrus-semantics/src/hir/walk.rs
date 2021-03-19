@@ -66,7 +66,7 @@ impl Type {
 impl Pat {
     pub fn walk_child_pats(&self, mut f: impl FnMut(PatId)) {
         match self {
-            Self::Dummy | Self::Var(_) | Self::Ignore => {}
+            Self::Var(_) | Self::Ignore => {}
             Self::Tuple(pats) => pats.iter().copied().for_each(f),
             Self::Struct { fields, .. } | Self::Enum { fields, .. } => fields
                 .iter()
