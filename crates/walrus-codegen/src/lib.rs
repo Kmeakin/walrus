@@ -18,13 +18,7 @@
     dead_code,
     elided_lifetimes_in_paths
 )]
-#![feature(
-    format_args_capture,
-    never_type,
-    exhaustive_patterns,
-    or_patterns,
-    once_cell
-)]
+#![feature(format_args_capture)]
 
 mod codegen;
 mod free_vars;

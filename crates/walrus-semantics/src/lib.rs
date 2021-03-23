@@ -18,8 +18,7 @@
     dead_code,
     elided_lifetimes_in_paths
 )]
-#![feature(format_args_capture, or_patterns)]
-#![feature(box_syntax)]
+#![feature(format_args_capture, box_syntax)]
 
 pub mod builtins;
 mod diagnostic;
