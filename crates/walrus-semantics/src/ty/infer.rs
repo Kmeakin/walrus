@@ -429,7 +429,8 @@ impl Ctx {
                     .collect();
                 Type::Tuple(tys)
             }
-            _ => todo!(),
+            Pat::Struct { .. } => todo!(),
+            Pat::Enum { .. } => todo!(),
         };
         let ty = self.propagate_type_as_far_as_possible(&ty);
         self.set_pat_type(id, ty.clone());
@@ -453,6 +454,7 @@ impl Ctx {
                 then_branch,
                 else_branch,
             } => self.infer_if_expr(test, then_branch, else_branch),
+            Expr::Match { .. } => todo!(),
             Expr::Lambda { params, expr } => self.infer_lambda_expr(expected, &params, expr),
             Expr::Call { func, args } => self.infer_call_expr(func, &args),
             Expr::Field { expr, field } => self.infer_field_expr(expr, field),

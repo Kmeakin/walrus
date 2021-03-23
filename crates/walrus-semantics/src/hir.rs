@@ -218,6 +218,10 @@ pub enum Expr {
         then_branch: ExprId,
         else_branch: Option<ExprId>,
     },
+    Match {
+        test: ExprId,
+        cases: Vec<MatchCase>,
+    },
     Break(Option<ExprId>),
     Return(Option<ExprId>),
     Continue,
@@ -225,6 +229,12 @@ pub enum Expr {
         params: Vec<Param>,
         expr: ExprId,
     },
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct MatchCase {
+    pub pat: PatId,
+    pub expr: ExprId,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]

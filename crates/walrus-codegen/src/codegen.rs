@@ -290,6 +290,7 @@ impl<'ctx> Compiler<'ctx> {
                 then_branch,
                 else_branch,
             } => self.codegen_if(vars, *test, *then_branch, *else_branch),
+            Expr::Match { .. } => todo!(),
             Expr::Loop(body) => self.codegen_loop(vars, id, *body),
             Expr::Break(expr) => self.codegen_break(vars, *expr),
             Expr::Continue => self.codegen_continue(vars),

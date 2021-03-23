@@ -307,7 +307,7 @@ impl Ctx {
                     .collect(),
             },
             syntax::Expr::If(expr) => self.lower_if_expr(expr),
-            syntax::Expr::Match(_) => todo!(),
+            syntax::Expr::Match(expr) => self.lower_match_expr(expr),
             syntax::Expr::Return(expr) => {
                 Expr::Return(expr.expr.as_ref().map(|expr| self.lower_expr(expr)))
             }
@@ -342,6 +342,21 @@ impl Ctx {
                 Some(syntax::ElseExpr::ElseBlock { block, .. }) => Some(self.lower_expr(block)),
                 Some(syntax::ElseExpr::ElseIf { if_expr, .. }) => Some(self.lower_expr(if_expr)),
             },
+        }
+    }
+
+    fn lower_match_expr(&mut self, syntax: &syntax::MatchExpr) -> Expr {
+        Expr::Match {
+            test: self.lower_expr(&syntax.test_expr),
+            cases: syntax
+                .cases
+                .inner
+                .iter()
+                .map(|case| MatchCase {
+                    pat: self.lower_pat(&case.pat),
+                    expr: self.lower_expr(&case.expr),
+                })
+                .collect(),
         }
     }
 

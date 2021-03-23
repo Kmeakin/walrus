@@ -41,6 +41,10 @@ impl Expr {
                     f(*else_branch)
                 }
             }
+            Self::Match { test, cases } => {
+                f(*test);
+                cases.iter().for_each(|case| f(case.expr))
+            }
             Self::Break(expr) | Self::Return(expr) => {
                 if let Some(expr) = expr {
                     f(*expr)
