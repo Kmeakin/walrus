@@ -264,6 +264,16 @@ impl Scopes {
                 }
                 this.expr_scope(module, *expr)
             }),
+            Expr::Match { test, cases } => {
+                self.expr_scope(module, *test);
+                for case in cases {
+                    self.in_child_scope(|this| {
+                        let mut vars = Vars::new();
+                        this.pat_scope(module, &mut vars, case.pat);
+                        this.expr_scope(module, case.expr)
+                    })
+                }
+            }
             Expr::Var(var) => self.set_scope_of_var(*var, self.scope),
             Expr::Struct { name, fields } | Expr::Enum { name, fields, .. } => {
                 self.set_scope_of_var(*name, self.scope);
