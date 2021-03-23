@@ -1,0 +1,62 @@
+---
+source: crates/walrus-parser/src/grammar.rs
+expression: got
+
+---
+Ok(
+    (
+        [],
+        Match(
+            MatchExpr {
+                kw_match: KwMatch {
+                    span: 0..5,
+                },
+                test_expr: Lit(
+                    Int(
+                        Dec(
+                            DecInt {
+                                span: 6..7,
+                                text: "5",
+                            },
+                        ),
+                    ),
+                ),
+                cases: Delimited {
+                    open: LCurly {
+                        span: 8..9,
+                    },
+                    inner: Punctuated0 {
+                        first: Some(
+                            MatchCase {
+                                pat: Var(
+                                    Var(
+                                        Ident {
+                                            span: 9..10,
+                                            text: "x",
+                                        },
+                                    ),
+                                ),
+                                fat_arrow: FatArrow {
+                                    span: 11..13,
+                                },
+                                expr: Var(
+                                    Var(
+                                        Ident {
+                                            span: 14..15,
+                                            text: "x",
+                                        },
+                                    ),
+                                ),
+                            },
+                        ),
+                        tail: [],
+                        trail: None,
+                    },
+                    close: RCurly {
+                        span: 15..16,
+                    },
+                },
+            },
+        ),
+    ),
+)

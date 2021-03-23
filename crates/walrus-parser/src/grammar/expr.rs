@@ -263,7 +263,7 @@ fn else_expr(input: Input) -> IResult<ElseExpr> {
 }
 fn match_expr(input: Input) -> IResult<Expr> {
     let (input, kw_match) = kw_match.parse(input)?;
-    let (input, test_expr) = block_expr.parse(input)?;
+    let (input, test_expr) = expr_no_struct.parse(input)?;
     let (input, cases) = curly(punctuated0(match_case, comma)).parse(input)?;
     Ok((
         input,
@@ -409,4 +409,5 @@ mod tests {
     test_parse!(block_expr2, expr, r#"{if true {} loop {} {} x}"#);
     test_parse!(struct_expr, expr, r#"Foo {x: 1, y: 2}"#);
     test_parse!(enum_expr, expr, r#"Foo::Bar {x: 1, y: 2}"#);
+    test_parse!(match_expr, expr, r#"match 5 {x => x}"#);
 }

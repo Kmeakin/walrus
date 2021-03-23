@@ -340,4 +340,15 @@ fn is_even(x: _) -> _ { if x == 0 { true  } else { is_odd(x - 1)  } }
             Type::function(vec![Type::INT], Type::BOOL),
         ])
     );
+
+    test_infer!(
+        match_expr,
+        r#"
+fn f() -> _ {
+    match 5 {
+        x => x,
+    }
+}"#,
+        Type::INT
+    );
 }

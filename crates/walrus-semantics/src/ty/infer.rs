@@ -268,6 +268,30 @@ impl Ctx {
 
     fn unify(&mut self, t1: &Type, t2: &Type) -> bool { self.table.unify(t1, t2) }
 
+    fn unify_branches(&mut self, branches: Vec<ExprId>) -> Type {
+        let mut result = self.new_type_var();
+
+        for branch in branches {
+            let branch_ty = self.infer_expr(&Type::Unknown, branch);
+            match self.coerce_branches(&result, &branch_ty) {
+                None => todo!("Branch mismatch"),
+                Some(ty) => result = ty,
+            }
+        }
+
+        result
+    }
+
+    fn coerce_branches(&mut self, ty1: &Type, ty2: &Type) -> Option<Type> {
+        if self.coerce(ty1, ty2) {
+            Some(ty2.clone())
+        } else if self.coerce(ty2, ty1) {
+            Some(ty1.clone())
+        } else {
+            None
+        }
+    }
+
     fn coerce(&mut self, from: &Type, to: &Type) -> bool {
         if from == &Type::NEVER {
             true
@@ -454,7 +478,7 @@ impl Ctx {
                 then_branch,
                 else_branch,
             } => self.infer_if_expr(test, then_branch, else_branch),
-            Expr::Match { .. } => todo!(),
+            Expr::Match { test, cases } => self.infer_match_expr(test, cases),
             Expr::Lambda { params, expr } => self.infer_lambda_expr(expected, &params, expr),
             Expr::Call { func, args } => self.infer_call_expr(func, &args),
             Expr::Field { expr, field } => self.infer_field_expr(expr, field),
@@ -581,21 +605,34 @@ impl Ctx {
                 Type::UNIT
             }
             Some(else_branch) => {
-                let then_ty = self.infer_expr(&Type::Unknown, then_branch);
-                let else_ty = self.infer_expr(&Type::Unknown, else_branch);
-                if self.unify(&then_ty, &else_ty) {
-                    then_ty
-                } else {
-                    self.result.diagnostics.push(Diagnostic::IfBranchMismatch {
-                        then_branch,
-                        else_branch,
-                        then_ty,
-                        else_ty,
-                    });
-                    Type::Unknown
-                }
+                self.unify_branches(vec![then_branch, else_branch])
+                // if self.unify(&then_ty, &else_ty) {
+                //     then_ty
+                // } else {
+                //     self.result.diagnostics.push(Diagnostic::IfBranchMismatch
+                // {         then_branch,
+                //         else_branch,
+                //         then_ty,
+                //         else_ty,
+                //     });
+                //     Type::Unknown
+                // }
             }
         }
+    }
+
+    fn infer_match_expr(&mut self, test: ExprId, cases: Vec<MatchCase>) -> Type {
+        let test_type = self.infer_expr(&Type::Unknown, test);
+
+        if cases.is_empty() {
+            return Type::UNIT;
+        }
+
+        for case in &cases {
+            self.infer_pat(&test_type, case.pat);
+        }
+
+        self.unify_branches(cases.iter().map(|case| case.expr).collect())
     }
 
     fn infer_lambda_expr(&mut self, expected: &Type, params: &[Param], body: ExprId) -> Type {
