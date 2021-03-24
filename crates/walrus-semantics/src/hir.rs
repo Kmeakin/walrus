@@ -140,6 +140,15 @@ pub struct StructDef {
     pub fields: Vec<StructField>,
 }
 
+impl StructDef {
+    pub fn lookup_field(&self, hir: &ModuleData, name: VarId) -> Option<(usize, &StructField)> {
+        self.fields
+            .iter()
+            .enumerate()
+            .find(|(_, field)| hir[field.name] == hir[name])
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct StructField {
     pub name: VarId,

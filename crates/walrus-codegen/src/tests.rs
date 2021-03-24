@@ -427,6 +427,19 @@ fn main() -> _ {
             6_i32,
         )
     }
+
+    fn field_pat() {
+        test_codegen_and_run(
+            r#"
+struct Foo {x: Int, y: Int}
+fn main() -> _ {
+    let Foo {y,x} = Foo{x: 5, y: 10};
+    y - x
+}
+    "#,
+            5_i32,
+        );
+    }
 }
 
 mod enums {

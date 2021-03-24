@@ -11,6 +11,9 @@ InferenceResult {
         6: Primitive(
             Bool,
         ),
+        10: Primitive(
+            Int,
+        ),
     },
     type_of_expr: {
         0: Primitive(

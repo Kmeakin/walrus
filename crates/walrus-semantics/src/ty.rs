@@ -397,4 +397,16 @@ fn f() -> _ {
     "#,
         Type::INT
     );
+
+    test_infer!(
+        field_pat,
+        r#"
+struct Foo {x: Int, y: Int}
+fn main() -> _ {
+    let Foo {y,x} = Foo{x: 5, y: 10};
+    x
+}
+    "#,
+        Type::INT
+    );
 }

@@ -13,6 +13,9 @@ use either::{Either, Either::*};
 use std::ops::Index;
 
 pub fn infer(module: Module, scopes: Scopes) -> InferenceResult {
+    dbg!(&module);
+    dbg!(&scopes);
+
     let mut ctx = Ctx::new(module, scopes);
     ctx.infer_module();
     ctx.finish()
@@ -607,15 +610,12 @@ impl Ctx {
                     }
                 })
                 .unwrap_or(Type::Unknown);
-            match init {
-                Left(expr) => {
-                    self.infer_expr(&expected, *expr);
-                }
-                Right(Some(pat)) => {
-                    self.infer_pat(&expected, *pat);
-                }
-                _ => (),
+            let ty = match init {
+                Left(expr) => self.infer_expr(&expected, *expr),
+                Right(Some(pat)) => self.infer_pat(&expected, *pat),
+                Right(None) => expected,
             };
+            self.set_var_type(*name, ty);
         }
 
         if let Some(fields) = fields {
@@ -740,13 +740,9 @@ impl Ctx {
                 let struct_def = &self.module.data[id];
                 match field {
                     Field::Named(name) => {
-                        let field_name = &self.module.data[name];
-                        let target = struct_def
-                            .fields
-                            .iter()
-                            .find(|field| &self.module.data[field.name] == field_name);
+                        let target = struct_def.lookup_field(&self.module.data, name);
                         match target {
-                            Some(field) => self.result.type_of_type[field.ty].clone(),
+                            Some((_, field)) => self.result.type_of_type[field.ty].clone(),
                             None => {
                                 self.result.diagnostics.push(Diagnostic::NoSuchField {
                                     parent: Left(parent),

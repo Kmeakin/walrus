@@ -17,8 +17,8 @@ use std::ops::Index;
 use walrus_semantics::{
     builtins::Builtin,
     hir::{
-        self, ArithmeticBinop, Binop, CmpBinop, EnumDefId, Expr, ExprId, Field, FieldInit, FnDefId,
-        LazyBinop, Lit, Param, PatId, StructDefId, StructField, Unop, VarId,
+        self, ArithmeticBinop, Binop, CmpBinop, EnumDefId, Expr, ExprId, Field, FieldInit,
+        FieldPat, FnDefId, LazyBinop, Lit, Param, PatId, StructDefId, StructField, Unop, VarId,
     },
     scopes::{self, Denotation},
     ty,
@@ -271,7 +271,29 @@ impl<'ctx> Compiler<'ctx> {
                     .unwrap();
                 self.codegen_local_pat(vars, *id, val)
             }),
-            hir::Pat::Struct { .. } => todo!(),
+            hir::Pat::Struct { fields, .. } => {
+                let struct_id = self.types[id].as_struct().unwrap();
+                let struct_def = &self.hir[struct_id];
+                let struct_name = &self.hir[struct_def.name];
+
+                for field in fields {
+                    let (idx, struct_field) =
+                        struct_def.lookup_field(&self.hir, field.name).unwrap();
+                    let field_name = &self.hir[struct_field.name];
+                    let val = self
+                        .builder
+                        .build_extract_value(
+                            val.into_struct_value(),
+                            idx as u32,
+                            &format!("{struct_name}.{field_name}"),
+                        )
+                        .unwrap();
+                    match field.pat {
+                        None => self.codegen_local_var(vars, field.name, val),
+                        Some(pat) => self.codegen_local_pat(vars, pat, val),
+                    }
+                }
+            }
             hir::Pat::Lit(_) | hir::Pat::Enum { .. } => {
                 unreachable!("Attempt to codegen falliable pattern: {:#?}", pat)
             }
@@ -461,11 +483,11 @@ impl<'ctx> Compiler<'ctx> {
     }
 
     fn codegen_struct(&self, vars: &mut Vars<'ctx>, expr: ExprId, fields: &[FieldInit]) -> Value {
-        let struct_id = self.types[expr].as_struct().unwrap();
+        let ty = &self.types[expr];
+        let struct_id = ty.as_struct().unwrap();
         let struct_def = &self.hir[struct_id];
         let struct_name = &self.hir[struct_def.name];
 
-        let ty = &self.types[expr];
         let value_type = self.value_type(ty);
         let init_exprs = fields
             .iter()

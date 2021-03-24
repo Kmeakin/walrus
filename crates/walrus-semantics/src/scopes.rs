@@ -224,9 +224,11 @@ impl Scopes {
         let pat = &module.data[id];
         match pat {
             Pat::Var(var) => self.insert_denotation(module, vars, *var, Denotation::Local(*var)),
-            Pat::Struct { fields, .. } | Pat::Enum { fields, .. } => {
+            Pat::Struct { name, fields, .. } | Pat::Enum { name, fields, .. } => {
+                self.set_scope_of_var(*name, self.scope);
                 let mut seen_fields = Vars::new();
                 for field in fields {
+                    self.set_scope_of_var(field.name, self.scope);
                     self.insert_var(module, &mut seen_fields, field.name);
 
                     match field {
