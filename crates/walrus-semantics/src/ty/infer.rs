@@ -1,4 +1,4 @@
-// TODO: check pattern coverage/faliability
+// TODO: check pattern coverage
 
 use super::{unify::InferenceTable, Type, *};
 use crate::{
@@ -304,6 +304,15 @@ impl Ctx {
             self.unify(from, to)
         }
     }
+
+    fn check_faliability(&mut self, pat_id: PatId) {
+        let pat = &self.module.data[pat_id];
+        if !pat.is_infalliable(&self.module.data) {
+            self.result
+                .diagnostics
+                .push(Diagnostic::FalliablePattern { id: pat_id });
+        }
+    }
 }
 
 impl Ctx {
@@ -351,7 +360,7 @@ impl Ctx {
         let params = fn_decl
             .params
             .iter()
-            .map(|param| self.infer_binding(param.pat, param.ty, None))
+            .map(|param| self.infer_binding(param.pat, param.ty, None, true))
             .collect();
         let ret = fn_decl
             .ret_type
@@ -396,7 +405,13 @@ impl Ctx {
     /// because, when the user provides a type annotation, they usually want
     /// it to guide the inference process on expr inference (eg `let x:
     /// Vec<_> = xs.iter().collect()`)
-    fn infer_binding(&mut self, pat: PatId, ty: Option<TypeId>, expr: Option<ExprId>) -> Type {
+    fn infer_binding(
+        &mut self,
+        pat: PatId,
+        ty: Option<TypeId>,
+        expr: Option<ExprId>,
+        check_faliability: bool,
+    ) -> Type {
         let ty = match ty {
             Some(ty) => self.resolve_type(ty),
             None => self.new_type_var(),
@@ -406,6 +421,11 @@ impl Ctx {
             None => ty,
         };
         let expr_ty = self.propagate_type_as_far_as_possible(&expr_ty);
+
+        if check_faliability {
+            self.check_faliability(pat)
+        }
+
         self.infer_pat(&expr_ty, pat)
     }
 
@@ -669,10 +689,6 @@ impl Ctx {
     fn infer_match_expr(&mut self, test: ExprId, cases: Vec<MatchCase>) -> Type {
         let test_type = self.infer_expr(&Type::Unknown, test);
 
-        if cases.is_empty() {
-            return Type::UNIT;
-        }
-
         for case in &cases {
             self.infer_pat(&test_type, case.pat);
         }
@@ -683,7 +699,7 @@ impl Ctx {
     fn infer_lambda_expr(&mut self, expected: &Type, params: &[Param], body: ExprId) -> Type {
         let param_types = params
             .iter()
-            .map(|param| self.infer_binding(param.pat, param.ty, None))
+            .map(|param| self.infer_binding(param.pat, param.ty, None, true))
             .collect::<Vec<_>>();
         let ret_type = self.new_type_var();
         let lambda_ty = FnType {
@@ -855,7 +871,7 @@ impl Ctx {
         for stmt in stmts {
             match stmt {
                 Stmt::Expr(expr) => self.infer_expr(&Type::Unknown, *expr),
-                Stmt::Let { pat, ty, expr } => self.infer_binding(*pat, *ty, Some(*expr)),
+                Stmt::Let { pat, ty, expr } => self.infer_binding(*pat, *ty, Some(*expr), true),
             };
         }
 

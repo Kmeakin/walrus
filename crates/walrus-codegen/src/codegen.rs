@@ -17,8 +17,8 @@ use std::ops::Index;
 use walrus_semantics::{
     builtins::Builtin,
     hir::{
-        self, ArithmeticBinop, Binop, CmpBinop, EnumDefId, Expr, ExprId, Field, FieldInit,
-        FieldPat, FnDefId, LazyBinop, Lit, Param, PatId, StructDefId, StructField, Unop, VarId,
+        self, ArithmeticBinop, Binop, CmpBinop, EnumDefId, Expr, ExprId, Field, FieldInit, FnDefId,
+        LazyBinop, Lit, Param, PatId, StructDefId, StructField, Unop, VarId,
     },
     scopes::{self, Denotation},
     ty,

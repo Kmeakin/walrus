@@ -72,4 +72,7 @@ pub enum Diagnostic {
         id: Either<ExprId, PatId>,
         field: Field,
     },
+    FalliablePattern {
+        id: PatId,
+    },
 }
