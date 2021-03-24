@@ -407,12 +407,9 @@ impl Pat {
         match self {
             Self::Lit(_) | Self::Var(_) | Self::Ignore => true,
             Self::Tuple(pats) => pats.iter().all(|pat| hir[*pat].is_infalliable(hir)),
-            Self::Struct { fields, .. } => fields.iter().all(|field| {
-                field
-                    .pat
-                    .map(|pat| hir[pat].is_infalliable(hir))
-                    .unwrap_or(true)
-            }),
+            Self::Struct { fields, .. } => fields
+                .iter()
+                .all(|field| field.pat.map_or(true, |pat| hir[pat].is_infalliable(hir))),
             Self::Enum { .. } => false,
         }
     }

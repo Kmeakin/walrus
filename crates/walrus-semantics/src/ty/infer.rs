@@ -168,7 +168,7 @@ impl Ctx {
 
     fn resolve_var(&mut self, id: VarId, mode: VarMode) -> Type {
         let var = &self.hir[id];
-        let denotation = self.scopes.lookup_var(id, &var);
+        let denotation = self.scopes.lookup_var(id, var);
         let ty = match (mode, denotation) {
             (VarMode::Value, Some(Denotation::Builtin(b))) if b.kind() == BuiltinKind::Type => {
                 b.ty()
@@ -179,11 +179,8 @@ impl Ctx {
             (VarMode::Type, Some(Denotation::Builtin(b))) if b.kind() == BuiltinKind::Type => {
                 b.ty()
             }
-            (VarMode::Type, Some(Denotation::Struct(id))) => Type::Struct(id),
-            (VarMode::Type, Some(Denotation::Enum(id))) => Type::Enum(id),
-
-            (VarMode::Struct, Some(Denotation::Struct(id))) => Type::Struct(id),
-            (VarMode::Enum, Some(Denotation::Enum(id))) => Type::Enum(id),
+            (VarMode::Type | VarMode::Struct, Some(Denotation::Struct(id))) => Type::Struct(id),
+            (VarMode::Type | VarMode::Enum, Some(Denotation::Enum(id))) => Type::Enum(id),
 
             _ => {
                 self.result.diagnostics.push(Diagnostic::UnboundVar {
@@ -514,7 +511,7 @@ impl Ctx {
                 then_branch,
                 else_branch,
             } => self.infer_if_expr(test, then_branch, else_branch),
-            Expr::Match { test, cases } => self.infer_match_expr(test, cases),
+            Expr::Match { test, cases } => self.infer_match_expr(test, &cases),
             Expr::Lambda { params, expr } => self.infer_lambda_expr(expected, &params, expr),
             Expr::Call { func, args } => self.infer_call_expr(func, &args),
             Expr::Field { expr, field } => self.infer_field_expr(expr, field),
@@ -663,10 +660,10 @@ impl Ctx {
         }
     }
 
-    fn infer_match_expr(&mut self, test: ExprId, cases: Vec<MatchCase>) -> Type {
+    fn infer_match_expr(&mut self, test: ExprId, cases: &[MatchCase]) -> Type {
         let test_type = self.infer_expr(&Type::Unknown, test);
 
-        for case in &cases {
+        for case in cases {
             self.infer_pat(&test_type, case.pat);
         }
 

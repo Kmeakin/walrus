@@ -408,7 +408,7 @@ impl<'ctx> Compiler<'ctx> {
                 let fn_name = &self.hir[fn_def.name].as_str();
                 let fn_type = &self.types[id];
                 let fn_value = vars[id];
-                self.codegen_fn_value(fn_name, fn_value, &fn_type)
+                self.codegen_fn_value(fn_name, fn_value, fn_type)
             }
             Some(Denotation::Builtin(b)) => self.codegen_builtin(b),
             _ => unreachable!("Local variable not bound to a value: {:#?}"),
@@ -1148,13 +1148,10 @@ impl<'ctx> Compiler<'ctx> {
                             &format!("tuple.{idx}"),
                         )
                         .unwrap();
-                    let b = match pat {
-                        pat => self.codegen_match_attempt(vars, element, *pat),
-                    };
+                    let b = self.codegen_match_attempt(vars, element, *pat);
                     bools.push(b)
                 }
-                let then_value = self.codegen_all(bools);
-                then_value
+                self.codegen_all(&bools)
             }
             Pat::Struct { fields, .. } => {
                 let struct_id = self.types[pat_id].as_struct().unwrap();
@@ -1183,8 +1180,7 @@ impl<'ctx> Compiler<'ctx> {
                     };
                     bools.push(b)
                 }
-                let then_value = self.codegen_all(bools);
-                then_value
+                self.codegen_all(&bools)
             }
             Pat::Enum {
                 variant, fields, ..
@@ -1246,7 +1242,7 @@ impl<'ctx> Compiler<'ctx> {
                     };
                     bools.push(b)
                 }
-                let then_value = self.codegen_all(bools);
+                let then_value = self.codegen_all(&bools);
 
                 // merge the 2 branches
                 self.builder.position_at_end(end_bb);
@@ -1260,7 +1256,7 @@ impl<'ctx> Compiler<'ctx> {
     fn codegen_true(&self) -> IntValue<'ctx> { self.llvm.bool_type().const_int(true as _, false) }
     fn codegen_false(&self) -> IntValue<'ctx> { self.llvm.bool_type().const_int(false as _, false) }
 
-    fn codegen_all(&self, bools: Vec<IntValue<'ctx>>) -> IntValue<'ctx> {
+    fn codegen_all(&self, bools: &[IntValue<'ctx>]) -> IntValue<'ctx> {
         bools.iter().fold(self.codegen_true(), |acc, e| {
             self.builder.build_and(acc, *e, "")
         })
