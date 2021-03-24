@@ -231,6 +231,16 @@ pub enum Expr {
     },
 }
 
+impl Expr {
+    pub fn is_lvalue(&self, hir: &ModuleData) -> bool {
+        match self {
+            Expr::Var(_) => true,
+            Expr::Field { expr, .. } => hir[*expr].is_lvalue(hir),
+            _ => false,
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct MatchCase {
     pub pat: PatId,
