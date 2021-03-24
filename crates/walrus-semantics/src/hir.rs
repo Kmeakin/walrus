@@ -40,13 +40,13 @@ impl From<syntax::Var> for Var {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Module {
     pub decls: Vec<Decl>,
-    pub data: ModuleData,
+    pub hir: HirData,
     pub source: ModuleSource,
     pub diagnostics: Vec<Diagnostic>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub struct ModuleData {
+pub struct HirData {
     pub vars: Arena<Var>,
     pub fn_defs: Arena<FnDef>,
     pub struct_defs: Arena<StructDef>,
@@ -55,31 +55,42 @@ pub struct ModuleData {
     pub types: Arena<Type>,
     pub pats: Arena<Pat>,
 }
-impl Index<VarId> for ModuleData {
+
+impl HirData {
+    pub fn decls(&self) -> impl Iterator<Item = Decl> {
+        self.fn_defs
+            .iter_ids()
+            .map(Decl::Fn)
+            .chain(self.struct_defs.iter_ids().map(Decl::Struct))
+            .chain(self.enum_defs.iter_ids().map(Decl::Enum))
+    }
+}
+
+impl Index<VarId> for HirData {
     type Output = Var;
     fn index(&self, id: VarId) -> &Self::Output { &self.vars[id] }
 }
-impl Index<FnDefId> for ModuleData {
+impl Index<FnDefId> for HirData {
     type Output = FnDef;
     fn index(&self, id: FnDefId) -> &Self::Output { &self.fn_defs[id] }
 }
-impl Index<StructDefId> for ModuleData {
+impl Index<StructDefId> for HirData {
     type Output = StructDef;
     fn index(&self, id: StructDefId) -> &Self::Output { &self.struct_defs[id] }
 }
-impl Index<EnumDefId> for ModuleData {
+impl Index<EnumDefId> for HirData {
     type Output = EnumDef;
     fn index(&self, id: EnumDefId) -> &Self::Output { &self.enum_defs[id] }
 }
-impl Index<ExprId> for ModuleData {
+impl Index<ExprId> for HirData {
     type Output = Expr;
     fn index(&self, id: ExprId) -> &Self::Output { &self.exprs[id] }
 }
-impl Index<TypeId> for ModuleData {
+impl Index<TypeId> for HirData {
     type Output = Type;
     fn index(&self, id: TypeId) -> &Self::Output { &self.types[id] }
 }
-impl Index<PatId> for ModuleData {
+impl Index<PatId> for HirData {
     type Output = Pat;
     fn index(&self, id: PatId) -> &Self::Output { &self.pats[id] }
 }
@@ -141,7 +152,7 @@ pub struct StructDef {
 }
 
 impl StructDef {
-    pub fn lookup_field(&self, hir: &ModuleData, name: VarId) -> Option<(usize, &StructField)> {
+    pub fn lookup_field(&self, hir: &HirData, name: VarId) -> Option<(usize, &StructField)> {
         self.fields
             .iter()
             .enumerate()
@@ -162,15 +173,11 @@ pub struct EnumDef {
 }
 
 impl EnumDef {
-    pub fn find_variant(
-        &self,
-        module: &ModuleData,
-        variant: VarId,
-    ) -> Option<(usize, &EnumVariant)> {
+    pub fn find_variant(&self, hir: &HirData, variant: VarId) -> Option<(usize, &EnumVariant)> {
         self.variants
             .iter()
             .enumerate()
-            .find(|(_, v)| module[variant] == module[v.name])
+            .find(|(_, v)| hir[variant] == hir[v.name])
     }
 }
 
@@ -241,7 +248,7 @@ pub enum Expr {
 }
 
 impl Expr {
-    pub fn is_lvalue(&self, hir: &ModuleData) -> bool {
+    pub fn is_lvalue(&self, hir: &HirData) -> bool {
         match self {
             Expr::Var(_) => true,
             Expr::Field { expr, .. } => hir[*expr].is_lvalue(hir),
@@ -384,7 +391,7 @@ pub enum Pat {
 }
 
 impl Pat {
-    pub fn is_infalliable(&self, hir: &ModuleData) -> bool {
+    pub fn is_infalliable(&self, hir: &HirData) -> bool {
         match self {
             Self::Lit(_) | Self::Var(_) | Self::Ignore => true,
             Self::Tuple(pats) => pats.iter().all(|pat| hir[*pat].is_infalliable(hir)),

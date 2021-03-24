@@ -27,19 +27,12 @@ use walrus_semantics::{
 
 use crate::free_vars::FreeVars;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct HirModule {
-    pub hir: hir::Module,
-    pub types: ty::InferenceResult,
-    pub scopes: scopes::Scopes,
-}
-
 pub struct Compiler<'ctx> {
     pub llvm: &'ctx Context,
     pub module: Module<'ctx>,
     pub builder: Builder<'ctx>,
 
-    pub hir: hir::ModuleData,
+    pub hir: hir::HirData,
     pub scopes: scopes::Scopes,
     pub types: ty::InferenceResult,
 }

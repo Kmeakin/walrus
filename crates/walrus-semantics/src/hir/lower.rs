@@ -17,7 +17,7 @@ pub fn lower(syntax: &syntax::SourceFile) -> Module {
     } = ctx;
     Module {
         decls,
-        data,
+        hir: data,
         source,
         diagnostics,
     }
@@ -25,7 +25,7 @@ pub fn lower(syntax: &syntax::SourceFile) -> Module {
 
 #[derive(Default)]
 struct Ctx {
-    data: ModuleData,
+    data: HirData,
     source: ModuleSource,
     diagnostics: Vec<Diagnostic>,
 }

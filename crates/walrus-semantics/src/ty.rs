@@ -158,7 +158,7 @@ mod tests {
         let scopes = crate::scopes::scopes(&hir);
         let types = infer(hir.clone(), scopes);
 
-        let first_fn = &hir.data.fn_defs.iter().next().unwrap();
+        let first_fn = &hir.hir.fn_defs.iter().next().unwrap();
         let ret_type = &types.type_of_fn[first_fn.0].ret;
 
         assert_eq!(ret_type.as_ref(), expected);

@@ -32,7 +32,7 @@ where
             module,
             builder,
 
-            hir: hir.data,
+            hir: hir.hir,
             scopes,
             types,
         };

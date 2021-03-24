@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 pub fn scopes(module: &Module) -> Scopes {
     let mut scopes = Scopes::new();
-    scopes.module_scope(module);
+    scopes.module_scope(&module.hir);
     scopes
 }
 
@@ -120,20 +120,20 @@ impl Scopes {
 
     fn insert_denotation(
         &mut self,
-        module: &Module,
+        hir: &HirData,
         vars: &mut Vars,
         id: VarId,
         denotation: Denotation,
     ) {
-        let var = module.data[id].clone();
-        if self.insert_var(module, vars, id) {
+        let var = hir[id].clone();
+        if self.insert_var(hir, vars, id) {
             self.scopes[self.scope].denotations.insert(var, denotation);
         }
     }
 
-    fn insert_var(&mut self, module: &Module, vars: &mut Vars, id: VarId) -> bool {
+    fn insert_var(&mut self, hir: &HirData, vars: &mut Vars, id: VarId) -> bool {
         self.set_scope_of_var(id, self.scope);
-        let var = module.data[id].clone();
+        let var = hir[id].clone();
         match vars.get(&var) {
             None => {
                 vars.insert(var, id);
@@ -152,127 +152,122 @@ impl Scopes {
 
 /// The actual implementation
 impl Scopes {
-    fn module_scope(&mut self, module: &Module) {
+    fn module_scope(&mut self, hir: &HirData) {
         let mut toplevel_defs = Vars::new();
 
-        for decl in &module.decls {
+        for decl in hir.decls() {
             match decl {
-                Decl::Struct(id) => self.struct_def_scope(module, &mut toplevel_defs, *id),
-                Decl::Enum(id) => self.enum_def_scope(module, &mut toplevel_defs, *id),
-                Decl::Fn(id) => self.fn_def_scope(module, &mut toplevel_defs, *id),
+                Decl::Struct(id) => self.struct_def_scope(hir, &mut toplevel_defs, id),
+                Decl::Enum(id) => self.enum_def_scope(hir, &mut toplevel_defs, id),
+                Decl::Fn(id) => self.fn_def_scope(hir, &mut toplevel_defs, id),
             }
         }
     }
 
-    fn struct_def_scope(&mut self, module: &Module, toplevel_defs: &mut Vars, id: StructDefId) {
-        let struct_def = &module.data[id];
-        self.insert_denotation(
-            module,
-            toplevel_defs,
-            struct_def.name,
-            Denotation::Struct(id),
-        );
+    fn struct_def_scope(&mut self, hir: &HirData, toplevel_defs: &mut Vars, id: StructDefId) {
+        let struct_def = &hir[id];
+        self.insert_denotation(hir, toplevel_defs, struct_def.name, Denotation::Struct(id));
 
         let mut fields = Vars::new();
         for field in &struct_def.fields {
-            self.insert_var(module, &mut fields, field.name);
-            self.type_scope(module, field.ty);
+            self.insert_var(hir, &mut fields, field.name);
+            self.type_scope(hir, field.ty);
         }
     }
 
-    fn enum_def_scope(&mut self, module: &Module, toplevel_defs: &mut Vars, id: EnumDefId) {
-        let enum_def = &module.data[id];
-        self.insert_denotation(module, toplevel_defs, enum_def.name, Denotation::Enum(id));
+    fn enum_def_scope(&mut self, hir: &HirData, toplevel_defs: &mut Vars, id: EnumDefId) {
+        let enum_def = &hir[id];
+        self.insert_denotation(hir, toplevel_defs, enum_def.name, Denotation::Enum(id));
 
         let mut variants = Vars::new();
         for variant in &enum_def.variants {
-            self.insert_var(module, &mut variants, variant.name);
+            self.insert_var(hir, &mut variants, variant.name);
             let mut fields = Vars::new();
             for field in &variant.fields {
-                self.insert_var(module, &mut fields, field.name);
-                self.type_scope(module, field.ty);
+                self.insert_var(hir, &mut fields, field.name);
+                self.type_scope(hir, field.ty);
             }
         }
     }
 
-    fn fn_def_scope(&mut self, module: &Module, toplevel_defs: &mut Vars, id: FnDefId) {
-        let fn_def = &module.data[id];
-        self.insert_denotation(module, toplevel_defs, fn_def.name, Denotation::Fn(id));
+    fn fn_def_scope(&mut self, hir: &HirData, toplevel_defs: &mut Vars, id: FnDefId) {
+        let fn_def = &hir[id];
+        self.insert_denotation(hir, toplevel_defs, fn_def.name, Denotation::Fn(id));
 
         self.in_child_scope(|this| {
             let mut params = Vars::new();
             for param in &fn_def.params {
-                this.param_scope(module, &mut params, param)
+                this.param_scope(hir, &mut params, param)
             }
             if let Some(ty) = fn_def.ret_type {
-                this.type_scope(module, ty)
+                this.type_scope(hir, ty)
             }
-            this.expr_scope(module, fn_def.expr)
+            this.expr_scope(hir, fn_def.expr)
         })
     }
 
-    fn param_scope(&mut self, module: &Module, vars: &mut Vars, param: &Param) {
+    fn param_scope(&mut self, hir: &HirData, vars: &mut Vars, param: &Param) {
         let Param { pat, ty } = param;
-        self.pat_scope(module, vars, *pat);
+        self.pat_scope(hir, vars, *pat);
         if let Some(ty) = ty {
-            self.type_scope(module, *ty)
+            self.type_scope(hir, *ty)
         }
     }
 
-    fn pat_scope(&mut self, module: &Module, vars: &mut Vars, id: PatId) {
+    fn pat_scope(&mut self, hir: &HirData, vars: &mut Vars, id: PatId) {
         self.set_scope_of_pat(id, self.scope);
-        let pat = &module.data[id];
+        let pat = &hir[id];
         match pat {
-            Pat::Var(var) => self.insert_denotation(module, vars, *var, Denotation::Local(*var)),
+            Pat::Var(var) => self.insert_denotation(hir, vars, *var, Denotation::Local(*var)),
             Pat::Struct { name, fields, .. } | Pat::Enum { name, fields, .. } => {
                 self.set_scope_of_var(*name, self.scope);
                 let mut seen_fields = Vars::new();
                 for field in fields {
                     self.set_scope_of_var(field.name, self.scope);
-                    self.insert_var(module, &mut seen_fields, field.name);
+                    self.insert_var(hir, &mut seen_fields, field.name);
 
                     match field {
-                        FieldPat { pat: Some(pat), .. } => self.pat_scope(module, vars, *pat),
+                        FieldPat { pat: Some(pat), .. } => self.pat_scope(hir, vars, *pat),
                         FieldPat { name, pat: None } => {
-                            self.insert_denotation(module, vars, *name, Denotation::Local(*name))
+                            self.insert_denotation(hir, vars, *name, Denotation::Local(*name))
                         }
                     }
                 }
             }
-            pat => pat.walk_child_pats(|id| self.pat_scope(module, vars, id)),
+            pat => pat.walk_child_pats(|id| self.pat_scope(hir, vars, id)),
         }
     }
 
-    fn type_scope(&mut self, module: &Module, id: TypeId) {
+    fn type_scope(&mut self, hir: &HirData, id: TypeId) {
         self.set_scope_of_type(id, self.scope);
-        let ty = &module.data[id];
+        let ty = &hir[id];
         match ty {
             Type::Var(var) => self.set_scope_of_var(*var, self.scope),
-            ty => ty.walk_child_types(|id| self.type_scope(module, id)),
+            ty => ty.walk_child_types(|id| self.type_scope(hir, id)),
         }
     }
 
-    fn expr_scope(&mut self, module: &Module, id: ExprId) {
+    fn expr_scope(&mut self, hir: &HirData, id: ExprId) {
         self.set_scope_of_expr(id, self.scope);
-        let expr = &module.data[id];
+        let expr = &hir[id];
         match expr {
             Expr::Block { stmts, expr } => {
-                self.in_child_scope(|this| this.block_scope(module, stmts, *expr))
+                self.in_child_scope(|this| this.block_scope(hir, stmts, *expr))
             }
             Expr::Lambda { params, expr } => self.in_child_lambda_scope(|this| {
                 let mut vars = Vars::new();
                 for param in params {
-                    this.param_scope(module, &mut vars, param)
+                    this.param_scope(hir, &mut vars, param)
                 }
-                this.expr_scope(module, *expr)
+                this.expr_scope(hir, *expr)
             }),
             Expr::Match { test, cases } => {
-                self.expr_scope(module, *test);
+                self.expr_scope(hir, *test);
                 for case in cases {
                     self.in_child_scope(|this| {
                         let mut vars = Vars::new();
-                        this.pat_scope(module, &mut vars, case.pat);
-                        this.expr_scope(module, case.expr)
+                        this.pat_scope(hir, &mut vars, case.pat);
+                        this.expr_scope(hir, case.expr)
                     })
                 }
             }
@@ -281,33 +276,33 @@ impl Scopes {
                 self.set_scope_of_var(*name, self.scope);
                 let mut seen_fields = Vars::new();
                 for field in fields {
-                    self.insert_var(module, &mut seen_fields, field.name);
+                    self.insert_var(hir, &mut seen_fields, field.name);
                     self.set_scope_of_var(field.name, self.scope);
-                    self.expr_scope(module, field.val)
+                    self.expr_scope(hir, field.val)
                 }
             }
-            expr => expr.walk_child_exprs(|id| self.expr_scope(module, id)),
+            expr => expr.walk_child_exprs(|id| self.expr_scope(hir, id)),
         }
     }
 
-    fn block_scope(&mut self, module: &Module, stmts: &[Stmt], last: Option<ExprId>) {
+    fn block_scope(&mut self, hir: &HirData, stmts: &[Stmt], last: Option<ExprId>) {
         match stmts {
             [Stmt::Expr(expr), rest @ ..] => {
-                self.expr_scope(module, *expr);
-                self.block_scope(module, rest, last);
+                self.expr_scope(hir, *expr);
+                self.block_scope(hir, rest, last);
             }
             [Stmt::Let { pat, ty, expr }, rest @ ..] => self.in_child_scope(|this| {
-                this.pat_scope(module, &mut Vars::new(), *pat);
+                this.pat_scope(hir, &mut Vars::new(), *pat);
                 if let Some(ty) = ty {
-                    this.type_scope(module, *ty)
+                    this.type_scope(hir, *ty)
                 }
-                this.expr_scope(module, *expr);
+                this.expr_scope(hir, *expr);
 
-                this.block_scope(module, rest, last)
+                this.block_scope(hir, rest, last)
             }),
             [] => {
                 if let Some(expr) = last {
-                    self.expr_scope(module, expr)
+                    self.expr_scope(hir, expr)
                 }
             }
         }

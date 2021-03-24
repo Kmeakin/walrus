@@ -105,6 +105,8 @@ impl<T> Arena<T> {
             .map(|(idx, value)| (Idx::from(idx), value))
     }
 
+    pub fn iter_ids(&self) -> impl Iterator<Item = Idx<T>> { (0..self.len()).map(Idx::from) }
+
     /// Reallocates the arena to make it take up as little space as possible.
     pub fn shrink_to_fit(&mut self) { self.data.shrink_to_fit(); }
 }

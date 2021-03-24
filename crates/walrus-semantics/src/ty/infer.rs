@@ -16,7 +16,7 @@ pub fn infer(module: Module, scopes: Scopes) -> InferenceResult {
     dbg!(&module);
     dbg!(&scopes);
 
-    let mut ctx = Ctx::new(module, scopes);
+    let mut ctx = Ctx::new(module.hir, scopes);
     ctx.infer_module();
     ctx.finish()
 }
@@ -70,7 +70,7 @@ pub enum InferenceId {
 }
 
 struct Ctx {
-    module: Module,
+    hir: HirData,
     scopes: Scopes,
     result: InferenceResult,
     table: InferenceTable,
@@ -79,9 +79,9 @@ struct Ctx {
 }
 
 impl Ctx {
-    fn new(module: Module, scopes: Scopes) -> Self {
+    fn new(hir: HirData, scopes: Scopes) -> Self {
         Self {
-            module,
+            hir,
             scopes,
             result: InferenceResult::default(),
             table: InferenceTable::default(),
@@ -167,7 +167,7 @@ impl Ctx {
     fn new_type_var(&mut self) -> Type { Type::Infer(InferType::Var(self.table.new_type_var())) }
 
     fn resolve_var(&mut self, id: VarId, mode: VarMode) -> Type {
-        let var = &self.module.data[id];
+        let var = &self.hir[id];
         let denotation = self.scopes.lookup_var(id, &var);
         let ty = match (mode, denotation) {
             (VarMode::Value, Some(Denotation::Builtin(b))) if b.kind() == BuiltinKind::Type => {
@@ -199,7 +199,7 @@ impl Ctx {
     }
 
     fn resolve_type(&mut self, id: TypeId) -> Type {
-        let ty = self.module.data[id].clone();
+        let ty = self.hir[id].clone();
         let ty = match ty {
             hir::Type::Infer => self.new_type_var(),
             hir::Type::Tuple(tys) => {
@@ -315,8 +315,8 @@ impl Ctx {
     }
 
     fn check_faliability(&mut self, pat_id: PatId) {
-        let pat = &self.module.data[pat_id];
-        if !pat.is_infalliable(&self.module.data) {
+        let pat = &self.hir[pat_id];
+        if !pat.is_infalliable(&self.hir) {
             self.result
                 .diagnostics
                 .push(Diagnostic::FalliablePattern { id: pat_id });
@@ -326,18 +326,8 @@ impl Ctx {
 
 impl Ctx {
     fn infer_module(&mut self) {
-        self.module
-            .decls
-            .clone()
-            .iter()
-            .copied()
-            .for_each(|decl| self.infer_decl(decl));
-        self.module
-            .decls
-            .clone()
-            .iter()
-            .copied()
-            .for_each(|decl| self.infer_decl_body(decl));
+        self.hir.decls().for_each(|decl| self.infer_decl(decl));
+        self.hir.decls().for_each(|decl| self.infer_decl_body(decl));
     }
 
     fn infer_decl(&mut self, decl: Decl) {
@@ -349,14 +339,14 @@ impl Ctx {
     }
 
     fn infer_struct_decl(&mut self, id: StructDefId) {
-        let struct_decl = self.module.data[id].clone();
+        let struct_decl = self.hir[id].clone();
         for field in struct_decl.fields {
             self.resolve_type(field.ty);
         }
     }
 
     fn infer_enum_decl(&mut self, id: EnumDefId) {
-        let enum_decl = self.module.data[id].clone();
+        let enum_decl = self.hir[id].clone();
         for variant in enum_decl.variants {
             for field in variant.fields {
                 self.resolve_type(field.ty);
@@ -365,7 +355,7 @@ impl Ctx {
     }
 
     fn infer_fn_decl(&mut self, fn_id: FnDefId) {
-        let fn_decl = self.module.data[fn_id].clone();
+        let fn_decl = self.hir[fn_id].clone();
         let params = fn_decl
             .params
             .iter()
@@ -393,7 +383,7 @@ impl Ctx {
     }
 
     fn infer_fn_body(&mut self, fn_id: FnDefId) -> Type {
-        let fn_decl = self.module.data[fn_id].clone();
+        let fn_decl = self.hir[fn_id].clone();
         let fn_type = self.result.type_of_fn[fn_id].clone();
         let body_type = self.with_fn_type(fn_type.clone(), |this| {
             this.infer_expr(&Type::Unknown, fn_decl.expr)
@@ -439,7 +429,7 @@ impl Ctx {
     }
 
     fn infer_pat(&mut self, expected: &Type, pat_id: PatId) -> Type {
-        let pat = self.module.data[pat_id].clone();
+        let pat = self.hir[pat_id].clone();
         let ty = match pat {
             Pat::Lit(lit) => lit.ty(),
             Pat::Ignore => expected.clone(),
@@ -461,7 +451,7 @@ impl Ctx {
                 let struct_type = self.resolve_var(name, VarMode::Struct);
                 match struct_type {
                     Type::Struct(struct_id) => {
-                        let struct_def = self.module.data[struct_id].clone();
+                        let struct_def = self.hir[struct_id].clone();
                         let struct_type = Type::Struct(struct_id);
                         self.infer_fields(Right(pat_id), Some(&struct_def.fields), Right(&fields));
                         struct_type
@@ -480,9 +470,9 @@ impl Ctx {
                 let enum_type = self.resolve_var(name, VarMode::Enum);
                 match enum_type {
                     Type::Enum(enum_id) => {
-                        let enum_def = self.module.data[enum_id].clone();
+                        let enum_def = self.hir[enum_id].clone();
                         let enum_type = Type::Enum(enum_id);
-                        let variant = enum_def.find_variant(&self.module.data, variant);
+                        let variant = enum_def.find_variant(&self.hir, variant);
                         match variant {
                             None => todo!("No such variant"),
                             Some((_, variant)) => {
@@ -508,7 +498,7 @@ impl Ctx {
     }
 
     fn infer_expr(&mut self, expected: &Type, id: ExprId) -> Type {
-        let expr = self.module.data[id].clone();
+        let expr = self.hir[id].clone();
         let ty = match expr {
             Expr::Lit(lit) => lit.ty(),
             Expr::Var(var) => self.resolve_var_expr(var),
@@ -556,7 +546,7 @@ impl Ctx {
         let struct_type = self.resolve_var(name, VarMode::Struct);
         match struct_type {
             Type::Struct(struct_id) => {
-                let struct_def = self.module.data[struct_id].clone();
+                let struct_def = self.hir[struct_id].clone();
                 let struct_type = Type::Struct(struct_id);
                 self.infer_fields(Left(expr), Some(&struct_def.fields), Left(fields));
                 struct_type
@@ -578,8 +568,8 @@ impl Ctx {
         let enum_type = self.resolve_var(name, VarMode::Enum);
         match enum_type {
             Type::Enum(enum_id) => {
-                let enum_def = self.module.data[enum_id].clone();
-                let variant = enum_def.find_variant(&self.module.data, variant);
+                let enum_def = self.hir[enum_id].clone();
+                let variant = enum_def.find_variant(&self.hir, variant);
                 match variant {
                     None => todo!("No such variant"),
                     Some((_, variant)) => {
@@ -616,7 +606,7 @@ impl Ctx {
                 .and_then(|fields| {
                     let field = fields
                         .iter()
-                        .find(|field| self.module.data[field.name] == self.module.data[*name]);
+                        .find(|field| self.hir[field.name] == self.hir[*name]);
                     match field {
                         None => {
                             self.result.diagnostics.push(Diagnostic::NoSuchField {
@@ -640,10 +630,10 @@ impl Ctx {
 
         if let Some(fields) = fields {
             for field in fields {
-                let name = &self.module.data[field.name];
+                let name = &self.hir[field.name];
                 let init = inits
                     .iter()
-                    .find(|(field_name, _)| &self.module.data[*field_name] == name);
+                    .find(|(field_name, _)| &self.hir[*field_name] == name);
                 match init {
                     Some(_) => {}
                     None => {
@@ -740,10 +730,10 @@ impl Ctx {
                 }
             },
             Type::Struct(id) => {
-                let struct_def = &self.module.data[id];
+                let struct_def = &self.hir[id];
                 match field {
                     Field::Named(name) => {
-                        let target = struct_def.lookup_field(&self.module.data, name);
+                        let target = struct_def.lookup_field(&self.hir, name);
                         match target {
                             Some((_, field)) => self.result.type_of_type[field.ty].clone(),
                             None => {
@@ -784,7 +774,7 @@ impl Ctx {
 
     fn infer_binop_expr(&mut self, op: Binop, lhs: ExprId, rhs: ExprId) -> Type {
         if let Binop::Assign = op {
-            if !self.module.data[lhs].is_lvalue(&self.module.data) {
+            if !self.hir[lhs].is_lvalue(&self.hir) {
                 self.result.diagnostics.push(Diagnostic::NotLValue { lhs });
             }
         }
