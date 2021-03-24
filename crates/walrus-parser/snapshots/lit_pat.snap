@@ -1,0 +1,20 @@
+---
+source: crates/walrus-parser/src/grammar.rs
+expression: got
+
+---
+Ok(
+    (
+        [],
+        Lit(
+            Int(
+                Dec(
+                    DecInt {
+                        span: 0..1,
+                        text: "5",
+                    },
+                ),
+            ),
+        ),
+    ),
+)
