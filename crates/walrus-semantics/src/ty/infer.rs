@@ -301,37 +301,6 @@ impl Ctx {
             self.unify(from, to)
         }
     }
-
-    fn pat_is_infalliable(&mut self, id: PatId) -> bool {
-        let pat = &self.module.data[id].clone();
-        match pat {
-            Pat::Var(_) => true,
-            Pat::Ignore => true,
-            Pat::Tuple(pats) => pats.iter().all(|id| self.pat_is_infalliable(*id)),
-            Pat::Struct { fields, .. } => fields.iter().all(|field| {
-                field
-                    .pat
-                    .map(|pat| self.pat_is_infalliable(pat))
-                    .unwrap_or(true)
-            }),
-            Pat::Enum { name, fields, .. } => {
-                let var = &self.module.data[*name];
-                match &self.scopes.lookup_var(*name, &var) {
-                    Some(Denotation::Enum(id)) => {
-                        let enum_def = &self.module.data[*id];
-                        enum_def.variants.len() <= 1
-                            && fields.iter().all(|field| {
-                                field
-                                    .pat
-                                    .map(|pat| self.pat_is_infalliable(pat))
-                                    .unwrap_or(true)
-                            })
-                    }
-                    _ => true,
-                }
-            }
-        }
-    }
 }
 
 impl Ctx {

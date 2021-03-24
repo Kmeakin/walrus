@@ -363,6 +363,22 @@ pub enum Pat {
     },
 }
 
+impl Pat {
+    pub fn is_infalliable(&self, hir: &ModuleData) -> bool {
+        match self {
+            Self::Var(_) | Self::Ignore => true,
+            Self::Tuple(pats) => pats.iter().all(|pat| hir[*pat].is_infalliable(hir)),
+            Self::Struct { fields, .. } => fields.iter().all(|field| {
+                field
+                    .pat
+                    .map(|pat| hir[pat].is_infalliable(hir))
+                    .unwrap_or(true)
+            }),
+            Self::Enum { .. } => false,
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct FieldPat {
     pub name: VarId,

@@ -256,6 +256,7 @@ impl<'ctx> Compiler<'ctx> {
 
     fn codegen_local_pat(&self, vars: &mut Vars<'ctx>, id: PatId, val: BasicValueEnum) {
         let pat = &self.hir[id];
+        assert!(pat.is_infalliable(&self.hir));
         match pat {
             hir::Pat::Ignore => {}
             hir::Pat::Var(var) => self.codegen_local_var(vars, *var, val),
@@ -270,7 +271,8 @@ impl<'ctx> Compiler<'ctx> {
                     .unwrap();
                 self.codegen_local_pat(vars, *id, val)
             }),
-            _ => todo!(),
+            hir::Pat::Struct { .. } => todo!(),
+            hir::Pat::Enum { .. } => unreachable!(),
         }
     }
 
