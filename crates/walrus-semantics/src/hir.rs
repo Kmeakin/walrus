@@ -187,6 +187,15 @@ pub struct EnumVariant {
     pub fields: Vec<StructField>,
 }
 
+impl EnumVariant {
+    pub fn lookup_field(&self, hir: &HirData, name: VarId) -> Option<(usize, &StructField)> {
+        self.fields
+            .iter()
+            .enumerate()
+            .find(|(_, field)| hir[field.name] == hir[name])
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Param {
     pub pat: PatId,

@@ -10,7 +10,7 @@ use inkwell::{
     module::Module,
     targets::TargetData,
     types::{AnyType, BasicType, BasicTypeEnum, FunctionType, IntType, StructType},
-    values::{BasicValue, BasicValueEnum, FunctionValue, PointerValue},
+    values::{BasicValue, BasicValueEnum, FunctionValue, IntValue, PointerValue},
     AddressSpace, FloatPredicate, IntPredicate,
 };
 use std::ops::Index;
@@ -18,7 +18,7 @@ use walrus_semantics::{
     builtins::Builtin,
     hir::{
         self, ArithmeticBinop, Binop, CmpBinop, EnumDefId, Expr, ExprId, Field, FieldInit, FnDefId,
-        LazyBinop, Lit, Param, PatId, StructDefId, StructField, Unop, VarId,
+        LazyBinop, Lit, MatchCase, Param, PatId, StructDefId, StructField, Unop, VarId,
     },
     scopes::{self, Denotation},
     ty,
@@ -293,7 +293,7 @@ impl<'ctx> Compiler<'ctx> {
         }
     }
 
-    fn codegen_expr(&self, vars: &mut Vars<'ctx>, id: ExprId) -> Value {
+    fn codegen_expr(&self, vars: &mut Vars<'ctx>, id: ExprId) -> Value<'_> {
         let expr = &self.hir[id];
         match expr {
             Expr::Lit(lit) => Some(self.codegen_lit(*lit)),
@@ -309,7 +309,7 @@ impl<'ctx> Compiler<'ctx> {
                 then_branch,
                 else_branch,
             } => self.codegen_if(vars, *test, *then_branch, *else_branch),
-            Expr::Match { .. } => todo!(),
+            Expr::Match { test, cases } => todo!(),
             Expr::Loop(body) => self.codegen_loop(vars, id, *body),
             Expr::Break(expr) => self.codegen_break(vars, *expr),
             Expr::Continue => self.codegen_continue(vars),
@@ -388,7 +388,7 @@ impl<'ctx> Compiler<'ctx> {
 
     fn codegen_undef(&self) -> BasicValueEnum { self.llvm.i8_type().get_undef().into() }
 
-    fn codegen_lit(&self, lit: Lit) -> BasicValueEnum {
+    fn codegen_lit(&self, lit: Lit) -> BasicValueEnum<'ctx> {
         match lit {
             Lit::Bool(false) => self.llvm.bool_type().const_int(0, false).into(),
             Lit::Bool(true) => self.llvm.bool_type().const_int(1, false).into(),
@@ -663,6 +663,18 @@ impl<'ctx> Compiler<'ctx> {
         let phi = self.builder.build_phi(ty, "if.merge");
         phi.add_incoming(&[(&then_value, then_bb), (&else_value, else_bb)]);
         Some(phi.as_basic_value())
+    }
+
+    // fn codegen_true(&self) -> IntValue<'ctx> { self.llvm.bool_type().const_int(1,
+    // false) } fn codegen_false(&self) -> IntValue<'ctx> {
+    // self.llvm.bool_type().const_int(0, false) }
+
+    fn codegen_all(&self, bools: Vec<IntValue<'ctx>>) -> IntValue<'ctx> {
+        bools
+            .iter()
+            .fold(self.llvm.bool_type().const_int(1, false), |acc, e| {
+                self.builder.build_and(acc, *e, "")
+            })
     }
 
     fn codegen_loop(&self, vars: &mut Vars<'ctx>, expr: ExprId, body: ExprId) -> Value {
@@ -1074,5 +1086,194 @@ impl<'ctx> Compiler<'ctx> {
         let rhs = self.codegen_expr(vars, rhs)?;
         self.builder.build_store(lhs, rhs);
         Some(self.codegen_unit())
+    }
+}
+
+impl<'ctx> Compiler<'ctx> {
+    #[cfg(FALSE)]
+    fn codegen_match_attempt<'a>(
+        &'a self,
+        vars: &mut Vars<'ctx>,
+        test: BasicValueEnum<'ctx>,
+        pat_id: PatId,
+    ) -> IntValue {
+        let pat = &self.hir[pat_id];
+        match pat {
+            hir::Pat::Lit(lit) => {
+                let lit_val = self.codegen_lit(*lit);
+                match lit {
+                    Lit::Bool(_) | Lit::Int(_) | Lit::Char(_) => self.builder.build_int_compare(
+                        IntPredicate::EQ,
+                        test.into_int_value(),
+                        lit_val.into_int_value(),
+                        "",
+                    ),
+                    Lit::Float(_) => self.builder.build_float_compare(
+                        FloatPredicate::OEQ,
+                        test.into_float_value(),
+                        lit_val.into_float_value(),
+                        "",
+                    ),
+                }
+            }
+            hir::Pat::Var(var) => {
+                self.codegen_local_var(vars, *var, test);
+                self.llvm.bool_type().const_int(1, false)
+            }
+            hir::Pat::Ignore => self.llvm.bool_type().const_int(1, false),
+            hir::Pat::Tuple(pats) => {
+                let mut bools = Vec::new();
+                for (idx, pat) in pats.iter().enumerate() {
+                    let element = self
+                        .builder
+                        .build_extract_value(
+                            test.into_struct_value(),
+                            idx as u32,
+                            &format!("tuple.{idx}"),
+                        )
+                        .unwrap();
+                    bools.push(self.codegen_match_attempt(vars, element, *pat))
+                }
+                self.codegen_all(bools)
+            }
+            hir::Pat::Struct { fields, .. } => {
+                let struct_id = self.types[pat_id].as_struct().unwrap();
+                let struct_def = &self.hir[struct_id];
+                let struct_name = &self.hir[struct_def.name];
+
+                let struct_def = &self.hir[struct_id];
+                let mut bools = Vec::new();
+                for field in fields {
+                    let (idx, struct_field) =
+                        struct_def.lookup_field(&self.hir, field.name).unwrap();
+                    let field_name = &self.hir[struct_field.name];
+                    let element = self
+                        .builder
+                        .build_extract_value(
+                            test.into_struct_value(),
+                            idx as u32,
+                            &format!("{struct_name}.{field_name}"),
+                        )
+                        .unwrap();
+                    let b = match field.pat {
+                        None => {
+                            self.codegen_local_var(vars, field.name, element);
+                            self.llvm.bool_type().const_int(1, false)
+                        }
+                        Some(pat) => self.codegen_match_attempt(vars, element, pat),
+                    };
+                    bools.push(b)
+                }
+                self.codegen_all(bools)
+            }
+            hir::Pat::Enum {
+                variant, fields, ..
+            } => {
+                let enum_id = self.types[pat_id].as_enum().unwrap();
+                let enum_def = &self.hir[enum_id];
+                let enum_name = &self.hir[enum_def.name];
+
+                let (variant_idx, variant) = enum_def.find_variant(&self.hir, *variant).unwrap();
+                let variant_name = &self.hir[variant.name];
+
+                let tag_matched = match self.discriminant_type(enum_def.variants.len()) {
+                    None => self.llvm.bool_type().const_int(1, false),
+                    Some(int_type) => {
+                        let tag = self
+                            .builder
+                            .build_extract_value(test.into_struct_value(), 0, "")
+                            .unwrap();
+                        self.builder.build_int_compare(
+                            IntPredicate::EQ,
+                            tag.into_int_value(),
+                            int_type.const_int(variant_idx as u64, false),
+                            "",
+                        )
+                    }
+                };
+                let bb = self.builder.get_insert_block().unwrap();
+                let end_bb = self.llvm.insert_basic_block_after(bb, "if.end");
+                let else_bb = self.llvm.insert_basic_block_after(bb, "if.else");
+                let then_bb = self.llvm.insert_basic_block_after(bb, "if.then");
+
+                self.builder
+                    .build_conditional_branch(tag_matched, then_bb, else_bb);
+
+                // else branch
+                self.builder.position_at_end(else_bb);
+                let else_value = self.llvm.bool_type().const_int(0, false);
+                self.builder.build_unconditional_branch(end_bb);
+
+                // then branch
+                let mut bools = Vec::new();
+                for field in fields {
+                    {
+                        let (idx, struct_field) =
+                            variant.lookup_field(&self.hir, field.name).unwrap();
+                        let field_name = &self.hir[struct_field.name];
+                        let element = self
+                            .builder
+                            .build_extract_value(
+                                test.into_struct_value(),
+                                idx as u32,
+                                &format!("{enum_name}::{variant_name}.{field_name}"),
+                            )
+                            .unwrap();
+                        let b = match field.pat {
+                            None => {
+                                self.codegen_local_var(vars, field.name, element);
+                                self.llvm.bool_type().const_int(1, false)
+                            }
+                            Some(pat) => self.codegen_match_attempt(vars, element, pat),
+                        };
+                        bools.push(b)
+                    }
+                }
+                let then_value = self.codegen_all(bools);
+
+                // merge the 2 branches
+                self.builder.position_at_end(end_bb);
+                let phi = self.builder.build_phi(self.llvm.bool_type(), "");
+                phi.add_incoming(&[(&then_value, then_bb), (&else_value, else_bb)]);
+                phi.as_basic_value().into_int_value()
+            }
+        }
+    }
+
+    #[cfg(FALSE)]
+    fn codegen_match<'a>(
+        &'a self,
+        vars: &mut Vars<'ctx>,
+        parent: ExprId,
+        test: ExprId,
+        cases: &[MatchCase],
+    ) -> Value<'a> {
+        let test_value: BasicValueEnum<'a> = self.codegen_expr(vars, test)?;
+
+        let bb = self.builder.get_insert_block().unwrap();
+        let mut next_bb = self.llvm.insert_basic_block_after(bb, "match.fail");
+        let end_bb = self.llvm.insert_basic_block_after(bb, "match.end");
+
+        for case in cases.iter().rev() {
+            let else_bb = self.llvm.insert_basic_block_after(bb, "match.else");
+            let then_bb = self.llvm.insert_basic_block_after(bb, "match.then");
+            let test_bb = self.llvm.insert_basic_block_after(bb, "match.test");
+
+            // test agaisnt the pattern
+            self.builder.position_at_end(test_bb);
+            let matched = self.codegen_match_attempt(vars, test_value, case.pat);
+            self.builder
+                .build_conditional_branch(matched, then_bb, next_bb); // fallthrough to next case
+
+            // the then block
+            self.builder.position_at_end(then_bb);
+            self.builder.build_unconditional_branch(end_bb);
+        }
+
+        // merge the branches
+        self.builder.position_at_end(end_bb);
+        let expr_type = self.value_type(&self.types[parent]);
+        let phi = self.builder.build_phi(expr_type, "match.phi");
+        Some(phi.as_basic_value())
     }
 }
