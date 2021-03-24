@@ -11,6 +11,9 @@ InferenceResult {
         4: Primitive(
             Bool,
         ),
+        6: Struct(
+            0,
+        ),
         7: Primitive(
             Int,
         ),

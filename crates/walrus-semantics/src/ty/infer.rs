@@ -56,6 +56,8 @@ impl Index<FnDefId> for InferenceResult {
 pub enum VarMode {
     Value,
     Type,
+    Struct,
+    Enum,
 }
 
 /// An id representing any "thing" whose type is infered.
@@ -180,6 +182,9 @@ impl Ctx {
             (VarMode::Type, Some(Denotation::Struct(id))) => Type::Struct(id),
             (VarMode::Type, Some(Denotation::Enum(id))) => Type::Enum(id),
 
+            (VarMode::Struct, Some(Denotation::Struct(id))) => Type::Struct(id),
+            (VarMode::Enum, Some(Denotation::Enum(id))) => Type::Enum(id),
+
             _ => {
                 self.result.diagnostics.push(Diagnostic::UnboundVar {
                     var: id,
@@ -281,7 +286,7 @@ impl Ctx {
             match self.coerce_branches(&result, &branch_ty) {
                 None => self.result.diagnostics.push(Diagnostic::TypeMismatch {
                     id: Left(branch),
-                    expected: result,
+                    expected: result.clone(),
                     got: branch_ty,
                 }),
                 Some(ty) => result = ty,
@@ -453,17 +458,15 @@ impl Ctx {
                 Type::Tuple(tys)
             }
             Pat::Struct { name, fields } => {
-                let var = &self.module.data[name];
-                let denotation = self.scopes.lookup_var(name, var);
-                match denotation {
-                    Some(Denotation::Struct(id)) => {
-                        let struct_def = self.module.data[id].clone();
-                        let struct_type = Type::Struct(id);
+                let struct_type = self.resolve_var(name, VarMode::Struct);
+                match struct_type {
+                    Type::Struct(struct_id) => {
+                        let struct_def = self.module.data[struct_id].clone();
+                        let struct_type = Type::Struct(struct_id);
                         self.infer_fields(Right(pat_id), Some(&struct_def.fields), Right(&fields));
                         struct_type
                     }
                     _ => {
-                        // TODO: emit error
                         self.infer_fields(Right(pat_id), None, Right(&fields));
                         Type::Unknown
                     }
@@ -474,12 +477,11 @@ impl Ctx {
                 variant,
                 fields,
             } => {
-                let var = &self.module.data[name];
-                let denotation = self.scopes.lookup_var(name, var);
-                match denotation {
-                    Some(Denotation::Enum(id)) => {
-                        let enum_def = self.module.data[id].clone();
-                        let enum_type = Type::Enum(id);
+                let enum_type = self.resolve_var(name, VarMode::Enum);
+                match enum_type {
+                    Type::Enum(enum_id) => {
+                        let enum_def = self.module.data[enum_id].clone();
+                        let enum_type = Type::Enum(enum_id);
                         let variant = enum_def.find_variant(&self.module.data, variant);
                         match variant {
                             None => todo!("No such variant"),
@@ -494,7 +496,6 @@ impl Ctx {
                         enum_type
                     }
                     _ => {
-                        // TODO: emit error
                         self.infer_fields(Right(pat_id), None, Right(&fields));
                         Type::Unknown
                     }
@@ -552,17 +553,15 @@ impl Ctx {
     }
 
     fn infer_struct_expr(&mut self, expr: ExprId, name: VarId, fields: &[FieldInit]) -> Type {
-        let var = &self.module.data[name];
-        let denotation = self.scopes.lookup_var(name, var);
-        match denotation {
-            Some(Denotation::Struct(id)) => {
-                let struct_def = self.module.data[id].clone();
-                let struct_type = Type::Struct(id);
+        let struct_type = self.resolve_var(name, VarMode::Struct);
+        match struct_type {
+            Type::Struct(struct_id) => {
+                let struct_def = self.module.data[struct_id].clone();
+                let struct_type = Type::Struct(struct_id);
                 self.infer_fields(Left(expr), Some(&struct_def.fields), Left(fields));
                 struct_type
             }
             _ => {
-                // TODO: emit error
                 self.infer_fields(Left(expr), None, Left(fields));
                 Type::Unknown
             }
@@ -576,12 +575,10 @@ impl Ctx {
         variant: VarId,
         fields: &[FieldInit],
     ) -> Type {
-        let var = &self.module.data[name];
-        let denotation = self.scopes.lookup_var(name, var);
-        match denotation {
-            Some(Denotation::Enum(id)) => {
-                let enum_def = self.module.data[id].clone();
-                let enum_type = Type::Enum(id);
+        let enum_type = self.resolve_var(name, VarMode::Enum);
+        match enum_type {
+            Type::Enum(enum_id) => {
+                let enum_def = self.module.data[enum_id].clone();
                 let variant = enum_def.find_variant(&self.module.data, variant);
                 match variant {
                     None => todo!("No such variant"),
@@ -592,7 +589,6 @@ impl Ctx {
                 enum_type
             }
             _ => {
-                // TODO: emit error
                 self.infer_fields(Left(expr), None, Left(fields));
                 Type::Unknown
             }

@@ -11,6 +11,9 @@ InferenceResult {
         4: Primitive(
             Int,
         ),
+        6: Struct(
+            0,
+        ),
         7: Primitive(
             Int,
         ),
@@ -19,6 +22,9 @@ InferenceResult {
         ),
         9: Primitive(
             Int,
+        ),
+        10: Struct(
+            0,
         ),
         11: Primitive(
             Int,
