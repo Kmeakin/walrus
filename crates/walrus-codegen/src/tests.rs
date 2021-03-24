@@ -428,7 +428,8 @@ fn main() -> _ {
         )
     }
 
-    fn field_pat() {
+    #[test]
+    fn struct_pat() {
         test_codegen_and_run(
             r#"
 struct Foo {x: Int, y: Int}
