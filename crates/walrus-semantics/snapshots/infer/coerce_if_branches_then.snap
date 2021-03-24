@@ -1,0 +1,49 @@
+---
+source: crates/walrus-semantics/src/ty.rs
+expression: types
+
+---
+InferenceResult {
+    type_of_var: {},
+    type_of_expr: {
+        0: Primitive(
+            Bool,
+        ),
+        1: Tuple(
+            [],
+        ),
+        2: Primitive(
+            Never,
+        ),
+        3: Primitive(
+            Never,
+        ),
+        4: Primitive(
+            Int,
+        ),
+        5: Primitive(
+            Int,
+        ),
+        6: Primitive(
+            Int,
+        ),
+        7: Primitive(
+            Int,
+        ),
+    },
+    type_of_type: {
+        0: Primitive(
+            Int,
+        ),
+    },
+    type_of_pat: {},
+    type_of_fn: {
+        0: FnType {
+            params: [],
+            ret: Primitive(
+                Int,
+            ),
+        },
+    },
+    diagnostics: [],
+}

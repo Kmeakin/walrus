@@ -351,4 +351,50 @@ fn f() -> _ {
 }"#,
         Type::INT
     );
+
+    test_infer!(
+        coerce_if_branches_then,
+        r#"
+fn f() -> _ {
+    if true {loop{}} else {5}
+}
+        "#,
+        Type::INT
+    );
+
+    test_infer!(
+        coerce_if_branches_else,
+        r#"
+fn f() -> _ {
+    if true {5} else {loop{}}
+}
+        "#,
+        Type::INT
+    );
+
+    test_infer!(
+        coerce_match_branches1,
+        r#"
+fn f() -> _ {
+    match 5 {
+        foo => 5,
+        bar => loop {},
+    }
+}
+    "#,
+        Type::INT
+    );
+
+    test_infer!(
+        coerce_match_branches2,
+        r#"
+fn f() -> _ {
+    match 5 {
+        foo => loop {},
+        bar => 5,
+    }
+}
+    "#,
+        Type::INT
+    );
 }
