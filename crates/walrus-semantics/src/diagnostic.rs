@@ -60,7 +60,7 @@ pub enum Diagnostic {
         lhs: ExprId,
     },
     NoSuchField {
-        expr: ExprId,
+        parent: Either<ExprId, PatId>,
         field: Field,
         possible_fields: Either<Vec<StructField>, usize>,
     },
@@ -69,7 +69,7 @@ pub enum Diagnostic {
         ty: Type,
     },
     MissingField {
-        expr: ExprId,
+        id: Either<ExprId, PatId>,
         field: Field,
     },
 }
