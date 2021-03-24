@@ -279,7 +279,11 @@ impl Ctx {
         for branch in branches {
             let branch_ty = self.infer_expr(&Type::Unknown, branch);
             match self.coerce_branches(&result, &branch_ty) {
-                None => todo!("Branch mismatch"),
+                None => self.result.diagnostics.push(Diagnostic::TypeMismatch {
+                    id: Left(branch),
+                    expected: result,
+                    got: branch_ty,
+                }),
                 Some(ty) => result = ty,
             }
         }
@@ -669,20 +673,7 @@ impl Ctx {
                 self.infer_expr(&Type::Unknown, then_branch);
                 Type::UNIT
             }
-            Some(else_branch) => {
-                self.unify_branches(vec![then_branch, else_branch])
-                // if self.unify(&then_ty, &else_ty) {
-                //     then_ty
-                // } else {
-                //     self.result.diagnostics.push(Diagnostic::IfBranchMismatch
-                // {         then_branch,
-                //         else_branch,
-                //         then_ty,
-                //         else_ty,
-                //     });
-                //     Type::Unknown
-                // }
-            }
+            Some(else_branch) => self.unify_branches(vec![then_branch, else_branch]),
         }
     }
 
