@@ -275,10 +275,13 @@ pub enum Field {
     Named(VarId),
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Display, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Unop {
+    #[display(fmt = "!")]
     Not,
+    #[display(fmt = "+")]
     Add,
+    #[display(fmt = "-")]
     Sub,
 }
 

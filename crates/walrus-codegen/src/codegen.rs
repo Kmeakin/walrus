@@ -340,13 +340,14 @@ impl<'ctx> Compiler<'ctx> {
 
     fn codegen_lvalue(&self, vars: &mut Vars<'ctx>, id: ExprId) -> Option<PointerValue> {
         let expr = &self.hir[id];
+
         match expr {
             Expr::Var(var_id) => {
                 let var = &self.hir[*var_id];
                 let denotation = self.scopes.lookup_var(*var_id, var);
                 match denotation {
                     Some(Denotation::Local(id)) => Some(vars[id]),
-                    _ => unreachable!(),
+                    _ => unreachable!("Attempt to assign non-local variable: {:#?}", var),
                 }
             }
             Expr::Field { expr, field } => {
@@ -379,7 +380,7 @@ impl<'ctx> Compiler<'ctx> {
                 };
                 Some(value)
             }
-            _ => unreachable!(),
+            _ => unreachable!("Attempt to assign non-lvalue: {:#?}", expr),
         }
     }
 
@@ -410,7 +411,7 @@ impl<'ctx> Compiler<'ctx> {
                 self.codegen_fn_value(fn_name, fn_value, &fn_type)
             }
             Some(Denotation::Builtin(b)) => self.codegen_builtin(b),
-            _ => unreachable!(),
+            _ => unreachable!("Local variable not bound to a value: {:#?}"),
         }
     }
 
@@ -443,9 +444,6 @@ impl<'ctx> Compiler<'ctx> {
 
     fn codegen_builtin(&self, builtin: Builtin) -> BasicValueEnum {
         match builtin {
-            Builtin::Bool | Builtin::Int | Builtin::Float | Builtin::Char | Builtin::Never => {
-                unreachable!()
-            }
             Builtin::Exit => {
                 let exit_wrapper_fn = self.module.get_function("builtins.exit.wrapper").unwrap();
                 self.codegen_fn_value("exit", exit_wrapper_fn, builtin.ty().as_fn().unwrap())
@@ -456,6 +454,9 @@ impl<'ctx> Compiler<'ctx> {
                     .get_function("builtins.putchar.wrapper")
                     .unwrap();
                 self.codegen_fn_value("putchar", wrapper_fn, builtin.ty().as_fn().unwrap())
+            }
+            Builtin::Bool | Builtin::Int | Builtin::Float | Builtin::Char | Builtin::Never => {
+                unreachable!("Attempt to codegen non-value builtin: {:#?}", builtin)
             }
         }
     }
@@ -928,8 +929,8 @@ impl<'ctx> Compiler<'ctx> {
                 .build_float_neg(value.into_float_value(), "")
                 .into(),
 
-            Unop::Sub | Unop::Not => unreachable!(),
-            Unop::Add => value,
+            Unop::Add if ty == &Type::INT || ty == &Type::FLOAT => value,
+            _ => unreachable!("Attempt to codegen unop {} {:?}", op, ty),
         };
         Some(value)
     }
