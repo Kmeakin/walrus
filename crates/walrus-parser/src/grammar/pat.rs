@@ -3,7 +3,8 @@ use nom::sequence::pair;
 use super::*;
 
 pub fn pat(input: Input) -> IResult<Pat> {
-    struct_pat
+    lit_pat
+        .or(struct_pat)
         .or(enum_pat)
         .or(var_pat)
         .or(ignore_pat)
@@ -18,6 +19,7 @@ pub fn param(input: Input) -> IResult<Param> {
     Ok((input, Param { pat, ascription }))
 }
 
+fn lit_pat(input: Input) -> IResult<Pat> { lit.map(Pat::Lit).parse(input) }
 fn var_pat(input: Input) -> IResult<Pat> { var.map(Pat::Var).parse(input) }
 fn ignore_pat(input: Input) -> IResult<Pat> { underscore.map(Pat::Ignore).parse(input) }
 fn paren_pat(input: Input) -> IResult<Pat> { paren(pat).map(Pat::Paren).parse(input) }
@@ -53,6 +55,7 @@ fn field_pat(input: Input) -> IResult<FieldPat> {
 mod tests {
     use super::*;
 
+    test_parse!(lit_pat, pat, r#"5"#);
     test_parse!(var_pat, pat, r#"a"#);
     test_parse!(ignore_pat, pat, r#"_"#);
     test_parse!(tuple0_pat, pat, r#"()"#);

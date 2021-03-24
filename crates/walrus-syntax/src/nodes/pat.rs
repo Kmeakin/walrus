@@ -2,6 +2,7 @@ use super::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Pat {
+    Lit(Lit),
     Var(Var),
     Ignore(Underscore),
     Paren(Paren<Self>),

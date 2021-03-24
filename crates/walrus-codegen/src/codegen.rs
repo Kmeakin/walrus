@@ -272,7 +272,9 @@ impl<'ctx> Compiler<'ctx> {
                 self.codegen_local_pat(vars, *id, val)
             }),
             hir::Pat::Struct { .. } => todo!(),
-            hir::Pat::Enum { .. } => unreachable!(),
+            hir::Pat::Lit(_) | hir::Pat::Enum { .. } => {
+                unreachable!("Attempt to codegen falliable pattern: {:#?}", pat)
+            }
         }
     }
 

@@ -409,6 +409,7 @@ impl Ctx {
     fn infer_pat(&mut self, expected: &Type, pat_id: PatId) -> Type {
         let pat = self.module.data[pat_id].clone();
         let ty = match pat {
+            Pat::Lit(lit) => lit.ty(),
             Pat::Ignore => expected.clone(),
             Pat::Var(var) => {
                 self.set_var_type(var, expected.clone());
