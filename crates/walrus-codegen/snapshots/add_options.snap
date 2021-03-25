@@ -1,6 +1,6 @@
 ---
 source: crates/walrus-codegen/src/tests.rs
-expression: llvm_module.print_to_string().to_string()
+expression: module
 
 ---
 ; ModuleID = 'module'
@@ -28,7 +28,6 @@ add_options.entry:
   store %Option %add_options.params.0, %Option* %a.alloca, align 4
   %b.alloca = alloca %Option, align 8
   store %Option %add_options.params.1, %Option* %b.alloca, align 4
-  %match.test.alloca = alloca { %Option, %Option }, align 8
   %tuple.alloca = alloca { %Option, %Option }, align 8
   %a = load %Option, %Option* %a.alloca, align 4
   %tuple.0 = getelementptr inbounds { %Option, %Option }, { %Option, %Option }* %tuple.alloca, i32 0, i32 0
@@ -37,19 +36,17 @@ add_options.entry:
   %tuple.1 = getelementptr inbounds { %Option, %Option }, { %Option, %Option }* %tuple.alloca, i32 0, i32 1
   store %Option %b, %Option* %tuple.1, align 4
   %tuple = load { %Option, %Option }, { %Option, %Option }* %tuple.alloca, align 4
-  store { %Option, %Option } %tuple, { %Option, %Option }* %match.test.alloca, align 4
   br label %match.case0.test
 
 match.case0.test:                                 ; preds = %add_options.entry
-  %0 = load { %Option, %Option }, { %Option, %Option }* %match.test.alloca, align 4
-  %tuple.01 = extractvalue { %Option, %Option } %0, 0
-  %1 = extractvalue %Option %tuple.01, 0
-  %2 = icmp eq i8 %1, 1
-  br i1 %2, label %"match.case0.Option::Some.then", label %"match.case0.Option::Some.else"
+  %tuple.01 = extractvalue { %Option, %Option } %tuple, 0
+  %0 = extractvalue %Option %tuple.01, 0
+  %1 = icmp eq i8 %0, 1
+  br i1 %1, label %"match.case0.Option::Some.then", label %"match.case0.Option::Some.else"
 
 "match.case0.Option::Some.then":                  ; preds = %match.case0.test
   %"Option::Some.payload" = extractvalue %Option %tuple.01, 1
-  %"Option::Some.x" = extractvalue { i32 } %"Option::Some.payload", 0
+  %Some.x = extractvalue { i32 } %"Option::Some.payload", 0
   br label %"match.case0.Option::Some.end"
 
 "match.case0.Option::Some.else":                  ; preds = %match.case0.test
@@ -57,15 +54,15 @@ match.case0.test:                                 ; preds = %add_options.entry
 
 "match.case0.Option::Some.end":                   ; preds = %"match.case0.Option::Some.then", %"match.case0.Option::Some.else"
   %"match.case0.Option::Some.phi" = phi i1 [ true, %"match.case0.Option::Some.then" ], [ false, %"match.case0.Option::Some.else" ]
-  %3 = and i1 true, %"match.case0.Option::Some.phi"
-  %tuple.12 = extractvalue { %Option, %Option } %0, 1
-  %4 = extractvalue %Option %tuple.12, 0
-  %5 = icmp eq i8 %4, 1
-  br i1 %5, label %"match.case1.Option::Some.then", label %"match.case1.Option::Some.else"
+  %2 = and i1 true, %"match.case0.Option::Some.phi"
+  %tuple.12 = extractvalue { %Option, %Option } %tuple, 1
+  %3 = extractvalue %Option %tuple.12, 0
+  %4 = icmp eq i8 %3, 1
+  br i1 %4, label %"match.case1.Option::Some.then", label %"match.case1.Option::Some.else"
 
 "match.case1.Option::Some.then":                  ; preds = %"match.case0.Option::Some.end"
   %"Option::Some.payload3" = extractvalue %Option %tuple.12, 1
-  %"Option::Some.x4" = extractvalue { i32 } %"Option::Some.payload3", 0
+  %Some.x4 = extractvalue { i32 } %"Option::Some.payload3", 0
   br label %"match.case1.Option::Some.end"
 
 "match.case1.Option::Some.else":                  ; preds = %"match.case0.Option::Some.end"
@@ -73,34 +70,33 @@ match.case0.test:                                 ; preds = %add_options.entry
 
 "match.case1.Option::Some.end":                   ; preds = %"match.case1.Option::Some.then", %"match.case1.Option::Some.else"
   %"match.case1.Option::Some.phi" = phi i1 [ true, %"match.case1.Option::Some.then" ], [ false, %"match.case1.Option::Some.else" ]
-  %6 = and i1 %3, %"match.case1.Option::Some.phi"
-  br i1 %6, label %match.case0.then, label %match.case1.test
+  %5 = and i1 %2, %"match.case1.Option::Some.phi"
+  br i1 %5, label %match.case0.then, label %match.case1.test
 
 match.case0.then:                                 ; preds = %"match.case1.Option::Some.end"
-  %tuple.05 = extractvalue { %Option, %Option } %0, 0
+  %tuple.05 = extractvalue { %Option, %Option } %tuple, 0
   %"Option::Some.payload6" = extractvalue %Option %tuple.05, 1
-  %"Option::Some.x7" = extractvalue { i32 } %"Option::Some.payload6", 0
+  %Some.x7 = extractvalue { i32 } %"Option::Some.payload6", 0
   %a.alloca8 = alloca i32, align 4
-  store i32 %"Option::Some.x7", i32* %a.alloca8, align 4
-  %tuple.19 = extractvalue { %Option, %Option } %0, 1
+  store i32 %Some.x7, i32* %a.alloca8, align 4
+  %tuple.19 = extractvalue { %Option, %Option } %tuple, 1
   %"Option::Some.payload10" = extractvalue %Option %tuple.19, 1
-  %"Option::Some.x11" = extractvalue { i32 } %"Option::Some.payload10", 0
+  %Some.x11 = extractvalue { i32 } %"Option::Some.payload10", 0
   %b.alloca12 = alloca i32, align 4
-  store i32 %"Option::Some.x11", i32* %b.alloca12, align 4
+  store i32 %Some.x11, i32* %b.alloca12, align 4
   %"Option::Some.alloca" = alloca %Option, align 8
   %Option.discriminant.gep13 = getelementptr inbounds %Option, %Option* %"Option::Some.alloca", i32 0, i32 0
   store i8 1, i8* %Option.discriminant.gep13, align 1
   %a14 = load i32, i32* %a.alloca8, align 4
   %b15 = load i32, i32* %b.alloca12, align 4
-  %7 = add i32 %a14, %b15
+  %6 = add i32 %a14, %b15
   %payload.gep = getelementptr inbounds %Option, %Option* %"Option::Some.alloca", i32 0, i32 1
   %"Option::Some.x.gep" = getelementptr inbounds { i32 }, { i32 }* %payload.gep, i32 0, i32 0
-  store i32 %7, i32* %"Option::Some.x.gep", align 4
+  store i32 %6, i32* %"Option::Some.x.gep", align 4
   %"Option::Some" = load %Option, %Option* %"Option::Some.alloca", align 4
   br label %match.end
 
 match.case1.test:                                 ; preds = %"match.case1.Option::Some.end"
-  %8 = load { %Option, %Option }, { %Option, %Option }* %match.test.alloca, align 4
   br i1 true, label %match.case1.then, label %match.fail
 
 match.case1.then:                                 ; preds = %match.case1.test

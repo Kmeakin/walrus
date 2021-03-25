@@ -1,6 +1,6 @@
 ---
 source: crates/walrus-codegen/src/tests.rs
-expression: llvm_module.print_to_string().to_string()
+expression: module
 
 ---
 ; ModuleID = 'module'
@@ -33,18 +33,16 @@ main.entry:
   %"Option::Some" = load %Option, %Option* %"Option::Some.alloca", align 4
   %opt.alloca = alloca %Option, align 8
   store %Option %"Option::Some", %Option* %opt.alloca, align 4
-  %match.test.alloca = alloca %Option, align 8
   %opt = load %Option, %Option* %opt.alloca, align 4
-  store %Option %opt, %Option* %match.test.alloca, align 4
   br label %match.case0.test
 
 match.case0.test:                                 ; preds = %main.entry
-  %0 = load %Option, %Option* %match.test.alloca, align 4
-  %1 = extractvalue %Option %0, 0
-  %2 = icmp eq i8 %1, 0
-  br i1 %2, label %"match.case0.Option::None.then", label %"match.case0.Option::None.else"
+  %0 = extractvalue %Option %opt, 0
+  %1 = icmp eq i8 %0, 0
+  br i1 %1, label %"match.case0.Option::None.then", label %"match.case0.Option::None.else"
 
 "match.case0.Option::None.then":                  ; preds = %match.case0.test
+  %"Option::None.payload" = extractvalue %Option %opt, 1
   br label %"match.case0.Option::None.end"
 
 "match.case0.Option::None.else":                  ; preds = %match.case0.test
@@ -55,18 +53,17 @@ match.case0.test:                                 ; preds = %main.entry
   br i1 %"match.case0.Option::None.phi", label %match.case0.then, label %match.case1.test
 
 match.case0.then:                                 ; preds = %"match.case0.Option::None.end"
-  %"Option::None.payload" = extractvalue %Option %0, 1
+  %"Option::None.payload3" = extractvalue %Option %opt, 1
   br label %match.end
 
 match.case1.test:                                 ; preds = %"match.case0.Option::None.end"
-  %3 = load %Option, %Option* %match.test.alloca, align 4
-  %4 = extractvalue %Option %3, 0
-  %5 = icmp eq i8 %4, 1
-  br i1 %5, label %"match.case1.Option::Some.then", label %"match.case1.Option::Some.else"
+  %2 = extractvalue %Option %opt, 0
+  %3 = icmp eq i8 %2, 1
+  br i1 %3, label %"match.case1.Option::Some.then", label %"match.case1.Option::Some.else"
 
 "match.case1.Option::Some.then":                  ; preds = %match.case1.test
-  %"Option::Some.payload" = extractvalue %Option %3, 1
-  %"Option::Some.x" = extractvalue { i32 } %"Option::Some.payload", 0
+  %"Option::Some.payload" = extractvalue %Option %opt, 1
+  %Some.x = extractvalue { i32 } %"Option::Some.payload", 0
   br label %"match.case1.Option::Some.end"
 
 "match.case1.Option::Some.else":                  ; preds = %match.case1.test
@@ -77,10 +74,10 @@ match.case1.test:                                 ; preds = %"match.case0.Option
   br i1 %"match.case1.Option::Some.phi", label %match.case1.then, label %match.fail
 
 match.case1.then:                                 ; preds = %"match.case1.Option::Some.end"
-  %"Option::Some.payload1" = extractvalue %Option %3, 1
-  %"Option::Some.x2" = extractvalue { i32 } %"Option::Some.payload1", 0
+  %"Option::Some.payload1" = extractvalue %Option %opt, 1
+  %Some.x2 = extractvalue { i32 } %"Option::Some.payload1", 0
   %x.alloca = alloca i32, align 4
-  store i32 %"Option::Some.x2", i32* %x.alloca, align 4
+  store i32 %Some.x2, i32* %x.alloca, align 4
   %x = load i32, i32* %x.alloca, align 4
   br label %match.end
 
