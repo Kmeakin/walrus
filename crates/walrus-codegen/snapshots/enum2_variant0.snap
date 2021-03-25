@@ -6,6 +6,8 @@ expression: llvm_module.print_to_string().to_string()
 ; ModuleID = 'module'
 source_filename = "module"
 
+%Foo = type { i8, {} }
+
 define void @builtins.exit.wrapper(i8* %env, i32 %status) {
   call void @exit(i32 %status)
   unreachable
@@ -20,12 +22,12 @@ define i32 @builtins.putchar.wrapper(i8* %env, i32 %c) {
 
 declare i32 @putchar(i32)
 
-define { i8, {} } @main(i8* %main.env) {
+define %Foo @main(i8* %main.env) {
 main.entry:
-  %"Foo::Bar.alloca" = alloca { i8, {} }, align 8
-  %Foo.discriminant.gep = getelementptr inbounds { i8, {} }, { i8, {} }* %"Foo::Bar.alloca", i32 0, i32 0
+  %"Foo::Bar.alloca" = alloca %Foo, align 8
+  %Foo.discriminant.gep = getelementptr inbounds %Foo, %Foo* %"Foo::Bar.alloca", i32 0, i32 0
   store i8 0, i8* %Foo.discriminant.gep, align 1
-  %"Foo::Bar" = load { i8, {} }, { i8, {} }* %"Foo::Bar.alloca", align 1
-  ret { i8, {} } %"Foo::Bar"
+  %"Foo::Bar" = load %Foo, %Foo* %"Foo::Bar.alloca", align 1
+  ret %Foo %"Foo::Bar"
 }
 

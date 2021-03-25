@@ -1,7 +1,7 @@
 #![allow(clippy::cast_possible_truncation)]
 
 use arena::ArenaMap;
-use either::Either;
+use either::{self, *};
 pub use inkwell::context::Context;
 use inkwell::{
     basic_block::BasicBlock,
@@ -13,7 +13,7 @@ use inkwell::{
     values::{BasicValue, BasicValueEnum, FunctionValue, IntValue, PointerValue},
     AddressSpace, FloatPredicate, IntPredicate,
 };
-use std::ops::Index;
+use std::{collections::HashMap, ops::Index};
 use walrus_semantics::{
     builtins::Builtin,
     hir::{
@@ -26,6 +26,9 @@ use walrus_semantics::{
 };
 
 use crate::free_vars::FreeVars;
+
+mod types;
+mod util;
 
 pub struct Compiler<'ctx> {
     pub llvm: &'ctx Context,
@@ -51,6 +54,7 @@ pub struct Loop<'ctx> {
 pub struct Vars<'a> {
     locals: ArenaMap<VarId, PointerValue<'a>>,
     fns: ArenaMap<FnDefId, FunctionValue<'a>>,
+    types: HashMap<Either<StructDefId, EnumDefId>, StructType<'a>>,
     current_loop: Option<Loop<'a>>,
 }
 
@@ -66,118 +70,6 @@ impl<'a> Index<FnDefId> for Vars<'a> {
 type Value<'ctx> = Option<BasicValueEnum<'ctx>>;
 
 impl<'ctx> Compiler<'ctx> {
-    fn void_ptr_type(&self) -> BasicTypeEnum<'ctx> {
-        self.llvm.i8_type().ptr_type(AddressSpace::Generic).into()
-    }
-
-    fn discriminant_type(&self, n: usize) -> Option<IntType> {
-        const I0: usize = 1;
-        const I8: usize = 2_usize.pow(8);
-        const I16: usize = 2_usize.pow(16);
-        const I32: usize = 2_usize.pow(32);
-
-        let ty = match n {
-            0..=I0 => return None,
-            0..=I8 => self.llvm.i8_type(),
-            0..=I16 => self.llvm.i16_type(),
-            0..=I32 => self.llvm.i32_type(),
-            _ => self.llvm.i64_type(),
-        };
-        Some(ty)
-    }
-
-    fn value_type(&self, ty: &Type) -> BasicTypeEnum<'ctx> {
-        match ty {
-            Type::Fn(func) => self.closure_type(func),
-            Type::Struct(id) => self.struct_type(*id).into(),
-            Type::Enum(id) => self.enum_type(*id).into(),
-            Type::Tuple(tys) => self.tuple_type(tys).into(),
-            Type::Primitive(PrimitiveType::Bool) => self.llvm.bool_type().into(),
-            Type::Primitive(PrimitiveType::Int | PrimitiveType::Char) => {
-                self.llvm.i32_type().into()
-            }
-            Type::Primitive(PrimitiveType::Float) => self.llvm.f32_type().into(),
-            Type::Primitive(PrimitiveType::Never) | Type::Infer(_) | Type::Unknown => {
-                unreachable!("This type should not exist at codegen: {:?}", ty)
-            }
-        }
-    }
-
-    fn fn_type(&self, ty: &FnType) -> FunctionType<'ctx> {
-        let FnType { params, ret } = ty;
-        if ret.as_ref() == &Type::NEVER {
-            self.llvm.void_type().fn_type(
-                &std::iter::once(self.void_ptr_type())
-                    .chain(params.iter().map(|ty| self.value_type(ty)))
-                    .collect::<Vec<_>>(),
-                false,
-            )
-        } else {
-            self.value_type(ret).fn_type(
-                &std::iter::once(self.void_ptr_type())
-                    .chain(params.iter().map(|ty| self.value_type(ty)))
-                    .collect::<Vec<_>>(),
-                false,
-            )
-        }
-    }
-
-    fn closure_type(&self, ty: &FnType) -> BasicTypeEnum<'ctx> {
-        let struct_type = self.llvm.struct_type(
-            &[
-                self.fn_type(ty).ptr_type(AddressSpace::Generic).into(),
-                self.void_ptr_type(),
-            ],
-            false,
-        );
-        struct_type.into()
-    }
-
-    fn tuple_type(&self, tys: &[Type]) -> StructType<'ctx> {
-        self.llvm.struct_type(
-            &tys.iter().map(|ty| self.value_type(ty)).collect::<Vec<_>>(),
-            false,
-        )
-    }
-
-    fn unit_type(&self) -> StructType<'ctx> { self.tuple_type(&[]) }
-
-    fn aggregate_type(&self, types: &[StructField]) -> StructType<'ctx> {
-        self.llvm.struct_type(
-            &types
-                .iter()
-                .map(|field| self.value_type(&self.types[field.ty]))
-                .collect::<Vec<_>>(),
-            false,
-        )
-    }
-
-    fn struct_type(&self, id: StructDefId) -> StructType<'ctx> {
-        let struct_def = &self.hir[id];
-        self.aggregate_type(&struct_def.fields)
-    }
-
-    fn enum_type(&self, id: EnumDefId) -> StructType<'ctx> {
-        let enum_def = &self.hir[id];
-
-        let discriminant = self
-            .discriminant_type(enum_def.variants.len())
-            .map_or_else(|| self.unit_type().into(), Into::into);
-
-        let target_triple = self.module.get_triple();
-        let target_str = target_triple.as_str().to_str().unwrap();
-        let layout = TargetData::create(target_str);
-        let largest_payload = enum_def
-            .variants
-            .iter()
-            .map(|variant| self.aggregate_type(&variant.fields))
-            .max_by_key(|ty| layout.get_bit_size(&ty.as_any_type_enum()))
-            .unwrap_or_else(|| self.unit_type());
-
-        self.llvm
-            .struct_type(&[discriminant, largest_payload.into()], false)
-    }
-
     pub fn codegen_module(self) -> Module<'ctx> {
         let builtins_source = include_str!("builtins.ll");
         let builtins =
@@ -191,7 +83,7 @@ impl<'ctx> Compiler<'ctx> {
         let mut vars = Vars::default();
 
         for (id, func) in self.hir.fn_defs.iter() {
-            let fn_type = self.fn_type(&self.types[id]);
+            let fn_type = self.fn_type(&mut vars, &self.types[id]);
             let name = self.hir[func.name].as_str();
             let llvm_fn = self.module.add_function(name, fn_type, None);
             vars.fns.insert(id, llvm_fn);
@@ -242,7 +134,9 @@ impl<'ctx> Compiler<'ctx> {
     fn codegen_local_var(&self, vars: &mut Vars<'ctx>, var_id: VarId, val: BasicValueEnum) {
         let var_type = &self.types[var_id];
         let name = format!("{}.alloca", self.hir[var_id]);
-        let alloca = self.builder.build_alloca(self.value_type(var_type), &name);
+        let alloca = self
+            .builder
+            .build_alloca(self.value_type(vars, var_type), &name);
         vars.locals.insert(var_id, alloca);
         self.builder.build_store(alloca, val);
     }
@@ -398,7 +292,7 @@ impl<'ctx> Compiler<'ctx> {
         }
     }
 
-    fn codegen_var(&self, vars: &Vars<'ctx>, id: VarId) -> BasicValueEnum {
+    fn codegen_var(&self, vars: &mut Vars<'ctx>, id: VarId) -> BasicValueEnum {
         let var = &self.hir[id];
         let denotation = self.scopes.lookup_var(id, var);
         match denotation {
@@ -408,22 +302,23 @@ impl<'ctx> Compiler<'ctx> {
                 let fn_name = &self.hir[fn_def.name].as_str();
                 let fn_type = &self.types[id];
                 let fn_value = vars[id];
-                self.codegen_fn_value(fn_name, fn_value, fn_type)
+                self.codegen_fn_value(vars, fn_name, fn_value, fn_type)
             }
-            Some(Denotation::Builtin(b)) => self.codegen_builtin(b),
+            Some(Denotation::Builtin(b)) => self.codegen_builtin(vars, b),
             _ => unreachable!("Local variable not bound to a value: {:#?}", var),
         }
     }
 
     fn codegen_fn_value(
         &self,
+        vars: &mut Vars<'ctx>,
         fn_name: &str,
         fn_value: FunctionValue,
         fn_type: &FnType,
     ) -> BasicValueEnum {
         let code_ptr = fn_value.as_global_value().as_pointer_value();
         let closure_alloca = self.builder.build_alloca(
-            self.closure_type(fn_type),
+            self.closure_type(vars, fn_type),
             &format!("{fn_name}.closure.alloca"),
         );
 
@@ -442,18 +337,18 @@ impl<'ctx> Compiler<'ctx> {
         self.builder.build_load(closure_alloca, fn_name)
     }
 
-    fn codegen_builtin(&self, builtin: Builtin) -> BasicValueEnum {
+    fn codegen_builtin(&self, vars: &mut Vars<'ctx>, builtin: Builtin) -> BasicValueEnum {
         match builtin {
             Builtin::Exit => {
                 let exit_wrapper_fn = self.module.get_function("builtins.exit.wrapper").unwrap();
-                self.codegen_fn_value("exit", exit_wrapper_fn, builtin.ty().as_fn().unwrap())
+                self.codegen_fn_value(vars, "exit", exit_wrapper_fn, builtin.ty().as_fn().unwrap())
             }
             Builtin::PutChar => {
                 let wrapper_fn = self
                     .module
                     .get_function("builtins.putchar.wrapper")
                     .unwrap();
-                self.codegen_fn_value("putchar", wrapper_fn, builtin.ty().as_fn().unwrap())
+                self.codegen_fn_value(vars, "putchar", wrapper_fn, builtin.ty().as_fn().unwrap())
             }
             Builtin::Bool | Builtin::Int | Builtin::Float | Builtin::Char | Builtin::Never => {
                 unreachable!("Attempt to codegen non-value builtin: {:#?}", builtin)
@@ -463,7 +358,7 @@ impl<'ctx> Compiler<'ctx> {
 
     fn codegen_tuple(&self, vars: &mut Vars<'ctx>, expr: ExprId, exprs: &[ExprId]) -> Value {
         let ty = &self.types[expr];
-        let value_type = self.value_type(ty);
+        let value_type = self.value_type(vars, ty);
         let tuple_alloca = self.builder.build_alloca(value_type, "tuple.alloca");
         for (idx, expr) in exprs.iter().enumerate() {
             let value = self.codegen_expr(vars, *expr)?;
@@ -482,10 +377,16 @@ impl<'ctx> Compiler<'ctx> {
         let struct_def = &self.hir[struct_id];
         let struct_name = &self.hir[struct_def.name];
 
-        let value_type = self.value_type(ty);
+        let value_type = self.value_type(vars, ty);
         let init_exprs = fields
             .iter()
-            .map(|field| (&self.hir[field.name], self.codegen_expr(vars, field.val)))
+            .map(|field| {
+                (
+                    &self.hir[field.name],
+                    self.codegen_expr(vars, field.val),
+                    &self.types[field.val],
+                )
+            })
             .collect::<Vec<_>>();
         let struct_alloca = self
             .builder
@@ -500,12 +401,19 @@ impl<'ctx> Compiler<'ctx> {
                     &format!("{struct_name}.{field_name}"),
                 )
                 .unwrap();
-            let (_, value) = init_exprs
+            let (_, value, ty) = init_exprs
                 .iter()
-                .find(|(name, _)| name == &field_name)
+                .find(|(name, _, _)| name == &field_name)
                 .unwrap();
-            let value = value;
-            self.builder.build_store(gep, (*value)?);
+            let value = (*value)?;
+            let value = if ty.is_stack() {
+                value
+            } else {
+                let value_ptr = self.builder.build_alloca(self.value_type(vars, ty), "");
+                self.builder.build_store(value_ptr, value);
+                value_ptr.into()
+            };
+            self.builder.build_store(gep, value);
         }
         Some(self.builder.build_load(struct_alloca, struct_name.as_str()))
     }
@@ -521,30 +429,18 @@ impl<'ctx> Compiler<'ctx> {
         let enum_def = &self.hir[enum_id];
         let enum_name = &self.hir[enum_def.name];
 
-        let enum_ty = self.enum_type(enum_id);
+        let enum_ty = self.enum_type(vars, enum_id);
 
         let variant_name = self.hir[variant].as_str();
         let (variant_idx, variant) = enum_def.find_variant(&self.hir, variant).unwrap();
-        let (discriminant_type, discriminant_value) =
-            match self.discriminant_type(enum_def.variants.len()) {
-                None => (self.unit_type().into(), self.codegen_unit()),
-                Some(int_type) => (
-                    int_type.into(),
-                    int_type.const_int(variant_idx as u64, false).into(),
-                ),
-            };
-
-        let ty = self.llvm.struct_type(
-            &[
-                discriminant_type,
-                self.aggregate_type(&variant.fields).into(),
-            ],
-            false,
-        );
+        let discriminant_value = match self.discriminant_type(enum_def.variants.len()) {
+            None => self.codegen_unit(),
+            Some(int_type) => int_type.const_int(variant_idx as u64, false).into(),
+        };
 
         let alloca = self
             .builder
-            .build_alloca(ty, &format!("{enum_name}::{variant_name}.alloca"));
+            .build_alloca(enum_ty, &format!("{enum_name}::{variant_name}.alloca"));
 
         let discriminant_gep = self
             .builder
@@ -555,12 +451,7 @@ impl<'ctx> Compiler<'ctx> {
 
         for init in inits.iter() {
             let value = self.codegen_expr(vars, init.val)?;
-            let (idx, field) = variant
-                .fields
-                .iter()
-                .enumerate()
-                .find(|(_, field)| self.hir[field.name] == self.hir[init.name])
-                .unwrap();
+            let (idx, field) = variant.lookup_field(&self.hir, init.name).unwrap();
             let field_name = self.hir[field.name].as_str();
             let payload_gep = self
                 .builder
@@ -588,32 +479,24 @@ impl<'ctx> Compiler<'ctx> {
     }
 
     fn codegen_field(&self, vars: &mut Vars<'ctx>, expr: ExprId, field: Field) -> Value {
-        let base_value = self.codegen_expr(vars, expr)?;
+        let struct_value = self.codegen_expr(vars, expr)?;
+        #[cfg(FALSE)]
         let value = match field {
             Field::Tuple(idx) => self
                 .builder
-                .build_extract_value(base_value.into_struct_value(), idx, &format!("tuple.{idx}"))
+                .build_extract_value(
+                    struct_value.into_struct_value(),
+                    idx,
+                    &format!("tuple.{idx}"),
+                )
                 .unwrap(),
             Field::Named(name) => {
-                let name = &self.hir[name];
                 let struct_id = self.types[expr].as_struct().unwrap();
-                let struct_def = &self.hir[struct_id];
-                let struct_name = &self.hir[struct_def.name];
-                let idx = struct_def
-                    .fields
-                    .iter()
-                    .position(|field| &self.hir[field.name] == name)
-                    .unwrap();
-                self.builder
-                    .build_extract_value(
-                        base_value.into_struct_value(),
-                        idx as u32,
-                        &format!("{struct_name}.{name}"),
-                    )
-                    .unwrap()
+                self.get_struct_field(struct_id, struct_value, name)
             }
         };
-        Some(value)
+        // Some(value)
+        todo!()
     }
 
     fn codegen_if(
@@ -657,7 +540,7 @@ impl<'ctx> Compiler<'ctx> {
         // merge the 2 branches
         self.builder.position_at_end(end_bb);
         let ty = match else_branch {
-            Some(_) => self.value_type(&self.types[then_branch]),
+            Some(_) => self.value_type(vars, &self.types[then_branch]),
             None => self.unit_type().into(),
         };
         let phi = self.builder.build_phi(ty, "if.merge");
@@ -673,7 +556,7 @@ impl<'ctx> Compiler<'ctx> {
         let result_type = &self.types[expr];
         let terminates = result_type != &Type::NEVER;
         let result_type = if terminates {
-            self.value_type(result_type)
+            self.value_type(vars, result_type)
         } else {
             self.unit_type().into()
         };
@@ -769,8 +652,8 @@ impl<'ctx> Compiler<'ctx> {
             .build_call(code_ptr, args, "call")
             .try_as_basic_value()
         {
-            Either::Left(value) => Some(value),
-            Either::Right(_) => {
+            Left(value) => Some(value),
+            Right(_) => {
                 self.builder.build_unreachable();
                 None
             }
@@ -801,7 +684,7 @@ impl<'ctx> Compiler<'ctx> {
         let closure_type = self.types[expr].as_fn().unwrap();
         let closure_alloca = self
             .builder
-            .build_alloca(self.closure_type(closure_type), "closure.alloca");
+            .build_alloca(self.closure_type(vars, closure_type), "closure.alloca");
         let code_gep = self
             .builder
             .build_struct_gep(closure_alloca, 0, "closure.code")
@@ -815,6 +698,7 @@ impl<'ctx> Compiler<'ctx> {
 
         // store free variables
         let free_vars_type = self.tuple_type(
+            vars,
             &free_vars
                 .iter()
                 .map(|(pat, _)| self.types[pat].clone())
@@ -846,7 +730,7 @@ impl<'ctx> Compiler<'ctx> {
         params: &[Param],
         body: ExprId,
     ) -> FunctionValue {
-        let fn_type = self.fn_type(self.types[expr].as_fn().unwrap());
+        let fn_type = self.fn_type(vars, self.types[expr].as_fn().unwrap());
         let llvm_fn = self.module.add_function("lambda", fn_type, None);
         let old_bb = self.builder.get_insert_block().unwrap();
 
@@ -855,6 +739,7 @@ impl<'ctx> Compiler<'ctx> {
 
         // load free vars
         let free_vars_type = self.tuple_type(
+            vars,
             &free_vars
                 .iter()
                 .map(|(pat, _)| self.types[pat].clone())
@@ -1086,9 +971,10 @@ impl<'ctx> Compiler<'ctx> {
         cases: &[MatchCase],
     ) -> Value<'ctx> {
         // HACK: putting the test value into an alloca avoids a lifetime error
-        let test_alloca = self
-            .builder
-            .build_alloca(self.value_type(&self.types[test]), "match.test.alloca");
+        let test_alloca = self.builder.build_alloca(
+            self.value_type(vars, &self.types[test]),
+            "match.test.alloca",
+        );
         let test_value = self.codegen_expr(vars, test)?;
         self.builder.build_store(test_alloca, test_value);
 
@@ -1134,7 +1020,7 @@ impl<'ctx> Compiler<'ctx> {
 
         // merge the branches
         self.builder.position_at_end(end_bb);
-        let expr_type = self.value_type(&self.types[parent]);
+        let expr_type = self.value_type(vars, &self.types[parent]);
         let phi = self.builder.build_phi(expr_type, "match.phi");
         phi.add_incoming(
             incomings

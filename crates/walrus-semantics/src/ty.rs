@@ -119,6 +119,8 @@ impl Type {
         });
         self
     }
+
+    pub const fn is_stack(&self) -> bool { !matches!(self, Self::Enum(_) | Self::Struct(_)) }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]

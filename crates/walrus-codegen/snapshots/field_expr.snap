@@ -6,6 +6,8 @@ expression: llvm_module.print_to_string().to_string()
 ; ModuleID = 'module'
 source_filename = "module"
 
+%Foo = type { i32, i32 }
+
 define void @builtins.exit.wrapper(i8* %env, i32 %status) {
   call void @exit(i32 %status)
   unreachable
@@ -22,16 +24,16 @@ declare i32 @putchar(i32)
 
 define i32 @main(i8* %main.env) {
 main.entry:
-  %Foo.alloca = alloca { i32, i32 }, align 8
-  %Foo.x = getelementptr inbounds { i32, i32 }, { i32, i32 }* %Foo.alloca, i32 0, i32 0
+  %Foo.alloca = alloca %Foo, align 8
+  %Foo.x = getelementptr inbounds %Foo, %Foo* %Foo.alloca, i32 0, i32 0
   store i32 5, i32* %Foo.x, align 4
-  %Foo.y = getelementptr inbounds { i32, i32 }, { i32, i32 }* %Foo.alloca, i32 0, i32 1
+  %Foo.y = getelementptr inbounds %Foo, %Foo* %Foo.alloca, i32 0, i32 1
   store i32 6, i32* %Foo.y, align 4
-  %Foo = load { i32, i32 }, { i32, i32 }* %Foo.alloca, align 4
-  %foo.alloca = alloca { i32, i32 }, align 8
-  store { i32, i32 } %Foo, { i32, i32 }* %foo.alloca, align 4
-  %foo = load { i32, i32 }, { i32, i32 }* %foo.alloca, align 4
-  %Foo.y1 = extractvalue { i32, i32 } %foo, 1
+  %Foo = load %Foo, %Foo* %Foo.alloca, align 4
+  %foo.alloca = alloca %Foo, align 8
+  store %Foo %Foo, %Foo* %foo.alloca, align 4
+  %foo = load %Foo, %Foo* %foo.alloca, align 4
+  %Foo.y1 = extractvalue %Foo %foo, 1
   ret i32 %Foo.y1
 }
 

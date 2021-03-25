@@ -401,7 +401,7 @@ mod loops {
 mod structs {
     use super::*;
     #[test]
-    fn struct_construtor() {
+    fn struct_constructor() {
         test_codegen_and_run(
             r#"
 struct Foo {x: Int}
@@ -436,6 +436,22 @@ struct Foo {x: Int, y: Int}
 fn main() -> _ {
     let Foo {y,x} = Foo{x: 5, y: 10};
     y - x
+}
+    "#,
+            5_i32,
+        );
+    }
+
+    #[test]
+    fn struct_in_struct() {
+        test_codegen_and_run(
+            r#"
+struct Foo {bar: Bar}
+struct Bar {x: Int, y: Int}
+fn main() -> _ {
+    let bar = Bar{x: 5, y: 10};
+    let foo = Foo{bar: bar};
+    foo.bar.y - foo.bar.x
 }
     "#,
             5_i32,
@@ -604,7 +620,6 @@ fn main() -> _ {
         )
     }
 
-    #[test]
     fn lists() {
         test_codegen_and_run(
             r#"
