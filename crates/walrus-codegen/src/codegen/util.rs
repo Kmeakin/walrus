@@ -22,12 +22,8 @@ impl_llvm_ext!(BasicValueEnum<'_>);
 impl_llvm_ext!(IntValue<'_>);
 impl_llvm_ext!(StructValue<'_>);
 
+/// Tuples
 impl<'ctx> Compiler<'ctx> {
-    pub fn struct_name(&self, struct_id: StructDefId) -> &Var {
-        let struct_def = &self.hir[struct_id];
-        &self.hir[struct_def.name]
-    }
-
     pub fn get_tuple_field(
         &self,
         tuple_value: BasicValueEnum<'ctx>,
@@ -40,6 +36,24 @@ impl<'ctx> Compiler<'ctx> {
                 &format!("tuple.{idx}"),
             )
             .unwrap()
+    }
+
+    pub fn get_tuple_field_gep(
+        &self,
+        tuple_alloca: PointerValue<'ctx>,
+        idx: usize,
+    ) -> PointerValue<'ctx> {
+        self.builder
+            .build_struct_gep(tuple_alloca, idx as u32, &format!("tuple.{idx}.gep"))
+            .unwrap()
+    }
+}
+
+/// Structs
+impl<'ctx> Compiler<'ctx> {
+    pub fn struct_name(&self, struct_id: StructDefId) -> &Var {
+        let struct_def = &self.hir[struct_id];
+        &self.hir[struct_def.name]
     }
 
     pub fn get_struct_field(
@@ -71,28 +85,39 @@ impl<'ctx> Compiler<'ctx> {
         }
     }
 
-    pub fn set_struct_field(
+    pub fn get_struct_field_gep(
         &self,
-        vars: &mut Vars<'ctx>,
         struct_id: StructDefId,
-        struct_alloca: PointerValue<'_>,
-        field: VarId,
-        field_val: BasicValueEnum<'ctx>,
-    ) {
+        struct_alloca: PointerValue<'ctx>,
+        field_name: VarId,
+    ) -> PointerValue<'ctx> {
         let struct_def = &self.hir[struct_id];
         let struct_name = self.struct_name(struct_id);
-        let field_name = &self.hir[field];
-        let (field_idx, field) = struct_def.lookup_field(&self.hir, field).unwrap();
-        let field_type = &self.types[field.ty];
+        let (field_idx, _) = struct_def.lookup_field(&self.hir, field_name).unwrap();
+        let field_name = &self.hir[field_name];
 
-        let field_gep = self
-            .builder
+        self.builder
             .build_struct_gep(
                 struct_alloca,
                 field_idx as u32,
                 &format!("{struct_name}.{field_name}.gep"),
             )
-            .unwrap();
+            .unwrap()
+    }
+
+    pub fn set_struct_field(
+        &self,
+        vars: &mut Vars<'ctx>,
+        struct_id: StructDefId,
+        struct_alloca: PointerValue<'ctx>,
+        field_name: VarId,
+        field_val: BasicValueEnum<'ctx>,
+    ) {
+        let struct_def = &self.hir[struct_id];
+        let (_, field) = struct_def.lookup_field(&self.hir, field_name).unwrap();
+        let field_type = &self.types[field.ty];
+
+        let field_gep = self.get_struct_field_gep(struct_id, struct_alloca, field_name);
 
         let value = if field_type.is_stack() {
             field_val
@@ -105,7 +130,9 @@ impl<'ctx> Compiler<'ctx> {
         };
         self.builder.build_store(field_gep, value);
     }
+}
 
+impl<'ctx> Compiler<'ctx> {
     pub fn get_enum_discriminant(&self, enum_value: BasicValueEnum<'ctx>) -> IntValue<'ctx> {
         self.builder
             .build_extract_value(enum_value.into_struct_value(), 0, "")

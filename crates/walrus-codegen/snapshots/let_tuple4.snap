@@ -1,6 +1,6 @@
 ---
 source: crates/walrus-codegen/src/tests.rs
-expression: llvm_module.print_to_string().to_string()
+expression: module
 
 ---
 ; ModuleID = 'module'
@@ -23,58 +23,58 @@ declare i32 @putchar(i32)
 define i32 @main(i8* %main.env) {
 main.entry:
   %tuple.alloca = alloca { i32, i32, i32, i32 }, align 8
-  %tuple.0 = getelementptr inbounds { i32, i32, i32, i32 }, { i32, i32, i32, i32 }* %tuple.alloca, i32 0, i32 0
-  store i32 9, i32* %tuple.0, align 4
-  %tuple.1 = getelementptr inbounds { i32, i32, i32, i32 }, { i32, i32, i32, i32 }* %tuple.alloca, i32 0, i32 1
-  store i32 8, i32* %tuple.1, align 4
-  %tuple.2 = getelementptr inbounds { i32, i32, i32, i32 }, { i32, i32, i32, i32 }* %tuple.alloca, i32 0, i32 2
-  store i32 7, i32* %tuple.2, align 4
-  %tuple.3 = getelementptr inbounds { i32, i32, i32, i32 }, { i32, i32, i32, i32 }* %tuple.alloca, i32 0, i32 3
-  store i32 6, i32* %tuple.3, align 4
+  %tuple.0.gep = getelementptr inbounds { i32, i32, i32, i32 }, { i32, i32, i32, i32 }* %tuple.alloca, i32 0, i32 0
+  store i32 9, i32* %tuple.0.gep, align 4
+  %tuple.1.gep = getelementptr inbounds { i32, i32, i32, i32 }, { i32, i32, i32, i32 }* %tuple.alloca, i32 0, i32 1
+  store i32 8, i32* %tuple.1.gep, align 4
+  %tuple.2.gep = getelementptr inbounds { i32, i32, i32, i32 }, { i32, i32, i32, i32 }* %tuple.alloca, i32 0, i32 2
+  store i32 7, i32* %tuple.2.gep, align 4
+  %tuple.3.gep = getelementptr inbounds { i32, i32, i32, i32 }, { i32, i32, i32, i32 }* %tuple.alloca, i32 0, i32 3
+  store i32 6, i32* %tuple.3.gep, align 4
   %tuple = load { i32, i32, i32, i32 }, { i32, i32, i32, i32 }* %tuple.alloca, align 4
-  %tuple.01 = extractvalue { i32, i32, i32, i32 } %tuple, 0
+  %tuple.0 = extractvalue { i32, i32, i32, i32 } %tuple, 0
   %a.alloca = alloca i32, align 4
-  store i32 %tuple.01, i32* %a.alloca, align 4
-  %tuple.12 = extractvalue { i32, i32, i32, i32 } %tuple, 1
+  store i32 %tuple.0, i32* %a.alloca, align 4
+  %tuple.1 = extractvalue { i32, i32, i32, i32 } %tuple, 1
   %b.alloca = alloca i32, align 4
-  store i32 %tuple.12, i32* %b.alloca, align 4
-  %tuple.23 = extractvalue { i32, i32, i32, i32 } %tuple, 2
+  store i32 %tuple.1, i32* %b.alloca, align 4
+  %tuple.2 = extractvalue { i32, i32, i32, i32 } %tuple, 2
   %c.alloca = alloca i32, align 4
-  store i32 %tuple.23, i32* %c.alloca, align 4
-  %tuple.34 = extractvalue { i32, i32, i32, i32 } %tuple, 3
+  store i32 %tuple.2, i32* %c.alloca, align 4
+  %tuple.3 = extractvalue { i32, i32, i32, i32 } %tuple, 3
   %d.alloca = alloca i32, align 4
-  store i32 %tuple.34, i32* %d.alloca, align 4
-  %tuple.alloca5 = alloca { i32, { i32, i32 }, i32 }, align 8
+  store i32 %tuple.3, i32* %d.alloca, align 4
+  %tuple.alloca1 = alloca { i32, { i32, i32 }, i32 }, align 8
   %d = load i32, i32* %d.alloca, align 4
-  %tuple.06 = getelementptr inbounds { i32, { i32, i32 }, i32 }, { i32, { i32, i32 }, i32 }* %tuple.alloca5, i32 0, i32 0
-  store i32 %d, i32* %tuple.06, align 4
-  %tuple.alloca7 = alloca { i32, i32 }, align 8
+  %tuple.0.gep2 = getelementptr inbounds { i32, { i32, i32 }, i32 }, { i32, { i32, i32 }, i32 }* %tuple.alloca1, i32 0, i32 0
+  store i32 %d, i32* %tuple.0.gep2, align 4
+  %tuple.alloca3 = alloca { i32, i32 }, align 8
   %c = load i32, i32* %c.alloca, align 4
-  %tuple.08 = getelementptr inbounds { i32, i32 }, { i32, i32 }* %tuple.alloca7, i32 0, i32 0
-  store i32 %c, i32* %tuple.08, align 4
+  %tuple.0.gep4 = getelementptr inbounds { i32, i32 }, { i32, i32 }* %tuple.alloca3, i32 0, i32 0
+  store i32 %c, i32* %tuple.0.gep4, align 4
   %b = load i32, i32* %b.alloca, align 4
-  %tuple.19 = getelementptr inbounds { i32, i32 }, { i32, i32 }* %tuple.alloca7, i32 0, i32 1
-  store i32 %b, i32* %tuple.19, align 4
-  %tuple10 = load { i32, i32 }, { i32, i32 }* %tuple.alloca7, align 4
-  %tuple.111 = getelementptr inbounds { i32, { i32, i32 }, i32 }, { i32, { i32, i32 }, i32 }* %tuple.alloca5, i32 0, i32 1
-  store { i32, i32 } %tuple10, { i32, i32 }* %tuple.111, align 4
+  %tuple.1.gep5 = getelementptr inbounds { i32, i32 }, { i32, i32 }* %tuple.alloca3, i32 0, i32 1
+  store i32 %b, i32* %tuple.1.gep5, align 4
+  %tuple6 = load { i32, i32 }, { i32, i32 }* %tuple.alloca3, align 4
+  %tuple.1.gep7 = getelementptr inbounds { i32, { i32, i32 }, i32 }, { i32, { i32, i32 }, i32 }* %tuple.alloca1, i32 0, i32 1
+  store { i32, i32 } %tuple6, { i32, i32 }* %tuple.1.gep7, align 4
   %a = load i32, i32* %a.alloca, align 4
-  %tuple.212 = getelementptr inbounds { i32, { i32, i32 }, i32 }, { i32, { i32, i32 }, i32 }* %tuple.alloca5, i32 0, i32 2
-  store i32 %a, i32* %tuple.212, align 4
-  %tuple13 = load { i32, { i32, i32 }, i32 }, { i32, { i32, i32 }, i32 }* %tuple.alloca5, align 4
-  %tuple.014 = extractvalue { i32, { i32, i32 }, i32 } %tuple13, 0
+  %tuple.2.gep8 = getelementptr inbounds { i32, { i32, i32 }, i32 }, { i32, { i32, i32 }, i32 }* %tuple.alloca1, i32 0, i32 2
+  store i32 %a, i32* %tuple.2.gep8, align 4
+  %tuple9 = load { i32, { i32, i32 }, i32 }, { i32, { i32, i32 }, i32 }* %tuple.alloca1, align 4
+  %tuple.010 = extractvalue { i32, { i32, i32 }, i32 } %tuple9, 0
   %x.alloca = alloca i32, align 4
-  store i32 %tuple.014, i32* %x.alloca, align 4
-  %tuple.115 = extractvalue { i32, { i32, i32 }, i32 } %tuple13, 1
-  %tuple.016 = extractvalue { i32, i32 } %tuple.115, 0
+  store i32 %tuple.010, i32* %x.alloca, align 4
+  %tuple.111 = extractvalue { i32, { i32, i32 }, i32 } %tuple9, 1
+  %tuple.012 = extractvalue { i32, i32 } %tuple.111, 0
   %y.alloca = alloca i32, align 4
-  store i32 %tuple.016, i32* %y.alloca, align 4
-  %tuple.117 = extractvalue { i32, i32 } %tuple.115, 1
+  store i32 %tuple.012, i32* %y.alloca, align 4
+  %tuple.113 = extractvalue { i32, i32 } %tuple.111, 1
   %z.alloca = alloca i32, align 4
-  store i32 %tuple.117, i32* %z.alloca, align 4
-  %tuple.218 = extractvalue { i32, { i32, i32 }, i32 } %tuple13, 2
+  store i32 %tuple.113, i32* %z.alloca, align 4
+  %tuple.214 = extractvalue { i32, { i32, i32 }, i32 } %tuple9, 2
   %w.alloca = alloca i32, align 4
-  store i32 %tuple.218, i32* %w.alloca, align 4
+  store i32 %tuple.214, i32* %w.alloca, align 4
   %x = load i32, i32* %x.alloca, align 4
   ret i32 %x
 }

@@ -623,6 +623,7 @@ fn main() -> _ {
         )
     }
 
+    #[test]
     fn lists() {
         test_codegen_and_run(
             r#"
@@ -639,6 +640,7 @@ fn length(l: List) -> Int {
 }
 
 fn main() -> _ {
+    // let l = List::Cons {head: 1, tail: List::Nil{}};
     let l = List::Nil {};
     length(l)
 }

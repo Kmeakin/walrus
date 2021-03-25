@@ -214,7 +214,7 @@ impl<'ctx> Compiler<'ctx> {
         }
     }
 
-    fn codegen_lvalue(&self, vars: &mut Vars<'ctx>, id: ExprId) -> Option<PointerValue> {
+    fn codegen_lvalue(&self, vars: &mut Vars<'ctx>, id: ExprId) -> Option<PointerValue<'ctx>> {
         let expr = &self.hir[id];
 
         match expr {
@@ -227,31 +227,13 @@ impl<'ctx> Compiler<'ctx> {
                 }
             }
             Expr::Field { expr, field } => {
-                let base_value = self.codegen_lvalue(vars, *expr)?;
-
                 let struct_id = self.types[*expr].as_struct().unwrap();
-                let struct_def = &self.hir[struct_id];
-                let struct_name = &self.hir[struct_def.name];
+                let struct_alloca = self.codegen_lvalue(vars, *expr)?;
 
                 let value = match field {
-                    Field::Tuple(idx) => self
-                        .builder
-                        .build_struct_gep(base_value, *idx as u32, &format!("{struct_name}.{idx}"))
-                        .unwrap(),
+                    Field::Tuple(idx) => self.get_tuple_field_gep(struct_alloca, *idx as _),
                     Field::Named(name) => {
-                        let name = &self.hir[*name];
-                        let idx = struct_def
-                            .fields
-                            .iter()
-                            .position(|field| &self.hir[field.name] == name)
-                            .unwrap();
-                        self.builder
-                            .build_struct_gep(
-                                base_value,
-                                idx as u32,
-                                &format!("{struct_name}.{name}"),
-                            )
-                            .unwrap()
+                        self.get_struct_field_gep(struct_id, struct_alloca, *name)
                     }
                 };
                 Some(value)
@@ -349,11 +331,8 @@ impl<'ctx> Compiler<'ctx> {
         let tuple_alloca = self.builder.build_alloca(value_type, "tuple.alloca");
         for (idx, expr) in exprs.iter().enumerate() {
             let value = self.codegen_expr(vars, *expr)?;
-            let gep = self
-                .builder
-                .build_struct_gep(tuple_alloca, idx as u32, &format!("tuple.{idx}"))
-                .unwrap();
-            self.builder.build_store(gep, value);
+            let field_gep = self.get_tuple_field_gep(tuple_alloca, idx);
+            self.builder.build_store(field_gep, value);
         }
         Some(self.builder.build_load(tuple_alloca, "tuple"))
     }

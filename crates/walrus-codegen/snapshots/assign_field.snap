@@ -30,10 +30,10 @@ main.entry:
   %S = load %S, %S* %S.alloca, align 4
   %s.alloca = alloca %S, align 8
   store %S %S, %S* %s.alloca, align 4
-  %S.x = getelementptr inbounds %S, %S* %s.alloca, i32 0, i32 0
-  store i32 1, i32* %S.x, align 4
+  %S.x.gep1 = getelementptr inbounds %S, %S* %s.alloca, i32 0, i32 0
+  store i32 1, i32* %S.x.gep1, align 4
   %s = load %S, %S* %s.alloca, align 4
-  %S.x1 = extractvalue %S %s, 0
-  ret i32 %S.x1
+  %S.x = extractvalue %S %s, 0
+  ret i32 %S.x
 }
 
