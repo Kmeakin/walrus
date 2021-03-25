@@ -362,51 +362,20 @@ impl<'ctx> Compiler<'ctx> {
         &'ctx self,
         vars: &mut Vars<'ctx>,
         expr: ExprId,
-        fields: &[FieldInit],
+        inits: &[FieldInit],
     ) -> Value<'ctx> {
-        let ty = &self.types[expr];
-        let struct_id = ty.as_struct().unwrap();
-        let struct_def = &self.hir[struct_id];
-        let struct_name = &self.hir[struct_def.name];
-
-        let value_type = self.value_type(vars, ty);
-        let init_exprs = fields
-            .iter()
-            .map(|field| {
-                (
-                    &self.hir[field.name],
-                    self.codegen_expr(vars, field.val),
-                    &self.types[field.val],
-                )
-            })
-            .collect::<Vec<_>>();
+        let struct_id = self.types[expr].as_struct().unwrap();
+        let struct_name = self.struct_name(struct_id);
+        let struct_type = self.struct_type(vars, struct_id);
         let struct_alloca = self
             .builder
-            .build_alloca(value_type, &format!("{struct_name}.alloca"));
-        for (idx, field) in struct_def.fields.iter().enumerate() {
-            let field_name = &self.hir[field.name];
-            let gep = self
-                .builder
-                .build_struct_gep(
-                    struct_alloca,
-                    idx as u32,
-                    &format!("{struct_name}.{field_name}"),
-                )
-                .unwrap();
-            let (_, value, ty) = init_exprs
-                .iter()
-                .find(|(name, _, _)| name == &field_name)
-                .unwrap();
-            let value = (*value)?;
-            let value = if ty.is_stack() {
-                value
-            } else {
-                let value_ptr = self.builder.build_alloca(self.value_type(vars, ty), "");
-                self.builder.build_store(value_ptr, value);
-                value_ptr.into()
-            };
-            self.builder.build_store(gep, value);
+            .build_alloca(struct_type, &format!("{struct_name}.alloca"));
+
+        for init in inits {
+            let value = self.codegen_expr(vars, init.val)?;
+            self.set_struct_field(vars, struct_id, struct_alloca, init.name, value);
         }
+
         Some(self.builder.build_load(struct_alloca, struct_name.as_str()))
     }
 

@@ -1,5 +1,5 @@
 use inkwell::values::StructValue;
-use walrus_semantics::hir::EnumVariant;
+use walrus_semantics::hir::{EnumVariant, Var};
 
 use super::*;
 
@@ -23,6 +23,11 @@ impl_llvm_ext!(IntValue<'_>);
 impl_llvm_ext!(StructValue<'_>);
 
 impl<'ctx> Compiler<'ctx> {
+    pub fn struct_name(&self, struct_id: StructDefId) -> &Var {
+        let struct_def = &self.hir[struct_id];
+        &self.hir[struct_def.name]
+    }
+
     pub fn get_tuple_field(
         &self,
         tuple_value: BasicValueEnum<'ctx>,
@@ -64,6 +69,41 @@ impl<'ctx> Compiler<'ctx> {
         } else {
             self.builder.build_load(field.into_pointer_value(), "")
         }
+    }
+
+    pub fn set_struct_field(
+        &self,
+        vars: &mut Vars<'ctx>,
+        struct_id: StructDefId,
+        struct_alloca: PointerValue<'_>,
+        field: VarId,
+        field_val: BasicValueEnum<'ctx>,
+    ) {
+        let struct_def = &self.hir[struct_id];
+        let struct_name = self.struct_name(struct_id);
+        let field_name = &self.hir[field];
+        let (field_idx, field) = struct_def.lookup_field(&self.hir, field).unwrap();
+        let field_type = &self.types[field.ty];
+
+        let field_gep = self
+            .builder
+            .build_struct_gep(
+                struct_alloca,
+                field_idx as u32,
+                &format!("{struct_name}.{field_name}.gep"),
+            )
+            .unwrap();
+
+        let value = if field_type.is_stack() {
+            field_val
+        } else {
+            let value_ptr = self
+                .builder
+                .build_alloca(self.value_type(vars, field_type), "");
+            self.builder.build_store(value_ptr, field_val);
+            value_ptr.into()
+        };
+        self.builder.build_store(field_gep, value);
     }
 
     pub fn get_enum_discriminant(&self, enum_value: BasicValueEnum<'ctx>) -> IntValue<'ctx> {
