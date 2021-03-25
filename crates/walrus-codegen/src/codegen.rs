@@ -1088,43 +1088,67 @@ impl<'ctx> Compiler<'ctx> {
         // HACK: putting the test value into an alloca avoids a lifetime error
         let test_alloca = self
             .builder
-            .build_alloca(self.llvm.bool_type(), "match.test.alloca");
+            .build_alloca(self.value_type(&self.types[test]), "match.test.alloca");
         let test_value = self.codegen_expr(vars, test)?;
         self.builder.build_store(test_alloca, test_value);
 
         let bb = self.builder.get_insert_block().unwrap();
-        let mut next_bb = self.llvm.insert_basic_block_after(bb, "match.fail");
         let end_bb = self.llvm.insert_basic_block_after(bb, "match.end");
+        let mut next_bb = self.llvm.insert_basic_block_after(bb, "match.fail");
 
-        for case in cases.iter().rev() {
-            let then_bb = self.llvm.insert_basic_block_after(bb, "match.then");
-            let test_bb = self.llvm.insert_basic_block_after(bb, "match.test");
+        // failure to match is UB
+        self.builder.position_at_end(next_bb);
+        self.builder.build_unreachable();
+
+        let mut incomings = Vec::new();
+        for (idx, case) in cases.iter().enumerate().rev() {
+            let then_bb = self
+                .llvm
+                .insert_basic_block_after(bb, &format!("match.case{idx}.then"));
+            let test_bb = self
+                .llvm
+                .insert_basic_block_after(bb, &format!("match.case{idx}.test"));
 
             // test agaisnt the pattern
             self.builder.position_at_end(test_bb);
-            let test_value = self.builder.build_load(test_alloca, "match.test.value");
-            let matched = self.codegen_match_attempt(vars, test_value, case.pat);
+            let test_value = self.builder.build_load(test_alloca, "");
+            let matched = self.codegen_match_attempt(vars, idx, test_value, case.pat);
             self.builder
                 .build_conditional_branch(matched, then_bb, next_bb);
 
             // the then block
             self.builder.position_at_end(then_bb);
-            self.codegen_expr(vars, case.expr);
+            let val = self
+                .codegen_expr(vars, case.expr)
+                .unwrap_or_else(|| self.codegen_undef());
+            let val: Box<dyn BasicValue> = Box::new(val);
             self.builder.build_unconditional_branch(end_bb);
+
+            incomings.push((val, then_bb));
 
             next_bb = test_bb;
         }
+        self.builder.position_at_end(bb);
+        self.builder.build_unconditional_branch(next_bb);
 
         // merge the branches
         self.builder.position_at_end(end_bb);
         let expr_type = self.value_type(&self.types[parent]);
         let phi = self.builder.build_phi(expr_type, "match.phi");
+        phi.add_incoming(
+            incomings
+                .iter()
+                .map(|(val, bb)| (val.as_ref(), *bb))
+                .collect::<Vec<_>>()
+                .as_slice(),
+        );
         Some(phi.as_basic_value())
     }
 
     fn codegen_match_attempt(
         &self,
         vars: &mut Vars<'ctx>,
+        idx: usize,
         test: BasicValueEnum<'ctx>,
         pat_id: PatId,
     ) -> IntValue<'ctx> {
@@ -1148,7 +1172,7 @@ impl<'ctx> Compiler<'ctx> {
                             &format!("tuple.{idx}"),
                         )
                         .unwrap();
-                    let b = self.codegen_match_attempt(vars, element, *pat);
+                    let b = self.codegen_match_attempt(vars, idx, element, *pat);
                     bools.push(b)
                 }
                 self.codegen_all(&bools)
@@ -1176,7 +1200,7 @@ impl<'ctx> Compiler<'ctx> {
                             self.codegen_local_var(vars, field.name, element);
                             self.codegen_true()
                         }
-                        Some(pat) => self.codegen_match_attempt(vars, element, pat),
+                        Some(pat) => self.codegen_match_attempt(vars, idx, element, pat),
                     };
                     bools.push(b)
                 }
@@ -1208,9 +1232,15 @@ impl<'ctx> Compiler<'ctx> {
                     }
                 };
                 let bb = self.builder.get_insert_block().unwrap();
-                let end_bb = self.llvm.insert_basic_block_after(bb, "if.end");
-                let else_bb = self.llvm.insert_basic_block_after(bb, "if.else");
-                let then_bb = self.llvm.insert_basic_block_after(bb, "if.then");
+                let end_bb = self
+                    .llvm
+                    .insert_basic_block_after(bb, &format!("match.case{idx}.if.end"));
+                let else_bb = self
+                    .llvm
+                    .insert_basic_block_after(bb, &format!("match.case{idx}.if.else"));
+                let then_bb = self
+                    .llvm
+                    .insert_basic_block_after(bb, &format!("match.case{idx}.if.then"));
 
                 self.builder
                     .build_conditional_branch(tag_matched, then_bb, else_bb);
@@ -1221,14 +1251,23 @@ impl<'ctx> Compiler<'ctx> {
                 self.builder.build_unconditional_branch(end_bb);
 
                 // then branch
+                self.builder.position_at_end(then_bb);
                 let mut bools = Vec::new();
                 for field in fields {
                     let (idx, struct_field) = variant.lookup_field(&self.hir, field.name).unwrap();
                     let field_name = &self.hir[struct_field.name];
-                    let element = self
+                    let payload = self
                         .builder
                         .build_extract_value(
                             test.into_struct_value(),
+                            1,
+                            &format!("{enum_name}::{variant_name}.payload"),
+                        )
+                        .unwrap();
+                    let element = self
+                        .builder
+                        .build_extract_value(
+                            payload.into_struct_value(),
                             idx as u32,
                             &format!("{enum_name}::{variant_name}.{field_name}"),
                         )
@@ -1238,15 +1277,18 @@ impl<'ctx> Compiler<'ctx> {
                             self.codegen_local_var(vars, field.name, element);
                             self.codegen_true()
                         }
-                        Some(pat) => self.codegen_match_attempt(vars, element, pat),
+                        Some(pat) => self.codegen_match_attempt(vars, idx, element, pat),
                     };
                     bools.push(b)
                 }
                 let then_value = self.codegen_all(&bools);
+                self.builder.build_unconditional_branch(end_bb);
 
                 // merge the 2 branches
                 self.builder.position_at_end(end_bb);
-                let phi = self.builder.build_phi(self.llvm.bool_type(), "");
+                let phi = self
+                    .builder
+                    .build_phi(self.llvm.bool_type(), &format!("match.case{idx}.if.phi"));
                 phi.add_incoming(&[(&then_value, then_bb), (&else_value, else_bb)]);
                 phi.as_basic_value().into_int_value()
             }

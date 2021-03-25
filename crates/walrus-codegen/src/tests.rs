@@ -553,3 +553,28 @@ mod enums {
         )
     }
 }
+
+mod pattern_matching {
+    use super::*;
+
+    #[test]
+    fn simple_pattern_match() {
+        test_codegen_and_run(
+            r#"
+enum Option {
+    None {},
+    Some {x: Int},
+}
+
+fn main() -> _ {
+    let opt = Option::Some{x:1};
+    match opt {
+        Option::None{} => 0,
+        Option::Some{x} => x,
+    }
+}
+    "#,
+            1_i32,
+        )
+    }
+}
