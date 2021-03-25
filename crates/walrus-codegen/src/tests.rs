@@ -1,5 +1,5 @@
 use crate::codegen::{Context, *};
-use inkwell::OptimizationLevel;
+use inkwell::{memory_buffer::MemoryBuffer, OptimizationLevel};
 use insta::*;
 
 #[track_caller]
@@ -26,7 +26,7 @@ where
     let builder = llvm.create_builder();
     let module = llvm.create_module("module");
 
-    let llvm_module = {
+    let module = {
         let compiler = Compiler {
             llvm: &llvm,
             module,
@@ -42,7 +42,10 @@ where
     let mut settings = insta::Settings::new();
     settings.set_snapshot_path("../snapshots");
     settings.set_prepend_module_to_snapshot(false);
-    settings.bind(|| assert_display_snapshot!(llvm_module.print_to_string().to_string()));
+    settings.bind(|| assert_display_snapshot!(module));
+
+    let module_buffer = MemoryBuffer::create_from_memory_range_copy(module.as_bytes(), "module");
+    let llvm_module = llvm.create_module_from_ir(module_buffer).unwrap();
 
     if let Some(expected) = expected {
         let exec_engine = llvm_module

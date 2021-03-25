@@ -70,39 +70,41 @@ impl<'a> Index<FnDefId> for Vars<'a> {
 type Value<'ctx> = Option<BasicValueEnum<'ctx>>;
 
 impl<'ctx> Compiler<'ctx> {
-    pub fn codegen_module(self) -> Module<'ctx> {
+    pub fn codegen_module(self) -> String {
+        let this: &'static Compiler<'static> = unsafe { std::mem::transmute(&self) };
+
         let builtins_source = include_str!("builtins.ll");
         let builtins =
             MemoryBuffer::create_from_memory_range_copy(builtins_source.as_bytes(), "builtins");
-        let builtins = self
+        let builtins = this
             .llvm
             .create_module_from_ir(builtins)
             .map_err(|e| eprintln!("{}", e.to_string()))
             .unwrap();
-        self.module.link_in_module(builtins).unwrap();
+        this.module.link_in_module(builtins).unwrap();
         let mut vars = Vars::default();
 
-        for (id, func) in self.hir.fn_defs.iter() {
-            let fn_type = self.fn_type(&mut vars, &self.types[id]);
-            let name = self.hir[func.name].as_str();
-            let llvm_fn = self.module.add_function(name, fn_type, None);
+        for (id, func) in this.hir.fn_defs.iter() {
+            let fn_type = this.fn_type(&mut vars, &this.types[id]);
+            let name = this.hir[func.name].as_str();
+            let llvm_fn = this.module.add_function(name, fn_type, None);
             vars.fns.insert(id, llvm_fn);
         }
 
-        for (id, _) in self.hir.fn_defs.iter() {
-            self.codegen_fn(&mut vars, id)
+        for (id, _) in this.hir.fn_defs.iter() {
+            this.codegen_fn(&mut vars, id)
         }
 
-        if let Err(e) = self.module.verify() {
-            eprintln!("{}", self.module.print_to_string().to_string());
+        if let Err(e) = this.module.verify() {
+            eprintln!("{}", this.module.print_to_string().to_string());
             eprintln!("{}", e.to_string());
             panic!()
         }
 
-        self.module
+        this.module.print_to_string().to_string()
     }
 
-    fn codegen_fn(&self, vars: &mut Vars<'ctx>, id: FnDefId) {
+    fn codegen_fn(&'ctx self, vars: &mut Vars<'ctx>, id: FnDefId) {
         let llvm_fn = vars[id];
         let fn_def = &self.hir[id];
         let name = &self.hir[fn_def.name];
@@ -187,7 +189,7 @@ impl<'ctx> Compiler<'ctx> {
         }
     }
 
-    fn codegen_expr(&self, vars: &mut Vars<'ctx>, id: ExprId) -> Value<'_> {
+    fn codegen_expr(&'ctx self, vars: &mut Vars<'ctx>, id: ExprId) -> Value<'ctx> {
         let expr = &self.hir[id];
         match expr {
             Expr::Lit(lit) => Some(self.codegen_lit(*lit)),
@@ -356,7 +358,12 @@ impl<'ctx> Compiler<'ctx> {
         }
     }
 
-    fn codegen_tuple(&self, vars: &mut Vars<'ctx>, expr: ExprId, exprs: &[ExprId]) -> Value {
+    fn codegen_tuple(
+        &'ctx self,
+        vars: &mut Vars<'ctx>,
+        expr: ExprId,
+        exprs: &[ExprId],
+    ) -> Value<'ctx> {
         let ty = &self.types[expr];
         let value_type = self.value_type(vars, ty);
         let tuple_alloca = self.builder.build_alloca(value_type, "tuple.alloca");
@@ -371,7 +378,12 @@ impl<'ctx> Compiler<'ctx> {
         Some(self.builder.build_load(tuple_alloca, "tuple"))
     }
 
-    fn codegen_struct(&self, vars: &mut Vars<'ctx>, expr: ExprId, fields: &[FieldInit]) -> Value {
+    fn codegen_struct(
+        &'ctx self,
+        vars: &mut Vars<'ctx>,
+        expr: ExprId,
+        fields: &[FieldInit],
+    ) -> Value<'ctx> {
         let ty = &self.types[expr];
         let struct_id = ty.as_struct().unwrap();
         let struct_def = &self.hir[struct_id];
@@ -419,12 +431,12 @@ impl<'ctx> Compiler<'ctx> {
     }
 
     fn codegen_enum(
-        &self,
+        &'ctx self,
         vars: &mut Vars<'ctx>,
         expr: ExprId,
         variant: VarId,
         inits: &[FieldInit],
-    ) -> Value {
+    ) -> Value<'ctx> {
         let enum_id = self.types[expr].as_enum().unwrap();
         let enum_def = &self.hir[enum_id];
         let enum_name = &self.hir[enum_def.name];
@@ -478,9 +490,8 @@ impl<'ctx> Compiler<'ctx> {
         Some(load)
     }
 
-    fn codegen_field(&self, vars: &mut Vars<'ctx>, expr: ExprId, field: Field) -> Value {
+    fn codegen_field(&'ctx self, vars: &mut Vars<'ctx>, expr: ExprId, field: Field) -> Value<'ctx> {
         let struct_value = self.codegen_expr(vars, expr)?;
-        #[cfg(FALSE)]
         let value = match field {
             Field::Tuple(idx) => self
                 .builder
@@ -495,17 +506,16 @@ impl<'ctx> Compiler<'ctx> {
                 self.get_struct_field(struct_id, struct_value, name)
             }
         };
-        // Some(value)
-        todo!()
+        Some(value)
     }
 
     fn codegen_if(
-        &self,
+        &'ctx self,
         vars: &mut Vars<'ctx>,
         test: ExprId,
         then_branch: ExprId,
         else_branch: Option<ExprId>,
-    ) -> Value {
+    ) -> Value<'ctx> {
         let bb = self.builder.get_insert_block().unwrap();
         let end_bb = self.llvm.insert_basic_block_after(bb, "if.end");
         let else_bb = self.llvm.insert_basic_block_after(bb, "if.else");
@@ -548,7 +558,7 @@ impl<'ctx> Compiler<'ctx> {
         Some(phi.as_basic_value())
     }
 
-    fn codegen_loop(&self, vars: &mut Vars<'ctx>, expr: ExprId, body: ExprId) -> Value {
+    fn codegen_loop(&'ctx self, vars: &mut Vars<'ctx>, expr: ExprId, body: ExprId) -> Value<'ctx> {
         let old_bb = self.builder.get_insert_block().unwrap();
         let exit_bb = self.llvm.insert_basic_block_after(old_bb, "loop.exit");
         let body_bb = self.llvm.insert_basic_block_after(old_bb, "loop.body");
@@ -604,7 +614,7 @@ impl<'ctx> Compiler<'ctx> {
         ret
     }
 
-    fn codegen_break(&self, vars: &mut Vars<'ctx>, expr: Option<ExprId>) -> Value {
+    fn codegen_break(&'ctx self, vars: &mut Vars<'ctx>, expr: Option<ExprId>) -> Value<'ctx> {
         let value = match expr {
             None => self.codegen_unit(),
             Some(expr) => self.codegen_expr(vars, expr)?,
@@ -633,7 +643,12 @@ impl<'ctx> Compiler<'ctx> {
         None
     }
 
-    fn codegen_call(&self, vars: &mut Vars<'ctx>, func: ExprId, args: &[ExprId]) -> Value {
+    fn codegen_call(
+        &'ctx self,
+        vars: &mut Vars<'ctx>,
+        func: ExprId,
+        args: &[ExprId],
+    ) -> Value<'ctx> {
         let closure_value = self.codegen_expr(vars, func)?.into_struct_value();
         let code_ptr = self
             .builder
@@ -661,7 +676,7 @@ impl<'ctx> Compiler<'ctx> {
     }
 
     fn codegen_lambda(
-        &self,
+        &'ctx self,
         vars: &mut Vars<'ctx>,
         expr: ExprId,
         params: &[Param],
@@ -723,13 +738,13 @@ impl<'ctx> Compiler<'ctx> {
     }
 
     fn codegen_lambda_body(
-        &self,
+        &'ctx self,
         vars: &mut Vars<'ctx>,
         free_vars: &FreeVars,
         expr: ExprId,
         params: &[Param],
         body: ExprId,
-    ) -> FunctionValue {
+    ) -> FunctionValue<'ctx> {
         let fn_type = self.fn_type(vars, self.types[expr].as_fn().unwrap());
         let llvm_fn = self.module.add_function("lambda", fn_type, None);
         let old_bb = self.builder.get_insert_block().unwrap();
@@ -782,7 +797,7 @@ impl<'ctx> Compiler<'ctx> {
         llvm_fn
     }
 
-    fn codegen_return(&self, vars: &mut Vars<'ctx>, expr: Option<ExprId>) -> Value {
+    fn codegen_return(&'ctx self, vars: &mut Vars<'ctx>, expr: Option<ExprId>) -> Value<'ctx> {
         let value = match expr {
             Some(expr) => self.codegen_expr(vars, expr)?,
             None => self.codegen_unit(),
@@ -791,7 +806,7 @@ impl<'ctx> Compiler<'ctx> {
         None
     }
 
-    fn codegen_unop(&self, vars: &mut Vars<'ctx>, op: Unop, expr: ExprId) -> Value {
+    fn codegen_unop(&'ctx self, vars: &mut Vars<'ctx>, op: Unop, expr: ExprId) -> Value<'ctx> {
         let ty = &self.types[expr];
         let value = self.codegen_expr(vars, expr)?;
         let value = match op {
@@ -820,7 +835,13 @@ impl<'ctx> Compiler<'ctx> {
         Some(value)
     }
 
-    fn codegen_binop(&self, vars: &mut Vars<'ctx>, lhs: ExprId, op: Binop, rhs: ExprId) -> Value {
+    fn codegen_binop(
+        &'ctx self,
+        vars: &mut Vars<'ctx>,
+        lhs: ExprId,
+        op: Binop,
+        rhs: ExprId,
+    ) -> Value<'ctx> {
         match op {
             Binop::Lazy(op) => self.codegen_lazy_binop(vars, lhs, op, rhs),
             Binop::Arithmetic(op) => self.codegen_arithmetic_binop(vars, lhs, op, rhs),
@@ -830,12 +851,12 @@ impl<'ctx> Compiler<'ctx> {
     }
 
     fn codegen_lazy_binop(
-        &self,
+        &'ctx self,
         vars: &mut Vars<'ctx>,
         lhs: ExprId,
         op: LazyBinop,
         rhs: ExprId,
-    ) -> Value {
+    ) -> Value<'ctx> {
         let bool_type = self.llvm.bool_type();
         let bb = self.builder.get_insert_block().unwrap();
         let end_bb = self.llvm.insert_basic_block_after(bb, &format!("{op}.end"));
@@ -869,12 +890,12 @@ impl<'ctx> Compiler<'ctx> {
     }
 
     fn codegen_arithmetic_binop(
-        &self,
+        &'ctx self,
         vars: &mut Vars<'ctx>,
         lhs: ExprId,
         op: ArithmeticBinop,
         rhs: ExprId,
-    ) -> Value {
+    ) -> Value<'ctx> {
         let lhs_value = self.codegen_expr(vars, lhs)?;
         let rhs_value = self.codegen_expr(vars, rhs)?;
 
@@ -910,12 +931,12 @@ impl<'ctx> Compiler<'ctx> {
     }
 
     fn codegen_cmp_binop(
-        &self,
+        &'ctx self,
         vars: &mut Vars<'ctx>,
         lhs: ExprId,
         op: CmpBinop,
         rhs: ExprId,
-    ) -> Value {
+    ) -> Value<'ctx> {
         let lhs_value = self.codegen_expr(vars, lhs)?;
         let rhs_value = self.codegen_expr(vars, rhs)?;
 
@@ -954,7 +975,7 @@ impl<'ctx> Compiler<'ctx> {
         Some(value)
     }
 
-    fn codegen_assign(&self, vars: &mut Vars<'ctx>, lhs: ExprId, rhs: ExprId) -> Value {
+    fn codegen_assign(&'ctx self, vars: &mut Vars<'ctx>, lhs: ExprId, rhs: ExprId) -> Value<'ctx> {
         let lhs = self.codegen_lvalue(vars, lhs)?;
         let rhs = self.codegen_expr(vars, rhs)?;
         self.builder.build_store(lhs, rhs);
@@ -964,7 +985,7 @@ impl<'ctx> Compiler<'ctx> {
 
 impl<'ctx> Compiler<'ctx> {
     fn codegen_match(
-        &self,
+        &'ctx self,
         vars: &mut Vars<'ctx>,
         parent: ExprId,
         test: ExprId,

@@ -1,0 +1,56 @@
+---
+source: crates/walrus-codegen/src/tests.rs
+expression: module
+
+---
+; ModuleID = 'module'
+source_filename = "module"
+
+%Bar = type { i32, i32 }
+%Foo = type { %Bar* }
+
+define void @builtins.exit.wrapper(i8* %env, i32 %status) {
+  call void @exit(i32 %status)
+  unreachable
+}
+
+declare void @exit(i32)
+
+define i32 @builtins.putchar.wrapper(i8* %env, i32 %c) {
+  %1 = call i32 @putchar(i32 %c)
+  ret i32 %1
+}
+
+declare i32 @putchar(i32)
+
+define i32 @main(i8* %main.env) {
+main.entry:
+  %Bar.alloca = alloca %Bar, align 8
+  %Bar.x = getelementptr inbounds %Bar, %Bar* %Bar.alloca, i32 0, i32 0
+  store i32 5, i32* %Bar.x, align 4
+  %Bar.y = getelementptr inbounds %Bar, %Bar* %Bar.alloca, i32 0, i32 1
+  store i32 10, i32* %Bar.y, align 4
+  %Bar = load %Bar, %Bar* %Bar.alloca, align 4
+  %bar.alloca = alloca %Bar, align 8
+  store %Bar %Bar, %Bar* %bar.alloca, align 4
+  %bar = load %Bar, %Bar* %bar.alloca, align 4
+  %Foo.alloca = alloca %Foo, align 8
+  %Foo.bar = getelementptr inbounds %Foo, %Foo* %Foo.alloca, i32 0, i32 0
+  %0 = alloca %Bar, align 8
+  store %Bar %bar, %Bar* %0, align 4
+  store %Bar* %0, %Bar** %Foo.bar, align 8
+  %Foo = load %Foo, %Foo* %Foo.alloca, align 8
+  %foo.alloca = alloca %Foo, align 8
+  store %Foo %Foo, %Foo* %foo.alloca, align 8
+  %foo = load %Foo, %Foo* %foo.alloca, align 8
+  %Foo.bar1 = extractvalue %Foo %foo, 0
+  %1 = load %Bar, %Bar* %Foo.bar1, align 4
+  %Bar.y2 = extractvalue %Bar %1, 1
+  %foo3 = load %Foo, %Foo* %foo.alloca, align 8
+  %Foo.bar4 = extractvalue %Foo %foo3, 0
+  %2 = load %Bar, %Bar* %Foo.bar4, align 4
+  %Bar.x5 = extractvalue %Bar %2, 0
+  %3 = sub i32 %Bar.y2, %Bar.x5
+  ret i32 %3
+}
+
