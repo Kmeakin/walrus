@@ -577,4 +577,55 @@ fn main() -> _ {
             1_i32,
         )
     }
+
+    #[test]
+    fn add_options() {
+        test_codegen_and_run(
+            r#"
+enum Option {
+    None {},
+    Some {x: Int},
+}
+
+fn add_options(a: Option, b: Option) -> Option {
+    match (a, b) {
+        (Option::Some{x:a}, Option::Some{x:b}) => Option::Some{x: a + b},
+        _ => Option::None{},
+    }
+}
+
+fn main() -> _ {
+    let a = Option::Some{x:1};
+    let b = Option::Some{x:2};
+    add_options(a,b)
+}
+    "#,
+            (1_i8, 3_i64),
+        )
+    }
+
+    #[test]
+    fn lists() {
+        test_codegen_and_run(
+            r#"
+enum List {
+    Nil {},
+    Cons {head: Int, tail: List}
+}
+
+fn length(l: List) -> Int {
+    match l {
+        List::Nil {} => 0,
+        List::Cons{head: _, tail} => 1 + length(tail),
+    }
+}
+
+fn main() -> _ {
+    let l = List::Nil {};
+    length(l)
+}
+        "#,
+            0_i32,
+        )
+    }
 }

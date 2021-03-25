@@ -411,7 +411,7 @@ impl<'ctx> Compiler<'ctx> {
                 self.codegen_fn_value(fn_name, fn_value, fn_type)
             }
             Some(Denotation::Builtin(b)) => self.codegen_builtin(b),
-            _ => unreachable!("Local variable not bound to a value: {:#?}"),
+            _ => unreachable!("Local variable not bound to a value: {:#?}", var),
         }
     }
 
@@ -1112,12 +1112,13 @@ impl<'ctx> Compiler<'ctx> {
             // test agaisnt the pattern
             self.builder.position_at_end(test_bb);
             let test_value = self.builder.build_load(test_alloca, "");
-            let matched = self.codegen_match_attempt(vars, idx, test_value, case.pat);
+            let matched = self.codegen_match_attempt(idx, test_value, case.pat);
             self.builder
                 .build_conditional_branch(matched, then_bb, next_bb);
 
             // the then block
             self.builder.position_at_end(then_bb);
+            self.capture_variables_from_pattern(vars, test_value, case.pat);
             let val = self
                 .codegen_expr(vars, case.expr)
                 .unwrap_or_else(|| self.codegen_undef());
@@ -1147,7 +1148,6 @@ impl<'ctx> Compiler<'ctx> {
 
     fn codegen_match_attempt(
         &self,
-        vars: &mut Vars<'ctx>,
         idx: usize,
         test: BasicValueEnum<'ctx>,
         pat_id: PatId,
@@ -1156,34 +1156,24 @@ impl<'ctx> Compiler<'ctx> {
 
         match pat {
             Pat::Lit(_) => todo!(),
-            Pat::Var(var_id) => {
-                self.codegen_local_var(vars, *var_id, test);
-                self.codegen_true()
-            }
-            Pat::Ignore => self.codegen_true(),
-            Pat::Tuple(pats) => {
-                let mut bools = Vec::new();
-                for (idx, pat) in pats.iter().enumerate() {
-                    let element = self
-                        .builder
-                        .build_extract_value(
-                            test.into_struct_value(),
-                            idx as u32,
-                            &format!("tuple.{idx}"),
-                        )
-                        .unwrap();
-                    let b = self.codegen_match_attempt(vars, idx, element, *pat);
-                    bools.push(b)
-                }
-                self.codegen_all(&bools)
-            }
+            Pat::Var(_) | Pat::Ignore => self.codegen_true(),
+            Pat::Tuple(pats) => self.codegen_all(pats.iter().enumerate().map(|(idx, pat)| {
+                let element = self
+                    .builder
+                    .build_extract_value(
+                        test.into_struct_value(),
+                        idx as u32,
+                        &format!("tuple.{idx}"),
+                    )
+                    .unwrap();
+                self.codegen_match_attempt(idx, element, *pat)
+            })),
             Pat::Struct { fields, .. } => {
                 let struct_id = self.types[pat_id].as_struct().unwrap();
                 let struct_def = &self.hir[struct_id];
                 let struct_name = &self.hir[struct_def.name];
 
-                let mut bools = Vec::new();
-                for field in fields {
+                self.codegen_all(fields.iter().map(|field| {
                     let (idx, struct_field) =
                         struct_def.lookup_field(&self.hir, field.name).unwrap();
                     let field_name = &self.hir[struct_field.name];
@@ -1195,16 +1185,11 @@ impl<'ctx> Compiler<'ctx> {
                             &format!("{struct_name}.{field_name}"),
                         )
                         .unwrap();
-                    let b = match field.pat {
-                        None => {
-                            self.codegen_local_var(vars, field.name, element);
-                            self.codegen_true()
-                        }
-                        Some(pat) => self.codegen_match_attempt(vars, idx, element, pat),
-                    };
-                    bools.push(b)
-                }
-                self.codegen_all(&bools)
+                    match field.pat {
+                        None => self.codegen_true(),
+                        Some(pat) => self.codegen_match_attempt(idx, element, pat),
+                    }
+                }))
             }
             Pat::Enum {
                 variant, fields, ..
@@ -1232,15 +1217,18 @@ impl<'ctx> Compiler<'ctx> {
                     }
                 };
                 let bb = self.builder.get_insert_block().unwrap();
-                let end_bb = self
-                    .llvm
-                    .insert_basic_block_after(bb, &format!("match.case{idx}.if.end"));
-                let else_bb = self
-                    .llvm
-                    .insert_basic_block_after(bb, &format!("match.case{idx}.if.else"));
-                let then_bb = self
-                    .llvm
-                    .insert_basic_block_after(bb, &format!("match.case{idx}.if.then"));
+                let end_bb = self.llvm.insert_basic_block_after(
+                    bb,
+                    &format!("match.case{idx}.{enum_name}::{variant_name}.end"),
+                );
+                let else_bb = self.llvm.insert_basic_block_after(
+                    bb,
+                    &format!("match.case{idx}.{enum_name}::{variant_name}.else"),
+                );
+                let then_bb = self.llvm.insert_basic_block_after(
+                    bb,
+                    &format!("match.case{idx}.{enum_name}::{variant_name}.then"),
+                );
 
                 self.builder
                     .build_conditional_branch(tag_matched, then_bb, else_bb);
@@ -1252,8 +1240,7 @@ impl<'ctx> Compiler<'ctx> {
 
                 // then branch
                 self.builder.position_at_end(then_bb);
-                let mut bools = Vec::new();
-                for field in fields {
+                let then_value = self.codegen_all(fields.iter().map(|field| {
                     let (idx, struct_field) = variant.lookup_field(&self.hir, field.name).unwrap();
                     let field_name = &self.hir[struct_field.name];
                     let payload = self
@@ -1272,25 +1259,104 @@ impl<'ctx> Compiler<'ctx> {
                             &format!("{enum_name}::{variant_name}.{field_name}"),
                         )
                         .unwrap();
-                    let b = match field.pat {
-                        None => {
-                            self.codegen_local_var(vars, field.name, element);
-                            self.codegen_true()
-                        }
-                        Some(pat) => self.codegen_match_attempt(vars, idx, element, pat),
-                    };
-                    bools.push(b)
-                }
-                let then_value = self.codegen_all(&bools);
+                    match field.pat {
+                        None => self.codegen_true(),
+                        Some(pat) => self.codegen_match_attempt(idx, element, pat),
+                    }
+                }));
                 self.builder.build_unconditional_branch(end_bb);
 
                 // merge the 2 branches
                 self.builder.position_at_end(end_bb);
-                let phi = self
-                    .builder
-                    .build_phi(self.llvm.bool_type(), &format!("match.case{idx}.if.phi"));
+                let phi = self.builder.build_phi(
+                    self.llvm.bool_type(),
+                    &format!("match.case{idx}.{enum_name}::{variant_name}.phi"),
+                );
                 phi.add_incoming(&[(&then_value, then_bb), (&else_value, else_bb)]);
                 phi.as_basic_value().into_int_value()
+            }
+        }
+    }
+
+    fn capture_variables_from_pattern(
+        &self,
+        vars: &mut Vars<'ctx>,
+        test: BasicValueEnum<'ctx>,
+        pat_id: PatId,
+    ) {
+        let pat = &self.hir[pat_id];
+
+        match pat {
+            Pat::Lit(_) | Pat::Ignore => {}
+            Pat::Var(var_id) => self.codegen_local_var(vars, *var_id, test),
+            Pat::Tuple(pats) => pats.iter().enumerate().for_each(|(idx, pat)| {
+                let element = self
+                    .builder
+                    .build_extract_value(
+                        test.into_struct_value(),
+                        idx as u32,
+                        &format!("tuple.{idx}"),
+                    )
+                    .unwrap();
+                self.capture_variables_from_pattern(vars, element, *pat)
+            }),
+            Pat::Struct { fields, .. } => {
+                let struct_id = self.types[pat_id].as_struct().unwrap();
+                let struct_def = &self.hir[struct_id];
+                let struct_name = &self.hir[struct_def.name];
+
+                fields.iter().for_each(|field| {
+                    let (idx, struct_field) =
+                        struct_def.lookup_field(&self.hir, field.name).unwrap();
+                    let field_name = &self.hir[struct_field.name];
+                    let element = self
+                        .builder
+                        .build_extract_value(
+                            test.into_struct_value(),
+                            idx as u32,
+                            &format!("{struct_name}.{field_name}"),
+                        )
+                        .unwrap();
+                    match field.pat {
+                        None => self.codegen_local_var(vars, field.name, element),
+                        Some(pat) => self.capture_variables_from_pattern(vars, element, pat),
+                    }
+                })
+            }
+            Pat::Enum {
+                variant, fields, ..
+            } => {
+                let enum_id = self.types[pat_id].as_enum().unwrap();
+                let enum_def = &self.hir[enum_id];
+                let enum_name = &self.hir[enum_def.name];
+
+                let (_, variant) = enum_def.find_variant(&self.hir, *variant).unwrap();
+                let variant_name = &self.hir[variant.name];
+
+                let payload = self
+                    .builder
+                    .build_extract_value(
+                        test.into_struct_value(),
+                        1,
+                        &format!("{enum_name}::{variant_name}.payload"),
+                    )
+                    .unwrap();
+                fields.iter().for_each(|field| {
+                    let (idx, struct_field) = variant.lookup_field(&self.hir, field.name).unwrap();
+                    let field_name = &self.hir[struct_field.name];
+                    let element = self
+                        .builder
+                        .build_extract_value(
+                            payload.into_struct_value(),
+                            idx as u32,
+                            &format!("{enum_name}::{variant_name}.{field_name}"),
+                        )
+                        .unwrap();
+                    match field.pat {
+                        None => self.codegen_local_var(vars, field.name, element),
+                        Some(pat) => self.capture_variables_from_pattern(vars, element, pat),
+                    }
+                })
             }
         }
     }
@@ -1298,9 +1364,9 @@ impl<'ctx> Compiler<'ctx> {
     fn codegen_true(&self) -> IntValue<'ctx> { self.llvm.bool_type().const_int(true as _, false) }
     fn codegen_false(&self) -> IntValue<'ctx> { self.llvm.bool_type().const_int(false as _, false) }
 
-    fn codegen_all(&self, bools: &[IntValue<'ctx>]) -> IntValue<'ctx> {
-        bools.iter().fold(self.codegen_true(), |acc, e| {
-            self.builder.build_and(acc, *e, "")
+    fn codegen_all(&self, bools: impl Iterator<Item = IntValue<'ctx>>) -> IntValue<'ctx> {
+        bools.fold(self.codegen_true(), |acc, e| {
+            self.builder.build_and(acc, e, "")
         })
     }
 }

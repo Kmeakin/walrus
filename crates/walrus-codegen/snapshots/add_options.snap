@@ -1,0 +1,153 @@
+---
+source: crates/walrus-codegen/src/tests.rs
+expression: llvm_module.print_to_string().to_string()
+
+---
+; ModuleID = 'module'
+source_filename = "module"
+
+define void @builtins.exit.wrapper(i8* %env, i32 %status) {
+  call void @exit(i32 %status)
+  unreachable
+}
+
+declare void @exit(i32)
+
+define i32 @builtins.putchar.wrapper(i8* %env, i32 %c) {
+  %1 = call i32 @putchar(i32 %c)
+  ret i32 %1
+}
+
+declare i32 @putchar(i32)
+
+define { i8, { i32 } } @add_options(i8* %add_options.env, { i8, { i32 } } %add_options.params.0, { i8, { i32 } } %add_options.params.1) {
+add_options.entry:
+  %a.alloca = alloca { i8, { i32 } }, align 8
+  store { i8, { i32 } } %add_options.params.0, { i8, { i32 } }* %a.alloca, align 4
+  %b.alloca = alloca { i8, { i32 } }, align 8
+  store { i8, { i32 } } %add_options.params.1, { i8, { i32 } }* %b.alloca, align 4
+  %match.test.alloca = alloca { { i8, { i32 } }, { i8, { i32 } } }, align 8
+  %tuple.alloca = alloca { { i8, { i32 } }, { i8, { i32 } } }, align 8
+  %a = load { i8, { i32 } }, { i8, { i32 } }* %a.alloca, align 4
+  %tuple.0 = getelementptr inbounds { { i8, { i32 } }, { i8, { i32 } } }, { { i8, { i32 } }, { i8, { i32 } } }* %tuple.alloca, i32 0, i32 0
+  store { i8, { i32 } } %a, { i8, { i32 } }* %tuple.0, align 4
+  %b = load { i8, { i32 } }, { i8, { i32 } }* %b.alloca, align 4
+  %tuple.1 = getelementptr inbounds { { i8, { i32 } }, { i8, { i32 } } }, { { i8, { i32 } }, { i8, { i32 } } }* %tuple.alloca, i32 0, i32 1
+  store { i8, { i32 } } %b, { i8, { i32 } }* %tuple.1, align 4
+  %tuple = load { { i8, { i32 } }, { i8, { i32 } } }, { { i8, { i32 } }, { i8, { i32 } } }* %tuple.alloca, align 4
+  store { { i8, { i32 } }, { i8, { i32 } } } %tuple, { { i8, { i32 } }, { i8, { i32 } } }* %match.test.alloca, align 4
+  br label %match.case0.test
+
+match.case0.test:                                 ; preds = %add_options.entry
+  %0 = load { { i8, { i32 } }, { i8, { i32 } } }, { { i8, { i32 } }, { i8, { i32 } } }* %match.test.alloca, align 4
+  %tuple.01 = extractvalue { { i8, { i32 } }, { i8, { i32 } } } %0, 0
+  %1 = extractvalue { i8, { i32 } } %tuple.01, 0
+  %2 = icmp eq i8 %1, 1
+  br i1 %2, label %"match.case0.Option::Some.then", label %"match.case0.Option::Some.else"
+
+"match.case0.Option::Some.then":                  ; preds = %match.case0.test
+  %"Option::Some.payload" = extractvalue { i8, { i32 } } %tuple.01, 1
+  %"Option::Some.x" = extractvalue { i32 } %"Option::Some.payload", 0
+  br label %"match.case0.Option::Some.end"
+
+"match.case0.Option::Some.else":                  ; preds = %match.case0.test
+  br label %"match.case0.Option::Some.end"
+
+"match.case0.Option::Some.end":                   ; preds = %"match.case0.Option::Some.then", %"match.case0.Option::Some.else"
+  %"match.case0.Option::Some.phi" = phi i1 [ true, %"match.case0.Option::Some.then" ], [ false, %"match.case0.Option::Some.else" ]
+  %3 = and i1 true, %"match.case0.Option::Some.phi"
+  %tuple.12 = extractvalue { { i8, { i32 } }, { i8, { i32 } } } %0, 1
+  %4 = extractvalue { i8, { i32 } } %tuple.12, 0
+  %5 = icmp eq i8 %4, 1
+  br i1 %5, label %"match.case1.Option::Some.then", label %"match.case1.Option::Some.else"
+
+"match.case1.Option::Some.then":                  ; preds = %"match.case0.Option::Some.end"
+  %"Option::Some.payload3" = extractvalue { i8, { i32 } } %tuple.12, 1
+  %"Option::Some.x4" = extractvalue { i32 } %"Option::Some.payload3", 0
+  br label %"match.case1.Option::Some.end"
+
+"match.case1.Option::Some.else":                  ; preds = %"match.case0.Option::Some.end"
+  br label %"match.case1.Option::Some.end"
+
+"match.case1.Option::Some.end":                   ; preds = %"match.case1.Option::Some.then", %"match.case1.Option::Some.else"
+  %"match.case1.Option::Some.phi" = phi i1 [ true, %"match.case1.Option::Some.then" ], [ false, %"match.case1.Option::Some.else" ]
+  %6 = and i1 %3, %"match.case1.Option::Some.phi"
+  br i1 %6, label %match.case0.then, label %match.case1.test
+
+match.case0.then:                                 ; preds = %"match.case1.Option::Some.end"
+  %tuple.05 = extractvalue { { i8, { i32 } }, { i8, { i32 } } } %0, 0
+  %"Option::Some.payload6" = extractvalue { i8, { i32 } } %tuple.05, 1
+  %"Option::Some.x7" = extractvalue { i32 } %"Option::Some.payload6", 0
+  %a.alloca8 = alloca i32, align 4
+  store i32 %"Option::Some.x7", i32* %a.alloca8, align 4
+  %tuple.19 = extractvalue { { i8, { i32 } }, { i8, { i32 } } } %0, 1
+  %"Option::Some.payload10" = extractvalue { i8, { i32 } } %tuple.19, 1
+  %"Option::Some.x11" = extractvalue { i32 } %"Option::Some.payload10", 0
+  %b.alloca12 = alloca i32, align 4
+  store i32 %"Option::Some.x11", i32* %b.alloca12, align 4
+  %"Option::Some.alloca" = alloca { i8, { i32 } }, align 8
+  %Option.discriminant.gep13 = getelementptr inbounds { i8, { i32 } }, { i8, { i32 } }* %"Option::Some.alloca", i32 0, i32 0
+  store i8 1, i8* %Option.discriminant.gep13, align 1
+  %a14 = load i32, i32* %a.alloca8, align 4
+  %b15 = load i32, i32* %b.alloca12, align 4
+  %7 = add i32 %a14, %b15
+  %payload.gep = getelementptr inbounds { i8, { i32 } }, { i8, { i32 } }* %"Option::Some.alloca", i32 0, i32 1
+  %"Option::Some.x.gep" = getelementptr inbounds { i32 }, { i32 }* %payload.gep, i32 0, i32 0
+  store i32 %7, i32* %"Option::Some.x.gep", align 4
+  %"Option::Some" = load { i8, { i32 } }, { i8, { i32 } }* %"Option::Some.alloca", align 4
+  br label %match.end
+
+match.case1.test:                                 ; preds = %"match.case1.Option::Some.end"
+  %8 = load { { i8, { i32 } }, { i8, { i32 } } }, { { i8, { i32 } }, { i8, { i32 } } }* %match.test.alloca, align 4
+  br i1 true, label %match.case1.then, label %match.fail
+
+match.case1.then:                                 ; preds = %match.case1.test
+  %"Option::None.alloca" = alloca { i8, {} }, align 8
+  %Option.discriminant.gep = getelementptr inbounds { i8, {} }, { i8, {} }* %"Option::None.alloca", i32 0, i32 0
+  store i8 0, i8* %Option.discriminant.gep, align 1
+  %9 = bitcast { i8, {} }* %"Option::None.alloca" to { i8, { i32 } }*
+  %"Option::None" = load { i8, { i32 } }, { i8, { i32 } }* %9, align 4
+  br label %match.end
+
+match.fail:                                       ; preds = %match.case1.test
+  unreachable
+
+match.end:                                        ; preds = %match.case0.then, %match.case1.then
+  %match.phi = phi { i8, { i32 } } [ %"Option::None", %match.case1.then ], [ %"Option::Some", %match.case0.then ]
+  ret { i8, { i32 } } %match.phi
+}
+
+define { i8, { i32 } } @main(i8* %main.env) {
+main.entry:
+  %"Option::Some.alloca" = alloca { i8, { i32 } }, align 8
+  %Option.discriminant.gep = getelementptr inbounds { i8, { i32 } }, { i8, { i32 } }* %"Option::Some.alloca", i32 0, i32 0
+  store i8 1, i8* %Option.discriminant.gep, align 1
+  %payload.gep = getelementptr inbounds { i8, { i32 } }, { i8, { i32 } }* %"Option::Some.alloca", i32 0, i32 1
+  %"Option::Some.x.gep" = getelementptr inbounds { i32 }, { i32 }* %payload.gep, i32 0, i32 0
+  store i32 1, i32* %"Option::Some.x.gep", align 4
+  %"Option::Some" = load { i8, { i32 } }, { i8, { i32 } }* %"Option::Some.alloca", align 4
+  %a.alloca = alloca { i8, { i32 } }, align 8
+  store { i8, { i32 } } %"Option::Some", { i8, { i32 } }* %a.alloca, align 4
+  %"Option::Some.alloca1" = alloca { i8, { i32 } }, align 8
+  %Option.discriminant.gep2 = getelementptr inbounds { i8, { i32 } }, { i8, { i32 } }* %"Option::Some.alloca1", i32 0, i32 0
+  store i8 1, i8* %Option.discriminant.gep2, align 1
+  %payload.gep3 = getelementptr inbounds { i8, { i32 } }, { i8, { i32 } }* %"Option::Some.alloca1", i32 0, i32 1
+  %"Option::Some.x.gep4" = getelementptr inbounds { i32 }, { i32 }* %payload.gep3, i32 0, i32 0
+  store i32 2, i32* %"Option::Some.x.gep4", align 4
+  %"Option::Some5" = load { i8, { i32 } }, { i8, { i32 } }* %"Option::Some.alloca1", align 4
+  %b.alloca = alloca { i8, { i32 } }, align 8
+  store { i8, { i32 } } %"Option::Some5", { i8, { i32 } }* %b.alloca, align 4
+  %add_options.closure.alloca = alloca { { i8, { i32 } } (i8*, { i8, { i32 } }, { i8, { i32 } })*, i8* }, align 8
+  %add_options.closure.code = getelementptr inbounds { { i8, { i32 } } (i8*, { i8, { i32 } }, { i8, { i32 } })*, i8* }, { { i8, { i32 } } (i8*, { i8, { i32 } }, { i8, { i32 } })*, i8* }* %add_options.closure.alloca, i32 0, i32 0
+  store { i8, { i32 } } (i8*, { i8, { i32 } }, { i8, { i32 } })* @add_options, { i8, { i32 } } (i8*, { i8, { i32 } }, { i8, { i32 } })** %add_options.closure.code, align 8
+  %add_options.closure.env = getelementptr inbounds { { i8, { i32 } } (i8*, { i8, { i32 } }, { i8, { i32 } })*, i8* }, { { i8, { i32 } } (i8*, { i8, { i32 } }, { i8, { i32 } })*, i8* }* %add_options.closure.alloca, i32 0, i32 1
+  store i8* null, i8** %add_options.closure.env, align 8
+  %add_options = load { { i8, { i32 } } (i8*, { i8, { i32 } }, { i8, { i32 } })*, i8* }, { { i8, { i32 } } (i8*, { i8, { i32 } }, { i8, { i32 } })*, i8* }* %add_options.closure.alloca, align 8
+  %closure.code = extractvalue { { i8, { i32 } } (i8*, { i8, { i32 } }, { i8, { i32 } })*, i8* } %add_options, 0
+  %closure.env = extractvalue { { i8, { i32 } } (i8*, { i8, { i32 } }, { i8, { i32 } })*, i8* } %add_options, 1
+  %a = load { i8, { i32 } }, { i8, { i32 } }* %a.alloca, align 4
+  %b = load { i8, { i32 } }, { i8, { i32 } }* %b.alloca, align 4
+  %call = call { i8, { i32 } } %closure.code(i8* %closure.env, { i8, { i32 } } %a, { i8, { i32 } } %b)
+  ret { i8, { i32 } } %call
+}
+
