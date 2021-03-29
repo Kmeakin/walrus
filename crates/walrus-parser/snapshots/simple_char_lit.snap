@@ -1,6 +1,7 @@
 ---
 source: crates/walrus-parser/src/grammar.rs
 expression: got
+
 ---
 Ok(
     (
@@ -9,7 +10,7 @@ Ok(
             Simple(
                 SimpleChar {
                     span: 0..3,
-                    text: "\'a\'",
+                    text: "'a'",
                 },
             ),
         ),
