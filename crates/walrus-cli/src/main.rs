@@ -6,7 +6,7 @@ use codespan_reporting::{
     files::SimpleFile,
     term::{emit, termcolor::ColorChoice, Config},
 };
-use either::Either::{self, *};
+use either::Either::*;
 use std::error::Error;
 use walrus_semantics::{
     builtins::BuiltinKind,
@@ -72,7 +72,7 @@ fn render_diagnostic(module: &Module, diag: &Diagnostic) -> CodespanDiagnostic<(
                 Label::primary((), semicolon.span).with_message("This semicolon is not needed")
             ]),
         Diagnostic::BadLit { err, span } => CodespanDiagnostic::error()
-            .with_message(format!("Bad literal"))
+            .with_message("Bad literal")
             .with_labels(vec![Label::primary((), *span).with_message(err.to_string())]),
         Diagnostic::DuplicateVar { first, second } => {
             let name = &module.hir[*first];
@@ -212,8 +212,9 @@ fn render_diagnostic(module: &Module, diag: &Diagnostic) -> CodespanDiagnostic<(
             let span = module.source[*lhs].span();
             CodespanDiagnostic::error()
                 .with_message("Not lvalue")
-                .with_labels(vec![Label::primary((), span)
-                    .with_message(format!("Can only assign to lvalue expressions"))])
+                .with_labels(vec![
+                    Label::primary((), span).with_message("Can only assign to lvalue expressions")
+                ])
         }
         Diagnostic::NoSuchField {
             parent,
@@ -284,7 +285,7 @@ fn render_diagnostic(module: &Module, diag: &Diagnostic) -> CodespanDiagnostic<(
         Diagnostic::FalliablePattern { id } => {
             let span = module.source[*id].span();
             CodespanDiagnostic::error()
-                .with_message(format!("Falliable pattern"))
+                .with_message("Falliable pattern")
                 .with_labels(vec![
                     Label::primary((), span).with_message("Patterns in this context must not fail")
                 ])

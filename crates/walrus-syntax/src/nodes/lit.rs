@@ -11,7 +11,7 @@ pub enum Lit {
 }
 
 impl Lit {
-    pub fn span(&self) -> Span {
+    pub const fn span(&self) -> Span {
         match self {
             Lit::Bool(bool) => bool.span(),
             Lit::Int(int) => int.span(),
@@ -28,7 +28,7 @@ pub enum BoolLit {
 }
 
 impl BoolLit {
-    pub fn span(&self) -> Span {
+    pub const fn span(&self) -> Span {
         match self {
             BoolLit::True(t) => t.span,
             BoolLit::False(f) => f.span,
@@ -44,7 +44,7 @@ pub enum IntLit {
 }
 
 impl IntLit {
-    pub fn span(&self) -> Span {
+    pub const fn span(&self) -> Span {
         match self {
             IntLit::Dec(i) => i.span,
             IntLit::Bin(i) => i.span,
@@ -57,7 +57,7 @@ impl IntLit {
 pub struct FloatLit(pub Float);
 
 impl FloatLit {
-    pub fn span(&self) -> Span {
+    pub const fn span(&self) -> Span {
         match self {
             Self(f) => f.span,
         }
@@ -72,7 +72,7 @@ pub enum CharLit {
 }
 
 impl CharLit {
-    pub fn span(&self) -> Span {
+    pub const fn span(&self) -> Span {
         match self {
             CharLit::Simple(c) => c.span,
             CharLit::Escaped(c) => c.span,

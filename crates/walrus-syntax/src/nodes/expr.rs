@@ -106,7 +106,7 @@ pub enum Unop {
 }
 
 impl Unop {
-    pub fn span(&self) -> Span {
+    pub const fn span(&self) -> Span {
         match self {
             Unop::Not(t) => t.span,
             Unop::Add(t) => t.span,
@@ -133,7 +133,7 @@ pub enum Field {
 }
 
 impl Field {
-    pub fn span(&self) -> Span {
+    pub const fn span(&self) -> Span {
         match self {
             Field::Tuple(x) => x.span,
             Field::Named(x) => x.span(),
@@ -268,7 +268,7 @@ pub struct ContinueExpr {
 }
 
 impl ContinueExpr {
-    pub fn span(&self) -> Span { self.kw_continue.span }
+    pub const fn span(self) -> Span { self.kw_continue.span }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

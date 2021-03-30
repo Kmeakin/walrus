@@ -71,6 +71,7 @@ impl<'a> Index<FnDefId> for Vars<'a> {
 type Value<'ctx> = Option<BasicValueEnum<'ctx>>;
 
 impl<'ctx> Compiler<'ctx> {
+    #[allow(clippy::useless_transmute)]
     pub fn codegen_module(self) -> String {
         let this: &'static Compiler<'static> = unsafe { std::mem::transmute(&self) };
 

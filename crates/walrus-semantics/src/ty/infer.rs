@@ -448,7 +448,7 @@ impl Ctx {
                         let struct_def = self.hir[struct_id].clone();
                         let struct_type = Type::Struct(struct_id);
                         self.infer_fields(
-                            struct_type.clone(),
+                            &struct_type,
                             Right(pat_id),
                             Some(&struct_def.fields),
                             Right(&fields),
@@ -456,7 +456,7 @@ impl Ctx {
                         struct_type
                     }
                     _ => {
-                        self.infer_fields(struct_type, Right(pat_id), None, Right(&fields));
+                        self.infer_fields(&struct_type, Right(pat_id), None, Right(&fields));
                         Type::Unknown
                     }
                 }
@@ -476,7 +476,7 @@ impl Ctx {
                             None => todo!("No such variant"),
                             Some((_, variant)) => {
                                 self.infer_fields(
-                                    enum_type.clone(),
+                                    &enum_type,
                                     Right(pat_id),
                                     Some(&variant.fields),
                                     Right(&fields),
@@ -486,7 +486,7 @@ impl Ctx {
                         enum_type
                     }
                     _ => {
-                        self.infer_fields(enum_type, Right(pat_id), None, Right(&fields));
+                        self.infer_fields(&enum_type, Right(pat_id), None, Right(&fields));
                         Type::Unknown
                     }
                 }
@@ -549,7 +549,7 @@ impl Ctx {
                 let struct_def = self.hir[struct_id].clone();
                 let struct_type = Type::Struct(struct_id);
                 self.infer_fields(
-                    struct_type.clone(),
+                    &struct_type,
                     Left(expr),
                     Some(&struct_def.fields),
                     Left(fields),
@@ -557,7 +557,7 @@ impl Ctx {
                 struct_type
             }
             _ => {
-                self.infer_fields(struct_type, Left(expr), None, Left(fields));
+                self.infer_fields(&struct_type, Left(expr), None, Left(fields));
                 Type::Unknown
             }
         }
@@ -579,7 +579,7 @@ impl Ctx {
                     None => todo!("No such variant"),
                     Some((_, variant)) => {
                         self.infer_fields(
-                            enum_type.clone(),
+                            &enum_type,
                             Left(expr),
                             Some(&variant.fields),
                             Left(fields),
@@ -589,7 +589,7 @@ impl Ctx {
                 enum_type
             }
             _ => {
-                self.infer_fields(enum_type, Left(expr), None, Left(fields));
+                self.infer_fields(&enum_type, Left(expr), None, Left(fields));
                 Type::Unknown
             }
         }
@@ -597,7 +597,7 @@ impl Ctx {
 
     fn infer_fields(
         &mut self,
-        ty: Type,
+        ty: &Type,
         parent: Either<ExprId, PatId>,
         fields: Option<&[StructField]>,
         inits: Either<&[FieldInit], &[FieldPat]>,

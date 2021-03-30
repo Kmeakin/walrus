@@ -148,6 +148,7 @@ impl<'ctx> Compiler<'ctx> {
         &self.hir[enum_def.name]
     }
 
+    #[allow(clippy::match_overlapping_arm)]
     pub fn enum_discriminant_type(&self, enum_id: EnumDefId) -> Option<IntType<'ctx>> {
         const I0: usize = 1;
         const I8: usize = 2_usize.pow(8);

@@ -102,5 +102,5 @@ pub enum Diagnostic {
 }
 
 impl Diagnostic {
-    pub fn is_error(&self) -> bool { !matches!(self, Self::UnnecessarySemicolon(_)) }
+    pub const fn is_error(&self) -> bool { !matches!(self, Self::UnnecessarySemicolon(_)) }
 }

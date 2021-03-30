@@ -1,8 +1,5 @@
-use std::slice::RChunks;
-
-use walrus_lexer::Span;
-
 use crate::tokens::*;
+use walrus_lexer::Span;
 
 mod decl;
 mod expr;
@@ -109,5 +106,5 @@ impl<T> Curly<T> {
 pub struct Var(pub Ident);
 
 impl Var {
-    pub fn span(&self) -> Span { self.0.span }
+    pub const fn span(&self) -> Span { self.0.span }
 }
