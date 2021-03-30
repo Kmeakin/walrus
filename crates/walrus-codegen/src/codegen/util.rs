@@ -127,10 +127,13 @@ impl<'ctx> Compiler<'ctx> {
         let value = if field_type.is_stack() {
             field_value
         } else {
-            let value_ptr = self.builder.build_alloca(
-                self.value_type(vars, field_type),
-                &format!("{struct_name}.{field_name}.alloca"),
-            );
+            let value_ptr = self
+                .builder
+                .build_malloc(
+                    self.value_type(vars, field_type),
+                    &format!("{struct_name}.{field_name}.malloc"),
+                )
+                .unwrap();
             self.builder.build_store(value_ptr, field_value);
             value_ptr.into()
         };
@@ -320,10 +323,13 @@ impl<'ctx> Compiler<'ctx> {
         let value = if field_type.is_stack() {
             field_value
         } else {
-            let value_ptr = self.builder.build_alloca(
-                self.value_type(vars, field_type),
-                &format!("{enum_name}::{variant_name}.{field_name}.alloca"),
-            );
+            let value_ptr = self
+                .builder
+                .build_malloc(
+                    self.value_type(vars, field_type),
+                    &format!("{enum_name}::{variant_name}.{field_name}.malloc"),
+                )
+                .unwrap();
             self.builder.build_store(value_ptr, field_value);
             value_ptr.into()
         };

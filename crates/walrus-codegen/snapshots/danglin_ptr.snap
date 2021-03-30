@@ -199,8 +199,8 @@ match.end:                                        ; preds = %match.case0.then, %
   ret i32 %match.phi
 }
 
-define i32 @main(i8* %main.env) {
-main.entry:
+define %List @get_list(i8* %get_list.env) {
+get_list.entry:
   %List.alloca = alloca %List, align 8
   %List.discriminant.gep = getelementptr inbounds %List, %List* %List.alloca, i32 0, i32 0
   store i8 1, i8* %List.discriminant.gep, align 1
@@ -256,39 +256,56 @@ main.entry:
   %List.load28 = load %List, %List* %List.alloca, align 8
   %l1.alloca = alloca %List, align 8
   store %List %List.load28, %List* %l1.alloca, align 8
+  %l1 = load %List, %List* %l1.alloca, align 8
+  ret %List %l1
+}
+
+define i32 @main(i8* %main.env) {
+main.entry:
+  %get_list.closure.alloca = alloca { %List (i8*)*, i8* }, align 8
+  %get_list.closure.code = getelementptr inbounds { %List (i8*)*, i8* }, { %List (i8*)*, i8* }* %get_list.closure.alloca, i32 0, i32 0
+  store %List (i8*)* @get_list, %List (i8*)** %get_list.closure.code, align 8
+  %get_list.closure.env = getelementptr inbounds { %List (i8*)*, i8* }, { %List (i8*)*, i8* }* %get_list.closure.alloca, i32 0, i32 1
+  store i8* null, i8** %get_list.closure.env, align 8
+  %get_list = load { %List (i8*)*, i8* }, { %List (i8*)*, i8* }* %get_list.closure.alloca, align 8
+  %closure.code = extractvalue { %List (i8*)*, i8* } %get_list, 0
+  %closure.env = extractvalue { %List (i8*)*, i8* } %get_list, 1
+  %call = call %List %closure.code(i8* %closure.env)
+  %l1.alloca = alloca %List, align 8
+  store %List %call, %List* %l1.alloca, align 8
   %map.closure.alloca = alloca { %List (i8*, %List, { i32 (i8*, i32)*, i8* })*, i8* }, align 8
   %map.closure.code = getelementptr inbounds { %List (i8*, %List, { i32 (i8*, i32)*, i8* })*, i8* }, { %List (i8*, %List, { i32 (i8*, i32)*, i8* })*, i8* }* %map.closure.alloca, i32 0, i32 0
   store %List (i8*, %List, { i32 (i8*, i32)*, i8* })* @map, %List (i8*, %List, { i32 (i8*, i32)*, i8* })** %map.closure.code, align 8
   %map.closure.env = getelementptr inbounds { %List (i8*, %List, { i32 (i8*, i32)*, i8* })*, i8* }, { %List (i8*, %List, { i32 (i8*, i32)*, i8* })*, i8* }* %map.closure.alloca, i32 0, i32 1
   store i8* null, i8** %map.closure.env, align 8
   %map = load { %List (i8*, %List, { i32 (i8*, i32)*, i8* })*, i8* }, { %List (i8*, %List, { i32 (i8*, i32)*, i8* })*, i8* }* %map.closure.alloca, align 8
-  %closure.code = extractvalue { %List (i8*, %List, { i32 (i8*, i32)*, i8* })*, i8* } %map, 0
-  %closure.env = extractvalue { %List (i8*, %List, { i32 (i8*, i32)*, i8* })*, i8* } %map, 1
+  %closure.code1 = extractvalue { %List (i8*, %List, { i32 (i8*, i32)*, i8* })*, i8* } %map, 0
+  %closure.env2 = extractvalue { %List (i8*, %List, { i32 (i8*, i32)*, i8* })*, i8* } %map, 1
   %l1 = load %List, %List* %l1.alloca, align 8
   %closure.alloca = alloca { i32 (i8*, i32)*, i8* }, align 8
-  %closure.code29 = getelementptr inbounds { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %closure.alloca, i32 0, i32 0
-  store i32 (i8*, i32)* @lambda, i32 (i8*, i32)** %closure.code29, align 8
-  %closure.env30 = getelementptr inbounds { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %closure.alloca, i32 0, i32 1
-  %malloccall31 = tail call i8* @malloc(i32 0)
-  %env.malloc = bitcast i8* %malloccall31 to {}*
+  %closure.code3 = getelementptr inbounds { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %closure.alloca, i32 0, i32 0
+  store i32 (i8*, i32)* @lambda, i32 (i8*, i32)** %closure.code3, align 8
+  %closure.env4 = getelementptr inbounds { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %closure.alloca, i32 0, i32 1
+  %malloccall = tail call i8* @malloc(i32 0)
+  %env.malloc = bitcast i8* %malloccall to {}*
   %env = bitcast {}* %env.malloc to i8*
-  store i8* %env, i8** %closure.env30, align 8
+  store i8* %env, i8** %closure.env4, align 8
   %closure = load { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %closure.alloca, align 8
-  %call = call %List %closure.code(i8* %closure.env, %List %l1, { i32 (i8*, i32)*, i8* } %closure)
+  %call5 = call %List %closure.code1(i8* %closure.env2, %List %l1, { i32 (i8*, i32)*, i8* } %closure)
   %l2.alloca = alloca %List, align 8
-  store %List %call, %List* %l2.alloca, align 8
+  store %List %call5, %List* %l2.alloca, align 8
   %sum.closure.alloca = alloca { i32 (i8*, %List)*, i8* }, align 8
   %sum.closure.code = getelementptr inbounds { i32 (i8*, %List)*, i8* }, { i32 (i8*, %List)*, i8* }* %sum.closure.alloca, i32 0, i32 0
   store i32 (i8*, %List)* @sum, i32 (i8*, %List)** %sum.closure.code, align 8
   %sum.closure.env = getelementptr inbounds { i32 (i8*, %List)*, i8* }, { i32 (i8*, %List)*, i8* }* %sum.closure.alloca, i32 0, i32 1
   store i8* null, i8** %sum.closure.env, align 8
   %sum = load { i32 (i8*, %List)*, i8* }, { i32 (i8*, %List)*, i8* }* %sum.closure.alloca, align 8
-  %closure.code32 = extractvalue { i32 (i8*, %List)*, i8* } %sum, 0
-  %closure.env33 = extractvalue { i32 (i8*, %List)*, i8* } %sum, 1
+  %closure.code6 = extractvalue { i32 (i8*, %List)*, i8* } %sum, 0
+  %closure.env7 = extractvalue { i32 (i8*, %List)*, i8* } %sum, 1
   %l2 = load %List, %List* %l2.alloca, align 8
-  %call34 = call i32 %closure.code32(i8* %closure.env33, %List %l2)
+  %call8 = call i32 %closure.code6(i8* %closure.env7, %List %l2)
   %s.alloca = alloca i32, align 4
-  store i32 %call34, i32* %s.alloca, align 4
+  store i32 %call8, i32* %s.alloca, align 4
   %s = load i32, i32* %s.alloca, align 4
   ret i32 %s
 }

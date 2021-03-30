@@ -116,17 +116,19 @@ main.entry:
   %List.payload.gep7 = getelementptr inbounds %List, %List* %List.alloca5, i32 0, i32 1
   %List.load = load %List, %List* %List.alloca5, align 8
   %"List::Cons.tail.gep" = getelementptr inbounds { i32, %List* }, { i32, %List* }* %List.payload.gep3, i32 0, i32 1
-  %"List::Cons.tail.alloca" = alloca %List, align 8
-  store %List %List.load, %List* %"List::Cons.tail.alloca", align 8
-  store %List* %"List::Cons.tail.alloca", %List** %"List::Cons.tail.gep", align 8
+  %malloccall = tail call i8* @malloc(i32 ptrtoint (%List* getelementptr (%List, %List* null, i32 1) to i32))
+  %"List::Cons.tail.malloc" = bitcast i8* %malloccall to %List*
+  store %List %List.load, %List* %"List::Cons.tail.malloc", align 8
+  store %List* %"List::Cons.tail.malloc", %List** %"List::Cons.tail.gep", align 8
   %List.load8 = load %List, %List* %List.alloca1, align 8
   %"List::Cons.tail.gep9" = getelementptr inbounds { i32, %List* }, { i32, %List* }* %List.payload.gep, i32 0, i32 1
-  %"List::Cons.tail.alloca10" = alloca %List, align 8
-  store %List %List.load8, %List* %"List::Cons.tail.alloca10", align 8
-  store %List* %"List::Cons.tail.alloca10", %List** %"List::Cons.tail.gep9", align 8
-  %List.load11 = load %List, %List* %List.alloca, align 8
+  %malloccall10 = tail call i8* @malloc(i32 ptrtoint (%List* getelementptr (%List, %List* null, i32 1) to i32))
+  %"List::Cons.tail.malloc11" = bitcast i8* %malloccall10 to %List*
+  store %List %List.load8, %List* %"List::Cons.tail.malloc11", align 8
+  store %List* %"List::Cons.tail.malloc11", %List** %"List::Cons.tail.gep9", align 8
+  %List.load12 = load %List, %List* %List.alloca, align 8
   %l.alloca = alloca %List, align 8
-  store %List %List.load11, %List* %l.alloca, align 8
+  store %List %List.load12, %List* %l.alloca, align 8
   %length.closure.alloca = alloca { i32 (i8*, %List)*, i8* }, align 8
   %length.closure.code = getelementptr inbounds { i32 (i8*, %List)*, i8* }, { i32 (i8*, %List)*, i8* }* %length.closure.alloca, i32 0, i32 0
   store i32 (i8*, %List)* @length, i32 (i8*, %List)** %length.closure.code, align 8
@@ -139,4 +141,6 @@ main.entry:
   %call = call i32 %closure.code(i8* %closure.env, %List %l)
   ret i32 %call
 }
+
+declare noalias i8* @malloc(i32)
 

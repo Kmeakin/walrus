@@ -400,62 +400,6 @@ impl<'ctx> Compiler<'ctx> {
         )
     }
 
-    #[cfg(FALSE)]
-    fn codegen_enum(
-        &'ctx self,
-        vars: &mut Vars<'ctx>,
-        expr: ExprId,
-        variant: VarId,
-        inits: &[FieldInit],
-    ) -> Value<'ctx> {
-        let enum_id = self.types[expr].as_enum().unwrap();
-        let enum_def = &self.hir[enum_id];
-        let enum_name = &self.hir[enum_def.name];
-
-        let enum_ty = self.enum_type(vars, enum_id);
-
-        let variant_name = self.hir[variant].as_str();
-        let (variant_idx, variant) = enum_def.find_variant(&self.hir, variant).unwrap();
-        let discriminant_value = match self.discriminant_type(enum_def.variants.len()) {
-            None => self.codegen_unit(),
-            Some(int_type) => int_type.const_int(variant_idx as u64, false).into(),
-        };
-
-        let enum_alloca = self
-            .builder
-            .build_alloca(enum_ty, &format!("{enum_name}::{variant_name}.alloca"));
-
-        self.set_enum_discriminant(enum_id, enum_alloca, discriminant_value);
-
-        for init in inits.iter() {
-            let value = self.codegen_expr(vars, init.val)?;
-            let (idx, field) = variant.lookup_field(&self.hir, init.name).unwrap();
-            let field_name = self.hir[field.name].as_str();
-            let payload_gep = self
-                .builder
-                .build_struct_gep(enum_alloca, 1, "payload.gep")
-                .unwrap();
-            let field_gep = self
-                .builder
-                .build_struct_gep(
-                    payload_gep,
-                    idx as u32,
-                    &format!("{enum_name}::{variant_name}.{field_name}.gep"),
-                )
-                .unwrap();
-            self.builder.build_store(field_gep, value);
-        }
-
-        let casted = self
-            .builder
-            .build_bitcast(enum_alloca, enum_ty.ptr_type(AddressSpace::Generic), "")
-            .into_pointer_value();
-        let load = self
-            .builder
-            .build_load(casted, &format!("{enum_name}::{variant_name}"));
-        Some(load)
-    }
-
     fn codegen_field(&'ctx self, vars: &mut Vars<'ctx>, expr: ExprId, field: Field) -> Value<'ctx> {
         let struct_value = self.codegen_expr(vars, expr)?;
         let value = match field {
@@ -678,7 +622,10 @@ impl<'ctx> Compiler<'ctx> {
                 .map(|(pat, _)| self.types[pat].clone())
                 .collect::<Vec<_>>(),
         );
-        let env_alloca = self.builder.build_alloca(free_vars_type, "env.alloca");
+        let env_alloca = self
+            .builder
+            .build_malloc(free_vars_type, "env.malloc")
+            .unwrap();
         for (idx, (free_var, ())) in free_vars.iter().enumerate() {
             let gep = self
                 .builder

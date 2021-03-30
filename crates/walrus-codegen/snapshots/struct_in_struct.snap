@@ -36,9 +36,10 @@ main.entry:
   %Foo.alloca = alloca %Foo, align 8
   %bar = load %Bar, %Bar* %bar.alloca, align 4
   %Foo.bar.gep = getelementptr inbounds %Foo, %Foo* %Foo.alloca, i32 0, i32 0
-  %Foo.bar.alloca = alloca %Bar, align 8
-  store %Bar %bar, %Bar* %Foo.bar.alloca, align 4
-  store %Bar* %Foo.bar.alloca, %Bar** %Foo.bar.gep, align 8
+  %malloccall = tail call i8* @malloc(i32 trunc (i64 mul nuw (i64 ptrtoint (i32* getelementptr (i32, i32* null, i32 1) to i64), i64 2) to i32))
+  %Foo.bar.malloc = bitcast i8* %malloccall to %Bar*
+  store %Bar %bar, %Bar* %Foo.bar.malloc, align 4
+  store %Bar* %Foo.bar.malloc, %Bar** %Foo.bar.gep, align 8
   %Foo = load %Foo, %Foo* %Foo.alloca, align 8
   %foo.alloca = alloca %Foo, align 8
   store %Foo %Foo, %Foo* %foo.alloca, align 8
@@ -53,4 +54,6 @@ main.entry:
   %0 = sub i32 %Bar.y, %Bar.x
   ret i32 %0
 }
+
+declare noalias i8* @malloc(i32)
 

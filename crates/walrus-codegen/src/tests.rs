@@ -672,13 +672,52 @@ fn sum(l: List) -> Int {
 }
 
 fn main() -> _ {
-    let l1 = List::Cons{head: 3, tail: List::Cons{head: 2, tail: List::Cons {head: 1, tail: List::Nil{}}}};
+    let l1 = List::Cons{head: 4, tail: List::Cons{head: 3, tail: List::Cons{head: 2, tail: List::Cons{head: 1, tail: List::Nil {}}}}};
     let l2 = map(l1, (x) => x * x);
     let s = sum(l2);
     s
 }
         "#,
-            (3 * 3 + 2 * 2 + 1 * 1) as i32,
+            (4 * 4 + 3 * 3 + 2 * 2 + 1 * 1) as i32,
+        )
+    }
+
+    #[test]
+    fn danglin_ptr() {
+        test_codegen_and_run(
+            r#"
+enum List {
+    Nil {},
+    Cons {head: Int, tail: List}
+}
+ 
+fn map(l: List, f: (Int) -> Int) -> List {
+    match l {
+        List::Nil {} => List::Nil{},
+        List::Cons{head, tail} => List::Cons{head: f(head), tail: map(tail, f)}
+    }
+}
+
+fn sum(l: List) -> Int {
+    match l {
+        List::Nil {} => 0,
+        List::Cons{head, tail} => head + sum(tail),
+    }
+}
+
+fn get_list() -> _ {
+    let l1 = List::Cons{head: 4, tail: List::Cons{head: 3, tail: List::Cons{head: 2, tail: List::Cons{head: 1, tail: List::Nil {}}}}};
+    l1
+}
+
+fn main() -> _ {
+    let l1 = get_list();
+    let l2 = map(l1, (x) => x * x);
+    let s = sum(l2);
+    s
+}
+        "#,
+            (4 * 4 + 3 * 3 + 2 * 2 + 1 * 1) as i32,
         )
     }
 }
