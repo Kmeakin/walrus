@@ -493,7 +493,7 @@ impl<'ctx> Compiler<'ctx> {
             ..
         } = vars.current_loop.as_ref().unwrap();
 
-        let ret = match dbg!((does_continue, does_break)) {
+        let ret = match (does_continue, does_break) {
             (false, false) => {
                 self.builder.build_unconditional_branch(body_bb);
                 self.builder.position_at_end(exit_bb);
@@ -969,11 +969,11 @@ impl<'ctx> Compiler<'ctx> {
             })),
             Pat::Struct { fields, .. } => {
                 let struct_id = self.types[pat_id].as_struct().unwrap();
-                self.codegen_all(fields.iter().map(|field| {
-                    let val = self.get_struct_field(struct_id, test, field.name);
-                    match field.pat {
-                        None => self.codegen_true(),
-                        Some(pat) => self.codegen_match_attempt(case_idx, val, pat),
+                self.codegen_all(fields.iter().map(|field| match field.pat {
+                    None => self.codegen_true(),
+                    Some(pat) => {
+                        let val = self.get_struct_field(struct_id, test, field.name);
+                        self.codegen_match_attempt(case_idx, val, pat)
                     }
                 }))
             }
@@ -988,15 +988,15 @@ impl<'ctx> Compiler<'ctx> {
                     enum_def.get_variant(&self.hir, *variant).unwrap();
                 let variant_name = &self.hir[enum_variant.name];
 
-                let tag_matched = match self.enum_discriminant_type(enum_id) {
+                let discriminant_matched = match self.enum_discriminant_type(enum_id) {
                     None => self.codegen_true(),
                     Some(int_type) => {
-                        let tag = self.get_enum_discriminant(enum_id, test);
+                        let discriminant = self.get_enum_discriminant(enum_id, test);
                         self.builder.build_int_compare(
                             IntPredicate::EQ,
-                            tag,
+                            discriminant,
                             int_type.const_int(variant_idx as u64, false),
-                            "",
+                            &format!("{enum_name}::{variant_name}.cmp_discriminant"),
                         )
                     }
                 };
@@ -1015,7 +1015,7 @@ impl<'ctx> Compiler<'ctx> {
                 );
 
                 self.builder
-                    .build_conditional_branch(tag_matched, then_bb, else_bb);
+                    .build_conditional_branch(discriminant_matched, then_bb, else_bb);
 
                 // else branch
                 self.builder.position_at_end(else_bb);
@@ -1025,11 +1025,11 @@ impl<'ctx> Compiler<'ctx> {
                 // then branch
                 self.builder.position_at_end(then_bb);
                 let (payload, variant) = self.get_enum_payload(enum_id, *variant, test);
-                let then_value = self.codegen_all(fields.iter().map(|field| {
-                    let val = self.get_variant_field(enum_id, &variant, payload, field.name);
-                    match field.pat {
-                        None => self.codegen_true(),
-                        Some(pat) => self.codegen_match_attempt(case_idx, val, pat),
+                let then_value = self.codegen_all(fields.iter().map(|field| match field.pat {
+                    None => self.codegen_true(),
+                    Some(pat) => {
+                        let val = self.get_variant_field(enum_id, &variant, payload, field.name);
+                        self.codegen_match_attempt(case_idx, val, pat)
                     }
                 }));
                 self.builder.build_unconditional_branch(end_bb);

@@ -37,12 +37,12 @@ main.entry:
   br label %match.case0.test
 
 match.case0.test:                                 ; preds = %main.entry
-  %Option.discriminant3 = extractvalue %Option %opt, 0
-  %0 = icmp eq i8 %Option.discriminant3, 0
-  br i1 %0, label %"match.case0.Option::None.then", label %"match.case0.Option::None.else"
+  %Option.discriminant2 = extractvalue %Option %opt, 0
+  %"Option::None.cmp_discriminant" = icmp eq i8 %Option.discriminant2, 0
+  br i1 %"Option::None.cmp_discriminant", label %"match.case0.Option::None.then", label %"match.case0.Option::None.else"
 
 "match.case0.Option::None.then":                  ; preds = %match.case0.test
-  %Option.payload4 = extractvalue %Option %opt, 1
+  %Option.payload3 = extractvalue %Option %opt, 1
   br label %"match.case0.Option::None.end"
 
 "match.case0.Option::None.else":                  ; preds = %match.case0.test
@@ -53,17 +53,16 @@ match.case0.test:                                 ; preds = %main.entry
   br i1 %"match.case0.Option::None.phi", label %match.case0.then, label %match.case1.test
 
 match.case0.then:                                 ; preds = %"match.case0.Option::None.end"
-  %Option.payload5 = extractvalue %Option %opt, 1
+  %Option.payload4 = extractvalue %Option %opt, 1
   br label %match.end
 
 match.case1.test:                                 ; preds = %"match.case0.Option::None.end"
   %Option.discriminant = extractvalue %Option %opt, 0
-  %1 = icmp eq i8 %Option.discriminant, 1
-  br i1 %1, label %"match.case1.Option::Some.then", label %"match.case1.Option::Some.else"
+  %"Option::Some.cmp_discriminant" = icmp eq i8 %Option.discriminant, 1
+  br i1 %"Option::Some.cmp_discriminant", label %"match.case1.Option::Some.then", label %"match.case1.Option::Some.else"
 
 "match.case1.Option::Some.then":                  ; preds = %match.case1.test
   %Option.payload = extractvalue %Option %opt, 1
-  %"Option::Some.x" = extractvalue { i32 } %Option.payload, 0
   br label %"match.case1.Option::Some.end"
 
 "match.case1.Option::Some.else":                  ; preds = %match.case1.test
@@ -75,9 +74,9 @@ match.case1.test:                                 ; preds = %"match.case0.Option
 
 match.case1.then:                                 ; preds = %"match.case1.Option::Some.end"
   %Option.payload1 = extractvalue %Option %opt, 1
-  %"Option::Some.x2" = extractvalue { i32 } %Option.payload1, 0
+  %"Option::Some.x" = extractvalue { i32 } %Option.payload1, 0
   %x.alloca = alloca i32, align 4
-  store i32 %"Option::Some.x2", i32* %x.alloca, align 4
+  store i32 %"Option::Some.x", i32* %x.alloca, align 4
   %x = load i32, i32* %x.alloca, align 4
   br label %match.end
 

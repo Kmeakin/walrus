@@ -32,12 +32,12 @@ map.entry:
   br label %match.case0.test
 
 match.case0.test:                                 ; preds = %map.entry
-  %List.discriminant9 = extractvalue %List %l, 0
-  %0 = icmp eq i8 %List.discriminant9, 0
-  br i1 %0, label %"match.case0.List::Nil.then", label %"match.case0.List::Nil.else"
+  %List.discriminant6 = extractvalue %List %l, 0
+  %"List::Nil.cmp_discriminant" = icmp eq i8 %List.discriminant6, 0
+  br i1 %"List::Nil.cmp_discriminant", label %"match.case0.List::Nil.then", label %"match.case0.List::Nil.else"
 
 "match.case0.List::Nil.then":                     ; preds = %match.case0.test
-  %List.payload10 = extractvalue %List %l, 1
+  %List.payload7 = extractvalue %List %l, 1
   br label %"match.case0.List::Nil.end"
 
 "match.case0.List::Nil.else":                     ; preds = %match.case0.test
@@ -48,24 +48,21 @@ match.case0.test:                                 ; preds = %map.entry
   br i1 %"match.case0.List::Nil.phi", label %match.case0.then, label %match.case1.test
 
 match.case0.then:                                 ; preds = %"match.case0.List::Nil.end"
-  %List.payload11 = extractvalue %List %l, 1
-  %List.alloca12 = alloca %List, align 8
-  %List.discriminant.gep13 = getelementptr inbounds %List, %List* %List.alloca12, i32 0, i32 0
-  store i8 0, i8* %List.discriminant.gep13, align 1
-  %List.payload.gep14 = getelementptr inbounds %List, %List* %List.alloca12, i32 0, i32 1
-  %List.load15 = load %List, %List* %List.alloca12, align 8
+  %List.payload8 = extractvalue %List %l, 1
+  %List.alloca9 = alloca %List, align 8
+  %List.discriminant.gep10 = getelementptr inbounds %List, %List* %List.alloca9, i32 0, i32 0
+  store i8 0, i8* %List.discriminant.gep10, align 1
+  %List.payload.gep11 = getelementptr inbounds %List, %List* %List.alloca9, i32 0, i32 1
+  %List.load12 = load %List, %List* %List.alloca9, align 8
   br label %match.end
 
 match.case1.test:                                 ; preds = %"match.case0.List::Nil.end"
   %List.discriminant = extractvalue %List %l, 0
-  %1 = icmp eq i8 %List.discriminant, 1
-  br i1 %1, label %"match.case1.List::Cons.then", label %"match.case1.List::Cons.else"
+  %"List::Cons.cmp_discriminant" = icmp eq i8 %List.discriminant, 1
+  br i1 %"List::Cons.cmp_discriminant", label %"match.case1.List::Cons.then", label %"match.case1.List::Cons.else"
 
 "match.case1.List::Cons.then":                    ; preds = %match.case1.test
   %List.payload = extractvalue %List %l, 1
-  %"List::Cons.head" = extractvalue { i32, %List* } %List.payload, 0
-  %"List::Cons.tail" = extractvalue { i32, %List* } %List.payload, 1
-  %"List::Cons.tail.load" = load %List, %List* %"List::Cons.tail", align 8
   br label %"match.case1.List::Cons.end"
 
 "match.case1.List::Cons.else":                    ; preds = %match.case1.test
@@ -77,13 +74,13 @@ match.case1.test:                                 ; preds = %"match.case0.List::
 
 match.case1.then:                                 ; preds = %"match.case1.List::Cons.end"
   %List.payload1 = extractvalue %List %l, 1
-  %"List::Cons.head2" = extractvalue { i32, %List* } %List.payload1, 0
+  %"List::Cons.head" = extractvalue { i32, %List* } %List.payload1, 0
   %head.alloca = alloca i32, align 4
-  store i32 %"List::Cons.head2", i32* %head.alloca, align 4
-  %"List::Cons.tail3" = extractvalue { i32, %List* } %List.payload1, 1
-  %"List::Cons.tail.load4" = load %List, %List* %"List::Cons.tail3", align 8
+  store i32 %"List::Cons.head", i32* %head.alloca, align 4
+  %"List::Cons.tail" = extractvalue { i32, %List* } %List.payload1, 1
+  %"List::Cons.tail.load" = load %List, %List* %"List::Cons.tail", align 8
   %tail.alloca = alloca %List, align 8
-  store %List %"List::Cons.tail.load4", %List* %tail.alloca, align 8
+  store %List %"List::Cons.tail.load", %List* %tail.alloca, align 8
   %List.alloca = alloca %List, align 8
   %List.discriminant.gep = getelementptr inbounds %List, %List* %List.alloca, i32 0, i32 0
   store i8 1, i8* %List.discriminant.gep, align 1
@@ -101,15 +98,15 @@ match.case1.then:                                 ; preds = %"match.case1.List::
   %map.closure.env = getelementptr inbounds { %List (i8*, %List, { i32 (i8*, i32)*, i8* })*, i8* }, { %List (i8*, %List, { i32 (i8*, i32)*, i8* })*, i8* }* %map.closure.alloca, i32 0, i32 1
   store i8* null, i8** %map.closure.env, align 8
   %map = load { %List (i8*, %List, { i32 (i8*, i32)*, i8* })*, i8* }, { %List (i8*, %List, { i32 (i8*, i32)*, i8* })*, i8* }* %map.closure.alloca, align 8
-  %closure.code5 = extractvalue { %List (i8*, %List, { i32 (i8*, i32)*, i8* })*, i8* } %map, 0
-  %closure.env6 = extractvalue { %List (i8*, %List, { i32 (i8*, i32)*, i8* })*, i8* } %map, 1
+  %closure.code2 = extractvalue { %List (i8*, %List, { i32 (i8*, i32)*, i8* })*, i8* } %map, 0
+  %closure.env3 = extractvalue { %List (i8*, %List, { i32 (i8*, i32)*, i8* })*, i8* } %map, 1
   %tail = load %List, %List* %tail.alloca, align 8
-  %f7 = load { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %f.alloca, align 8
-  %call8 = call %List %closure.code5(i8* %closure.env6, %List %tail, { i32 (i8*, i32)*, i8* } %f7)
+  %f4 = load { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %f.alloca, align 8
+  %call5 = call %List %closure.code2(i8* %closure.env3, %List %tail, { i32 (i8*, i32)*, i8* } %f4)
   %"List::Cons.tail.gep" = getelementptr inbounds { i32, %List* }, { i32, %List* }* %List.payload.gep, i32 0, i32 1
   %malloccall = tail call i8* @malloc(i32 ptrtoint (%List* getelementptr (%List, %List* null, i32 1) to i32))
   %"List::Cons.tail.malloc" = bitcast i8* %malloccall to %List*
-  store %List %call8, %List* %"List::Cons.tail.malloc", align 8
+  store %List %call5, %List* %"List::Cons.tail.malloc", align 8
   store %List* %"List::Cons.tail.malloc", %List** %"List::Cons.tail.gep", align 8
   %List.load = load %List, %List* %List.alloca, align 8
   br label %match.end
@@ -118,7 +115,7 @@ match.fail:                                       ; preds = %"match.case1.List::
   unreachable
 
 match.end:                                        ; preds = %match.case0.then, %match.case1.then
-  %match.phi = phi %List [ %List.load, %match.case1.then ], [ %List.load15, %match.case0.then ]
+  %match.phi = phi %List [ %List.load, %match.case1.then ], [ %List.load12, %match.case0.then ]
   ret %List %match.phi
 }
 
@@ -130,12 +127,12 @@ sum.entry:
   br label %match.case0.test
 
 match.case0.test:                                 ; preds = %sum.entry
-  %List.discriminant5 = extractvalue %List %l, 0
-  %0 = icmp eq i8 %List.discriminant5, 0
-  br i1 %0, label %"match.case0.List::Nil.then", label %"match.case0.List::Nil.else"
+  %List.discriminant2 = extractvalue %List %l, 0
+  %"List::Nil.cmp_discriminant" = icmp eq i8 %List.discriminant2, 0
+  br i1 %"List::Nil.cmp_discriminant", label %"match.case0.List::Nil.then", label %"match.case0.List::Nil.else"
 
 "match.case0.List::Nil.then":                     ; preds = %match.case0.test
-  %List.payload6 = extractvalue %List %l, 1
+  %List.payload3 = extractvalue %List %l, 1
   br label %"match.case0.List::Nil.end"
 
 "match.case0.List::Nil.else":                     ; preds = %match.case0.test
@@ -146,19 +143,16 @@ match.case0.test:                                 ; preds = %sum.entry
   br i1 %"match.case0.List::Nil.phi", label %match.case0.then, label %match.case1.test
 
 match.case0.then:                                 ; preds = %"match.case0.List::Nil.end"
-  %List.payload7 = extractvalue %List %l, 1
+  %List.payload4 = extractvalue %List %l, 1
   br label %match.end
 
 match.case1.test:                                 ; preds = %"match.case0.List::Nil.end"
   %List.discriminant = extractvalue %List %l, 0
-  %1 = icmp eq i8 %List.discriminant, 1
-  br i1 %1, label %"match.case1.List::Cons.then", label %"match.case1.List::Cons.else"
+  %"List::Cons.cmp_discriminant" = icmp eq i8 %List.discriminant, 1
+  br i1 %"List::Cons.cmp_discriminant", label %"match.case1.List::Cons.then", label %"match.case1.List::Cons.else"
 
 "match.case1.List::Cons.then":                    ; preds = %match.case1.test
   %List.payload = extractvalue %List %l, 1
-  %"List::Cons.head" = extractvalue { i32, %List* } %List.payload, 0
-  %"List::Cons.tail" = extractvalue { i32, %List* } %List.payload, 1
-  %"List::Cons.tail.load" = load %List, %List* %"List::Cons.tail", align 8
   br label %"match.case1.List::Cons.end"
 
 "match.case1.List::Cons.else":                    ; preds = %match.case1.test
@@ -170,13 +164,13 @@ match.case1.test:                                 ; preds = %"match.case0.List::
 
 match.case1.then:                                 ; preds = %"match.case1.List::Cons.end"
   %List.payload1 = extractvalue %List %l, 1
-  %"List::Cons.head2" = extractvalue { i32, %List* } %List.payload1, 0
+  %"List::Cons.head" = extractvalue { i32, %List* } %List.payload1, 0
   %head.alloca = alloca i32, align 4
-  store i32 %"List::Cons.head2", i32* %head.alloca, align 4
-  %"List::Cons.tail3" = extractvalue { i32, %List* } %List.payload1, 1
-  %"List::Cons.tail.load4" = load %List, %List* %"List::Cons.tail3", align 8
+  store i32 %"List::Cons.head", i32* %head.alloca, align 4
+  %"List::Cons.tail" = extractvalue { i32, %List* } %List.payload1, 1
+  %"List::Cons.tail.load" = load %List, %List* %"List::Cons.tail", align 8
   %tail.alloca = alloca %List, align 8
-  store %List %"List::Cons.tail.load4", %List* %tail.alloca, align 8
+  store %List %"List::Cons.tail.load", %List* %tail.alloca, align 8
   %head = load i32, i32* %head.alloca, align 4
   %sum.closure.alloca = alloca { i32 (i8*, %List)*, i8* }, align 8
   %sum.closure.code = getelementptr inbounds { i32 (i8*, %List)*, i8* }, { i32 (i8*, %List)*, i8* }* %sum.closure.alloca, i32 0, i32 0
@@ -188,14 +182,14 @@ match.case1.then:                                 ; preds = %"match.case1.List::
   %closure.env = extractvalue { i32 (i8*, %List)*, i8* } %sum, 1
   %tail = load %List, %List* %tail.alloca, align 8
   %call = call i32 %closure.code(i8* %closure.env, %List %tail)
-  %2 = add i32 %head, %call
+  %0 = add i32 %head, %call
   br label %match.end
 
 match.fail:                                       ; preds = %"match.case1.List::Cons.end"
   unreachable
 
 match.end:                                        ; preds = %match.case0.then, %match.case1.then
-  %match.phi = phi i32 [ %2, %match.case1.then ], [ 0, %match.case0.then ]
+  %match.phi = phi i32 [ %0, %match.case1.then ], [ 0, %match.case0.then ]
   ret i32 %match.phi
 }
 
