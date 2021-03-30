@@ -1,7 +1,7 @@
 use super::*;
 use crate::diagnostic::LitError;
 use ordered_float::OrderedFloat;
-use syntax::{EnumPat, StructPat};
+use syntax::{EnumPat, Span, StructPat};
 
 pub fn lower(syntax: &syntax::SourceFile) -> Module {
     let mut ctx = Ctx::default();
@@ -278,7 +278,9 @@ impl Ctx {
             syntax::Expr::Field(expr) => Expr::Field {
                 expr: self.lower_expr(&expr.base),
                 field: match &expr.field {
-                    syntax::Field::Tuple(int) => Field::Tuple(self.lower_int(&int.text, 10)),
+                    syntax::Field::Tuple(int) => {
+                        Field::Tuple(self.lower_int(int.span, &int.text, 10))
+                    }
                     syntax::Field::Named(var) => Field::Named(self.lower_var(var.clone())),
                 },
             },
@@ -363,42 +365,47 @@ impl Ctx {
 
     fn lower_lit(&mut self, syntax: &syntax::Lit) -> Lit {
         use syntax::{BoolLit, FloatLit, IntLit, Lit::*};
+        let span = syntax.span();
         match syntax {
             Bool(BoolLit::True(_)) => Lit::Bool(true),
             Bool(BoolLit::False(_)) => Lit::Bool(false),
-            Int(IntLit::Dec(int)) => Lit::Int(self.lower_int(&int.text, 10)),
-            Int(IntLit::Bin(int)) => Lit::Int(self.lower_int(&int.text["0b".len()..], 2)),
-            Int(IntLit::Hex(int)) => Lit::Int(self.lower_int(&int.text["0x".len()..], 16)),
-            Float(FloatLit(float)) => Lit::Float(self.lower_float(&float.text)),
-            Char(c) => Lit::Char(self.lower_char(c)),
+            Int(IntLit::Dec(int)) => Lit::Int(self.lower_int(span, &int.text, 10)),
+            Int(IntLit::Bin(int)) => Lit::Int(self.lower_int(span, &int.text["0b".len()..], 2)),
+            Int(IntLit::Hex(int)) => Lit::Int(self.lower_int(span, &int.text["0x".len()..], 16)),
+            Float(FloatLit(float)) => Lit::Float(self.lower_float(span, &float.text)),
+            Char(c) => Lit::Char(self.lower_char(span, c)),
         }
     }
 
-    fn lower_int(&mut self, text: &str, radix: u32) -> u32 {
+    fn lower_int(&mut self, span: Span, text: &str, radix: u32) -> u32 {
         let text = text.replace("_", "");
         match u32::from_str_radix(&text, radix) {
             Ok(x) => x,
             Err(err) => {
-                self.diagnostics
-                    .push(Diagnostic::BadLit(LitError::Int(err)));
+                self.diagnostics.push(Diagnostic::BadLit {
+                    err: LitError::Int(err),
+                    span,
+                });
                 0
             }
         }
     }
 
-    fn lower_float(&mut self, text: &str) -> OrderedFloat<f32> {
+    fn lower_float(&mut self, span: Span, text: &str) -> OrderedFloat<f32> {
         let text = text.replace("_", "");
         match text.parse() {
             Ok(x) => OrderedFloat(x),
             Err(err) => {
-                self.diagnostics
-                    .push(Diagnostic::BadLit(LitError::Float(err)));
+                self.diagnostics.push(Diagnostic::BadLit {
+                    err: LitError::Float(err),
+                    span,
+                });
                 OrderedFloat(0.0)
             }
         }
     }
 
-    fn lower_char(&mut self, c: &syntax::CharLit) -> char {
+    fn lower_char(&mut self, span: Span, c: &syntax::CharLit) -> char {
         use syntax::CharLit::*;
 
         match c {
@@ -414,8 +421,10 @@ impl Ctx {
                     '\'' => '\'',
                     '"' => '"',
                     _ => {
-                        self.diagnostics
-                            .push(Diagnostic::BadLit(LitError::EscapeChar(c)));
+                        self.diagnostics.push(Diagnostic::BadLit {
+                            err: LitError::EscapeChar(c),
+                            span,
+                        });
                         '\0'
                     }
                 }
@@ -424,12 +433,14 @@ impl Ctx {
                 let text = &c.text;
                 let len = text.len();
                 let digits = &text["'\\u".len()..len - "'".len()];
-                let val = self.lower_int(digits, 16);
+                let val = self.lower_int(span, digits, 16);
                 match std::char::from_u32(val) {
                     Some(c) => c,
                     None => {
-                        self.diagnostics
-                            .push(Diagnostic::BadLit(LitError::UnicodeChar(val)));
+                        self.diagnostics.push(Diagnostic::BadLit {
+                            err: LitError::UnicodeChar(val),
+                            span,
+                        });
                         '\0'
                     }
                 }

@@ -13,9 +13,6 @@ use either::{Either, Either::*};
 use std::ops::Index;
 
 pub fn infer(module: Module, scopes: Scopes) -> InferenceResult {
-    dbg!(&module);
-    dbg!(&scopes);
-
     let mut ctx = Ctx::new(module.hir, scopes);
     ctx.infer_module();
     ctx.finish()
@@ -450,11 +447,16 @@ impl Ctx {
                     Type::Struct(struct_id) => {
                         let struct_def = self.hir[struct_id].clone();
                         let struct_type = Type::Struct(struct_id);
-                        self.infer_fields(Right(pat_id), Some(&struct_def.fields), Right(&fields));
+                        self.infer_fields(
+                            struct_type.clone(),
+                            Right(pat_id),
+                            Some(&struct_def.fields),
+                            Right(&fields),
+                        );
                         struct_type
                     }
                     _ => {
-                        self.infer_fields(Right(pat_id), None, Right(&fields));
+                        self.infer_fields(struct_type, Right(pat_id), None, Right(&fields));
                         Type::Unknown
                     }
                 }
@@ -474,6 +476,7 @@ impl Ctx {
                             None => todo!("No such variant"),
                             Some((_, variant)) => {
                                 self.infer_fields(
+                                    enum_type.clone(),
                                     Right(pat_id),
                                     Some(&variant.fields),
                                     Right(&fields),
@@ -483,7 +486,7 @@ impl Ctx {
                         enum_type
                     }
                     _ => {
-                        self.infer_fields(Right(pat_id), None, Right(&fields));
+                        self.infer_fields(enum_type, Right(pat_id), None, Right(&fields));
                         Type::Unknown
                     }
                 }
@@ -516,7 +519,7 @@ impl Ctx {
             Expr::Call { func, args } => self.infer_call_expr(func, &args),
             Expr::Field { expr, field } => self.infer_field_expr(expr, field),
             Expr::Unop { op, expr } => self.infer_unop_expr(op, expr),
-            Expr::Binop { lhs, op, rhs } => self.infer_binop_expr(op, lhs, rhs),
+            Expr::Binop { lhs, op, rhs } => self.infer_binop_expr(id, op, lhs, rhs),
             Expr::Loop(expr) => self.infer_loop_expr(expected, expr),
             Expr::Return(expr) => self.infer_return_expr(id, expr),
             Expr::Break(expr) => self.infer_break_expr(id, expr),
@@ -545,11 +548,16 @@ impl Ctx {
             Type::Struct(struct_id) => {
                 let struct_def = self.hir[struct_id].clone();
                 let struct_type = Type::Struct(struct_id);
-                self.infer_fields(Left(expr), Some(&struct_def.fields), Left(fields));
+                self.infer_fields(
+                    struct_type.clone(),
+                    Left(expr),
+                    Some(&struct_def.fields),
+                    Left(fields),
+                );
                 struct_type
             }
             _ => {
-                self.infer_fields(Left(expr), None, Left(fields));
+                self.infer_fields(struct_type, Left(expr), None, Left(fields));
                 Type::Unknown
             }
         }
@@ -570,13 +578,18 @@ impl Ctx {
                 match variant {
                     None => todo!("No such variant"),
                     Some((_, variant)) => {
-                        self.infer_fields(Left(expr), Some(&variant.fields), Left(fields));
+                        self.infer_fields(
+                            enum_type.clone(),
+                            Left(expr),
+                            Some(&variant.fields),
+                            Left(fields),
+                        );
                     }
                 }
                 enum_type
             }
             _ => {
-                self.infer_fields(Left(expr), None, Left(fields));
+                self.infer_fields(enum_type, Left(expr), None, Left(fields));
                 Type::Unknown
             }
         }
@@ -584,6 +597,7 @@ impl Ctx {
 
     fn infer_fields(
         &mut self,
+        ty: Type,
         parent: Either<ExprId, PatId>,
         fields: Option<&[StructField]>,
         inits: Either<&[FieldInit], &[FieldPat]>,
@@ -608,8 +622,9 @@ impl Ctx {
                         None => {
                             self.result.diagnostics.push(Diagnostic::NoSuchField {
                                 parent,
+                                ty: ty.clone(),
                                 field: Field::Named(*name),
-                                possible_fields: Left(fields.to_vec()),
+                                possible_fields: Some(Left(fields.to_vec())),
                             });
                             None
                         }
@@ -636,7 +651,9 @@ impl Ctx {
                     None => {
                         self.result.diagnostics.push(Diagnostic::MissingField {
                             id: parent,
-                            field: Field::Named(field.name),
+                            ty: ty.clone(),
+                            possible_fields: fields.to_vec(),
+                            field: field.name,
                         });
                     }
                 }
@@ -715,12 +732,13 @@ impl Ctx {
     fn infer_field_expr(&mut self, parent: ExprId, field: Field) -> Type {
         let base_type = self.infer_expr(&Type::Unknown, parent);
         match base_type {
-            Type::Tuple(params) => match field {
+            Type::Tuple(ref params) => match field {
                 Field::Tuple(idx) if (idx as usize) < params.len() => params[idx as usize].clone(),
                 Field::Tuple(_) | Field::Named(_) => {
                     self.result.diagnostics.push(Diagnostic::NoSuchField {
                         parent: Left(parent),
-                        possible_fields: Right(params.len()),
+                        ty: base_type.clone(),
+                        possible_fields: Some(Right(params.len())),
                         field,
                     });
                     Type::Unknown
@@ -736,7 +754,8 @@ impl Ctx {
                             None => {
                                 self.result.diagnostics.push(Diagnostic::NoSuchField {
                                     parent: Left(parent),
-                                    possible_fields: Left(struct_def.fields.clone()),
+                                    ty: base_type,
+                                    possible_fields: Some(Left(struct_def.fields.clone())),
                                     field,
                                 });
                                 Type::Unknown
@@ -746,7 +765,8 @@ impl Ctx {
                     Field::Tuple(_) => {
                         self.result.diagnostics.push(Diagnostic::NoSuchField {
                             parent: Left(parent),
-                            possible_fields: Left(struct_def.fields.clone()),
+                            ty: base_type,
+                            possible_fields: Some(Left(struct_def.fields.clone())),
                             field,
                         });
                         Type::Unknown
@@ -754,9 +774,11 @@ impl Ctx {
                 }
             }
             _ => {
-                self.result.diagnostics.push(Diagnostic::NoFields {
-                    expr: parent,
+                self.result.diagnostics.push(Diagnostic::NoSuchField {
+                    parent: Left(parent),
                     ty: base_type,
+                    possible_fields: None,
+                    field,
                 });
                 Type::Unknown
             }
@@ -769,7 +791,13 @@ impl Ctx {
         op.return_type(&lhs_type)
     }
 
-    fn infer_binop_expr(&mut self, op: Binop, lhs: ExprId, rhs: ExprId) -> Type {
+    fn infer_binop_expr(
+        &mut self,
+        parent_expr: ExprId,
+        op: Binop,
+        lhs: ExprId,
+        rhs: ExprId,
+    ) -> Type {
         if let Binop::Assign = op {
             if !self.hir[lhs].is_lvalue(&self.hir) {
                 self.result.diagnostics.push(Diagnostic::NotLValue { lhs });
@@ -781,6 +809,7 @@ impl Ctx {
         let rhs_expectation = op.rhs_expectation(&lhs_type);
         if lhs_type != Type::Unknown && rhs_expectation == Type::Unknown {
             self.result.diagnostics.push(Diagnostic::CannotApplyBinop {
+                expr: parent_expr,
                 lhs_type,
                 rhs_type: rhs_expectation.clone(),
                 op,
@@ -834,7 +863,7 @@ impl Ctx {
             None => {
                 self.result
                     .diagnostics
-                    .push(Diagnostic::BreakNotInLoop(parent_expr));
+                    .push(Diagnostic::ContinueNotInLoop(parent_expr));
             }
             Some(_) => {}
         }

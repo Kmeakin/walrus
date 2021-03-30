@@ -27,6 +27,8 @@ use text_size::{TextRange, TextSize};
 use crate::token_kind::Lexer;
 pub use crate::token_kind::TokenKind;
 
+pub type Span = TextRange;
+
 #[derive(Copy, Clone, PartialEq)]
 pub struct Token<'a> {
     pub range: TextRange,

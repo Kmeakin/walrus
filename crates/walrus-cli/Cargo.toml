@@ -1,0 +1,16 @@
+[package]
+name = "walrus-cli"
+version = "0.1.0"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+walrus-parser = { path = "../walrus-parser" }
+walrus-semantics = { path = "../walrus-semantics" }
+walrus-codegen = { path = "../walrus-codegen" }
+
+clap = "2.33.3"
+codespan-reporting = "0.11.1"
+termcolor = "1.1.2"
+either = "1.6.1"

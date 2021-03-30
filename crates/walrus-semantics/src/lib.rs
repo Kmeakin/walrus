@@ -21,7 +21,7 @@
 #![feature(format_args_capture, box_syntax)]
 
 pub mod builtins;
-mod diagnostic;
+pub mod diagnostic;
 pub mod hir;
 pub mod scopes;
 pub mod ty;

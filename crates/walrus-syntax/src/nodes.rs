@@ -1,3 +1,7 @@
+use std::slice::RChunks;
+
+use walrus_lexer::Span;
+
 use crate::tokens::*;
 
 mod decl;
@@ -93,5 +97,17 @@ pub type Paren<T> = Delimited<T, LParen, RParen>;
 pub type Curly<T> = Delimited<T, LCurly, RCurly>;
 pub type Tuple<T> = Paren<Punctuated0<T, Comma>>;
 
+impl<T> Paren<T> {
+    pub fn span(&self) -> Span { self.open.span.cover(self.close.span) }
+}
+
+impl<T> Curly<T> {
+    pub fn span(&self) -> Span { self.open.span.cover(self.close.span) }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Var(pub Ident);
+
+impl Var {
+    pub fn span(&self) -> Span { self.0.span }
+}

@@ -1,5 +1,6 @@
 use self::unify::TypeVarId;
-use crate::hir::{EnumDefId, StructDefId};
+use crate::hir::{EnumDefId, HirData, StructDefId};
+use derive_more::Display;
 
 mod infer;
 mod unify;
@@ -31,6 +32,36 @@ impl Type {
 
     pub const fn is_int(&self) -> bool { matches!(self, Type::Primitive(PrimitiveType::Int)) }
     pub const fn is_float(&self) -> bool { matches!(self, Type::Primitive(PrimitiveType::Float)) }
+
+    pub fn to_string(&self, hir: &HirData) -> String {
+        match self {
+            Type::Primitive(ty) => ty.to_string(),
+            Type::Fn(ty) => ty.to_string(hir),
+            Type::Struct(struct_id) => {
+                let struct_def = &hir[*struct_id];
+                let name = &hir[struct_def.name];
+                name.as_str().into()
+            }
+            Type::Enum(enum_id) => {
+                let enum_def = &hir[*enum_id];
+                let name = &hir[enum_def.name];
+                name.as_str().into()
+            }
+            Type::Tuple(tys) => {
+                let inner = tys
+                    .iter()
+                    .map(|ty| ty.to_string(hir))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                if tys.len() == 1 {
+                    format!("({inner},)")
+                } else {
+                    format!("({inner})")
+                }
+            }
+            Type::Infer(_) | Type::Unknown => "{unknown}".into(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -39,7 +70,20 @@ pub struct FnType {
     pub ret: Box<Type>,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+impl FnType {
+    pub fn to_string(&self, hir: &HirData) -> String {
+        let params = self
+            .params
+            .iter()
+            .map(|ty| ty.to_string(hir))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let ret = self.ret.to_string(hir);
+        format!("({params}) -> {ret}")
+    }
+}
+
+#[derive(Debug, Display, Copy, Clone, PartialEq, Eq)]
 pub enum PrimitiveType {
     Bool,
     Int,

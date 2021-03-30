@@ -56,3 +56,7 @@ pub struct Param {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ParamList(pub Paren<Punctuated0<Param, Comma>>);
+
+impl ParamList {
+    pub fn span(&self) -> Span { self.0.span() }
+}

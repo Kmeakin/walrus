@@ -23,3 +23,4 @@ pub mod nodes;
 pub mod tokens;
 
 pub use crate::{nodes::*, tokens::*};
+pub use walrus_lexer::Span;

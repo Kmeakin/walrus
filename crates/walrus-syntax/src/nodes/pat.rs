@@ -11,10 +11,28 @@ pub enum Pat {
     Enum(EnumPat),
 }
 
+impl Pat {
+    pub fn span(&self) -> Span {
+        match self {
+            Pat::Lit(lit) => lit.span(),
+            Pat::Var(var) => var.span(),
+            Pat::Ignore(pat) => pat.span,
+            Pat::Paren(pat) => pat.span(),
+            Pat::Tuple(pat) => pat.span(),
+            Pat::Struct(pat) => pat.span(),
+            Pat::Enum(pat) => pat.span(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct StructPat {
     pub name: Var,
     pub fields: Curly<Punctuated0<FieldPat, Comma>>,
+}
+
+impl StructPat {
+    pub fn span(&self) -> Span { self.name.span().cover(self.fields.span()) }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -29,6 +47,10 @@ pub struct EnumPat {
     pub colon_colon: ColonColon,
     pub variant: Var,
     pub fields: Curly<Punctuated0<FieldPat, Comma>>,
+}
+
+impl EnumPat {
+    pub fn span(&self) -> Span { self.name.span().cover(self.fields.span()) }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
