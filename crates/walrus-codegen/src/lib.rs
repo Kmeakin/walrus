@@ -25,3 +25,28 @@ mod free_vars;
 
 #[cfg(test)]
 mod tests;
+
+use walrus_semantics::{hir::HirData, scopes::Scopes, ty::InferenceResult};
+
+use crate::codegen::*;
+
+pub fn codegen(name: &str, hir: HirData, scopes: Scopes, types: InferenceResult) -> String {
+    let llvm = Context::create();
+    let builder = llvm.create_builder();
+    let module = llvm.create_module(name);
+
+    let module = {
+        let compiler = Compiler {
+            llvm: &llvm,
+            module,
+            builder,
+
+            hir,
+            scopes,
+            types,
+        };
+        compiler.codegen_module()
+    };
+
+    module
+}

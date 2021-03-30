@@ -1,4 +1,4 @@
-use crate::codegen::{Context, *};
+use crate::codegen::Context;
 use inkwell::{memory_buffer::MemoryBuffer, OptimizationLevel};
 use insta::*;
 
@@ -22,28 +22,14 @@ where
     let scopes = walrus_semantics::scopes::scopes(&hir);
     let types = walrus_semantics::ty::infer(hir.clone(), scopes.clone());
 
-    let llvm = Context::create();
-    let builder = llvm.create_builder();
-    let module = llvm.create_module("module");
-
-    let module = {
-        let compiler = Compiler {
-            llvm: &llvm,
-            module,
-            builder,
-
-            hir: hir.hir,
-            scopes,
-            types,
-        };
-        compiler.codegen_module()
-    };
+    let module = crate::codegen("module", hir.hir, scopes, types);
 
     let mut settings = insta::Settings::new();
     settings.set_snapshot_path("../snapshots");
     settings.set_prepend_module_to_snapshot(false);
     settings.bind(|| assert_display_snapshot!(module));
 
+    let llvm = Context::create();
     let module_buffer = MemoryBuffer::create_from_memory_range_copy(module.as_bytes(), "module");
     let llvm_module = llvm.create_module_from_ir(module_buffer).unwrap();
 

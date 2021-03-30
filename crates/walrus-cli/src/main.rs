@@ -35,19 +35,23 @@ fn do_it() -> Result<(), Box<dyn Error>> {
         .get_matches();
 
     let file = &matches.args["FILE"].vals[0].to_str().unwrap();
+    if !file.ends_with(".walrus") {
+        return Err("Input filename should have `.walrus` extension".into());
+    }
+
     let src = std::fs::read_to_string(file)?;
 
     let file_db = SimpleFile::new(file, &src);
 
     let syntax = walrus_parser::parse(&src);
     let mut hir = walrus_semantics::hir::lower(&syntax);
-    let scopes = walrus_semantics::scopes::scopes(&hir);
-    let types = walrus_semantics::ty::infer(hir.clone(), scopes.clone());
+    let mut scopes = walrus_semantics::scopes::scopes(&hir);
+    let mut types = walrus_semantics::ty::infer(hir.clone(), scopes.clone());
 
     let mut diagnostics = Vec::new();
     diagnostics.extend(std::mem::take(&mut hir.diagnostics));
-    diagnostics.extend(scopes.diagnostics);
-    diagnostics.extend(types.diagnostics);
+    diagnostics.extend(std::mem::take(&mut scopes.diagnostics));
+    diagnostics.extend(std::mem::take(&mut types.diagnostics));
 
     let mut writer = termcolor::StandardStream::stderr(ColorChoice::Auto);
     let config = Config::default();
@@ -60,6 +64,11 @@ fn do_it() -> Result<(), Box<dyn Error>> {
     if n_errors > 0 {
         return Err(format!("Aborting compilation due to {n_errors} fatal errors").into());
     }
+
+    let name = file.strip_suffix(".walrus").unwrap();
+    let llvm_ir_path = format!("{name}.ll");
+    let llvm_ir = walrus_codegen::codegen(name, hir.hir, scopes, types);
+    std::fs::write(llvm_ir_path, llvm_ir)?;
 
     Ok(())
 }
