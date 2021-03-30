@@ -173,12 +173,15 @@ pub struct EnumDef {
 }
 
 impl EnumDef {
-    pub fn find_variant(&self, hir: &HirData, variant: VarId) -> Option<(usize, &EnumVariant)> {
+    pub fn get_variant(&self, hir: &HirData, variant: VarId) -> Option<(usize, &EnumVariant)> {
         self.variants
             .iter()
             .enumerate()
             .find(|(_, v)| hir[variant] == hir[v.name])
     }
+
+    pub fn len(&self) -> usize { self.variants.len() }
+    pub fn is_empty(&self) -> bool { self.len() == 0 }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

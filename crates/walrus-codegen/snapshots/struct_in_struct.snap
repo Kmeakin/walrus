@@ -36,21 +36,21 @@ main.entry:
   %Foo.alloca = alloca %Foo, align 8
   %bar = load %Bar, %Bar* %bar.alloca, align 4
   %Foo.bar.gep = getelementptr inbounds %Foo, %Foo* %Foo.alloca, i32 0, i32 0
-  %0 = alloca %Bar, align 8
-  store %Bar %bar, %Bar* %0, align 4
-  store %Bar* %0, %Bar** %Foo.bar.gep, align 8
+  %Foo.bar.alloca = alloca %Bar, align 8
+  store %Bar %bar, %Bar* %Foo.bar.alloca, align 4
+  store %Bar* %Foo.bar.alloca, %Bar** %Foo.bar.gep, align 8
   %Foo = load %Foo, %Foo* %Foo.alloca, align 8
   %foo.alloca = alloca %Foo, align 8
   store %Foo %Foo, %Foo* %foo.alloca, align 8
   %foo = load %Foo, %Foo* %foo.alloca, align 8
   %Foo.bar = extractvalue %Foo %foo, 0
-  %1 = load %Bar, %Bar* %Foo.bar, align 4
-  %Bar.y = extractvalue %Bar %1, 1
+  %Foo.bar.load = load %Bar, %Bar* %Foo.bar, align 4
+  %Bar.y = extractvalue %Bar %Foo.bar.load, 1
   %foo1 = load %Foo, %Foo* %foo.alloca, align 8
   %Foo.bar2 = extractvalue %Foo %foo1, 0
-  %2 = load %Bar, %Bar* %Foo.bar2, align 4
-  %Bar.x = extractvalue %Bar %2, 0
-  %3 = sub i32 %Bar.y, %Bar.x
-  ret i32 %3
+  %Foo.bar.load3 = load %Bar, %Bar* %Foo.bar2, align 4
+  %Bar.x = extractvalue %Bar %Foo.bar.load3, 0
+  %0 = sub i32 %Bar.y, %Bar.x
+  ret i32 %0
 }
 

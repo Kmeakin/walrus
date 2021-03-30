@@ -367,6 +367,49 @@ impl<'ctx> Compiler<'ctx> {
     ) -> Value<'ctx> {
         let enum_id = self.types[expr].as_enum().unwrap();
         let enum_def = &self.hir[enum_id];
+        let enum_name = self.enum_name(enum_id);
+        let enum_type = self.enum_type(vars, enum_id);
+        let enum_alloca = self
+            .builder
+            .build_alloca(enum_type, &format!("{enum_name}.alloca"));
+
+        if !enum_def.is_empty() {
+            // set the discriminant
+            let (variant_idx, variant_hir) = enum_def.get_variant(&self.hir, variant).unwrap();
+            let discriminant_value = self.enum_discriminant_value(enum_id, variant_idx);
+            self.set_enum_discriminant(enum_id, enum_alloca, discriminant_value);
+
+            // set the fields
+            let payload_gep = self.get_enum_payload_gep(enum_id, enum_alloca);
+            for init in inits {
+                let field_value = self.codegen_expr(vars, init.val)?;
+                self.set_variant_field(
+                    vars,
+                    enum_id,
+                    variant_hir,
+                    payload_gep,
+                    init.name,
+                    field_value,
+                );
+            }
+        }
+
+        Some(
+            self.builder
+                .build_load(enum_alloca, &format!("{enum_name}.load")),
+        )
+    }
+
+    #[cfg(FALSE)]
+    fn codegen_enum(
+        &'ctx self,
+        vars: &mut Vars<'ctx>,
+        expr: ExprId,
+        variant: VarId,
+        inits: &[FieldInit],
+    ) -> Value<'ctx> {
+        let enum_id = self.types[expr].as_enum().unwrap();
+        let enum_def = &self.hir[enum_id];
         let enum_name = &self.hir[enum_def.name];
 
         let enum_ty = self.enum_type(vars, enum_id);
@@ -378,16 +421,11 @@ impl<'ctx> Compiler<'ctx> {
             Some(int_type) => int_type.const_int(variant_idx as u64, false).into(),
         };
 
-        let alloca = self
+        let enum_alloca = self
             .builder
             .build_alloca(enum_ty, &format!("{enum_name}::{variant_name}.alloca"));
 
-        let discriminant_gep = self
-            .builder
-            .build_struct_gep(alloca, 0, &format!("{enum_name}.discriminant.gep"))
-            .unwrap();
-        self.builder
-            .build_store(discriminant_gep, discriminant_value);
+        self.set_enum_discriminant(enum_id, enum_alloca, discriminant_value);
 
         for init in inits.iter() {
             let value = self.codegen_expr(vars, init.val)?;
@@ -395,7 +433,7 @@ impl<'ctx> Compiler<'ctx> {
             let field_name = self.hir[field.name].as_str();
             let payload_gep = self
                 .builder
-                .build_struct_gep(alloca, 1, "payload.gep")
+                .build_struct_gep(enum_alloca, 1, "payload.gep")
                 .unwrap();
             let field_gep = self
                 .builder
@@ -410,7 +448,7 @@ impl<'ctx> Compiler<'ctx> {
 
         let casted = self
             .builder
-            .build_bitcast(alloca, enum_ty.ptr_type(AddressSpace::Generic), "")
+            .build_bitcast(enum_alloca, enum_ty.ptr_type(AddressSpace::Generic), "")
             .into_pointer_value();
         let load = self
             .builder
@@ -1000,13 +1038,13 @@ impl<'ctx> Compiler<'ctx> {
                 let enum_name = &self.hir[enum_def.name];
 
                 let (variant_idx, enum_variant) =
-                    enum_def.find_variant(&self.hir, *variant).unwrap();
+                    enum_def.get_variant(&self.hir, *variant).unwrap();
                 let variant_name = &self.hir[enum_variant.name];
 
-                let tag_matched = match self.discriminant_type(enum_def.variants.len()) {
+                let tag_matched = match self.enum_discriminant_type(enum_id) {
                     None => self.codegen_true(),
                     Some(int_type) => {
-                        let tag = self.get_enum_discriminant(test);
+                        let tag = self.get_enum_discriminant(enum_id, test);
                         self.builder.build_int_compare(
                             IntPredicate::EQ,
                             tag,
@@ -1041,7 +1079,7 @@ impl<'ctx> Compiler<'ctx> {
                 self.builder.position_at_end(then_bb);
                 let (payload, variant) = self.get_enum_payload(enum_id, *variant, test);
                 let then_value = self.codegen_all(fields.iter().map(|field| {
-                    let val = self.get_variant_field(&variant, payload, field.name);
+                    let val = self.get_variant_field(enum_id, &variant, payload, field.name);
                     match field.pat {
                         None => self.codegen_true(),
                         Some(pat) => self.codegen_match_attempt(case_idx, val, pat),
@@ -1093,7 +1131,7 @@ impl<'ctx> Compiler<'ctx> {
 
                 let (payload, variant) = self.get_enum_payload(enum_id, *variant, test);
                 fields.iter().for_each(|field| {
-                    let val = self.get_variant_field(&variant, payload, field.name);
+                    let val = self.get_variant_field(enum_id, &variant, payload, field.name);
                     match field.pat {
                         None => self.codegen_local_var(vars, field.name, val),
                         Some(pat) => self.capture_variables_from_pattern(vars, val, pat),

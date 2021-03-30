@@ -624,7 +624,7 @@ fn main() -> _ {
     }
 
     #[test]
-    fn lists() {
+    fn list_len() {
         test_codegen_and_run(
             r#"
 enum List {
@@ -640,12 +640,45 @@ fn length(l: List) -> Int {
 }
 
 fn main() -> _ {
-    // let l = List::Cons {head: 1, tail: List::Nil{}};
-    let l = List::Nil {};
+    let l = List::Cons{head: 2, tail: List::Cons {head: 1, tail: List::Nil{}}};
     length(l)
 }
         "#,
-            0_i32,
+            2_i32,
+        )
+    }
+
+    #[test]
+    fn list_map() {
+        test_codegen_and_run(
+            r#"
+enum List {
+    Nil {},
+    Cons {head: Int, tail: List}
+}
+ 
+fn map(l: List, f: (Int) -> Int) -> List {
+    match l {
+        List::Nil {} => List::Nil{},
+        List::Cons{head, tail} => List::Cons{head: f(head), tail: map(tail, f)}
+    }
+}
+
+fn sum(l: List) -> Int {
+    match l {
+        List::Nil {} => 0,
+        List::Cons{head, tail} => head + sum(tail),
+    }
+}
+
+fn main() -> _ {
+    let l1 = List::Cons{head: 3, tail: List::Cons{head: 2, tail: List::Cons {head: 1, tail: List::Nil{}}}};
+    let l2 = map(l1, (x) => x * x);
+    let s = sum(l2);
+    s
+}
+        "#,
+            (3 * 3 + 2 * 2 + 1 * 1) as i32,
         )
     }
 }

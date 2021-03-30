@@ -1,0 +1,290 @@
+---
+source: crates/walrus-codegen/src/tests.rs
+expression: module
+
+---
+; ModuleID = 'module'
+source_filename = "module"
+
+%List = type { i8, { i32, %List* } }
+
+define void @builtins.exit.wrapper(i8* %env, i32 %status) {
+  call void @exit(i32 %status)
+  unreachable
+}
+
+declare void @exit(i32)
+
+define i32 @builtins.putchar.wrapper(i8* %env, i32 %c) {
+  %1 = call i32 @putchar(i32 %c)
+  ret i32 %1
+}
+
+declare i32 @putchar(i32)
+
+define %List @map(i8* %map.env, %List %map.params.0, { i32 (i8*, i32)*, i8* } %map.params.1) {
+map.entry:
+  %l.alloca = alloca %List, align 8
+  store %List %map.params.0, %List* %l.alloca, align 8
+  %f.alloca = alloca { i32 (i8*, i32)*, i8* }, align 8
+  store { i32 (i8*, i32)*, i8* } %map.params.1, { i32 (i8*, i32)*, i8* }* %f.alloca, align 8
+  %l = load %List, %List* %l.alloca, align 8
+  br label %match.case0.test
+
+match.case0.test:                                 ; preds = %map.entry
+  %List.discriminant9 = extractvalue %List %l, 0
+  %0 = icmp eq i8 %List.discriminant9, 0
+  br i1 %0, label %"match.case0.List::Nil.then", label %"match.case0.List::Nil.else"
+
+"match.case0.List::Nil.then":                     ; preds = %match.case0.test
+  %List.payload10 = extractvalue %List %l, 1
+  br label %"match.case0.List::Nil.end"
+
+"match.case0.List::Nil.else":                     ; preds = %match.case0.test
+  br label %"match.case0.List::Nil.end"
+
+"match.case0.List::Nil.end":                      ; preds = %"match.case0.List::Nil.then", %"match.case0.List::Nil.else"
+  %"match.case0.List::Nil.phi" = phi i1 [ true, %"match.case0.List::Nil.then" ], [ false, %"match.case0.List::Nil.else" ]
+  br i1 %"match.case0.List::Nil.phi", label %match.case0.then, label %match.case1.test
+
+match.case0.then:                                 ; preds = %"match.case0.List::Nil.end"
+  %List.payload11 = extractvalue %List %l, 1
+  %List.alloca12 = alloca %List, align 8
+  %List.discriminant.gep13 = getelementptr inbounds %List, %List* %List.alloca12, i32 0, i32 0
+  store i8 0, i8* %List.discriminant.gep13, align 1
+  %List.payload.gep14 = getelementptr inbounds %List, %List* %List.alloca12, i32 0, i32 1
+  %List.load15 = load %List, %List* %List.alloca12, align 8
+  br label %match.end
+
+match.case1.test:                                 ; preds = %"match.case0.List::Nil.end"
+  %List.discriminant = extractvalue %List %l, 0
+  %1 = icmp eq i8 %List.discriminant, 1
+  br i1 %1, label %"match.case1.List::Cons.then", label %"match.case1.List::Cons.else"
+
+"match.case1.List::Cons.then":                    ; preds = %match.case1.test
+  %List.payload = extractvalue %List %l, 1
+  %"List::Cons.head" = extractvalue { i32, %List* } %List.payload, 0
+  %"List::Cons.tail" = extractvalue { i32, %List* } %List.payload, 1
+  %"List::Cons.tail.load" = load %List, %List* %"List::Cons.tail", align 8
+  br label %"match.case1.List::Cons.end"
+
+"match.case1.List::Cons.else":                    ; preds = %match.case1.test
+  br label %"match.case1.List::Cons.end"
+
+"match.case1.List::Cons.end":                     ; preds = %"match.case1.List::Cons.then", %"match.case1.List::Cons.else"
+  %"match.case1.List::Cons.phi" = phi i1 [ true, %"match.case1.List::Cons.then" ], [ false, %"match.case1.List::Cons.else" ]
+  br i1 %"match.case1.List::Cons.phi", label %match.case1.then, label %match.fail
+
+match.case1.then:                                 ; preds = %"match.case1.List::Cons.end"
+  %List.payload1 = extractvalue %List %l, 1
+  %"List::Cons.head2" = extractvalue { i32, %List* } %List.payload1, 0
+  %head.alloca = alloca i32, align 4
+  store i32 %"List::Cons.head2", i32* %head.alloca, align 4
+  %"List::Cons.tail3" = extractvalue { i32, %List* } %List.payload1, 1
+  %"List::Cons.tail.load4" = load %List, %List* %"List::Cons.tail3", align 8
+  %tail.alloca = alloca %List, align 8
+  store %List %"List::Cons.tail.load4", %List* %tail.alloca, align 8
+  %List.alloca = alloca %List, align 8
+  %List.discriminant.gep = getelementptr inbounds %List, %List* %List.alloca, i32 0, i32 0
+  store i8 1, i8* %List.discriminant.gep, align 1
+  %List.payload.gep = getelementptr inbounds %List, %List* %List.alloca, i32 0, i32 1
+  %f = load { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %f.alloca, align 8
+  %closure.code = extractvalue { i32 (i8*, i32)*, i8* } %f, 0
+  %closure.env = extractvalue { i32 (i8*, i32)*, i8* } %f, 1
+  %head = load i32, i32* %head.alloca, align 4
+  %call = call i32 %closure.code(i8* %closure.env, i32 %head)
+  %"List::Cons.head.gep" = getelementptr inbounds { i32, %List* }, { i32, %List* }* %List.payload.gep, i32 0, i32 0
+  store i32 %call, i32* %"List::Cons.head.gep", align 4
+  %map.closure.alloca = alloca { %List (i8*, %List, { i32 (i8*, i32)*, i8* })*, i8* }, align 8
+  %map.closure.code = getelementptr inbounds { %List (i8*, %List, { i32 (i8*, i32)*, i8* })*, i8* }, { %List (i8*, %List, { i32 (i8*, i32)*, i8* })*, i8* }* %map.closure.alloca, i32 0, i32 0
+  store %List (i8*, %List, { i32 (i8*, i32)*, i8* })* @map, %List (i8*, %List, { i32 (i8*, i32)*, i8* })** %map.closure.code, align 8
+  %map.closure.env = getelementptr inbounds { %List (i8*, %List, { i32 (i8*, i32)*, i8* })*, i8* }, { %List (i8*, %List, { i32 (i8*, i32)*, i8* })*, i8* }* %map.closure.alloca, i32 0, i32 1
+  store i8* null, i8** %map.closure.env, align 8
+  %map = load { %List (i8*, %List, { i32 (i8*, i32)*, i8* })*, i8* }, { %List (i8*, %List, { i32 (i8*, i32)*, i8* })*, i8* }* %map.closure.alloca, align 8
+  %closure.code5 = extractvalue { %List (i8*, %List, { i32 (i8*, i32)*, i8* })*, i8* } %map, 0
+  %closure.env6 = extractvalue { %List (i8*, %List, { i32 (i8*, i32)*, i8* })*, i8* } %map, 1
+  %tail = load %List, %List* %tail.alloca, align 8
+  %f7 = load { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %f.alloca, align 8
+  %call8 = call %List %closure.code5(i8* %closure.env6, %List %tail, { i32 (i8*, i32)*, i8* } %f7)
+  %"List::Cons.tail.gep" = getelementptr inbounds { i32, %List* }, { i32, %List* }* %List.payload.gep, i32 0, i32 1
+  %"List::Cons.tail.alloca" = alloca %List, align 8
+  store %List %call8, %List* %"List::Cons.tail.alloca", align 8
+  store %List* %"List::Cons.tail.alloca", %List** %"List::Cons.tail.gep", align 8
+  %List.load = load %List, %List* %List.alloca, align 8
+  br label %match.end
+
+match.fail:                                       ; preds = %"match.case1.List::Cons.end"
+  unreachable
+
+match.end:                                        ; preds = %match.case0.then, %match.case1.then
+  %match.phi = phi %List [ %List.load, %match.case1.then ], [ %List.load15, %match.case0.then ]
+  ret %List %match.phi
+}
+
+define i32 @sum(i8* %sum.env, %List %sum.params.0) {
+sum.entry:
+  %l.alloca = alloca %List, align 8
+  store %List %sum.params.0, %List* %l.alloca, align 8
+  %l = load %List, %List* %l.alloca, align 8
+  br label %match.case0.test
+
+match.case0.test:                                 ; preds = %sum.entry
+  %List.discriminant5 = extractvalue %List %l, 0
+  %0 = icmp eq i8 %List.discriminant5, 0
+  br i1 %0, label %"match.case0.List::Nil.then", label %"match.case0.List::Nil.else"
+
+"match.case0.List::Nil.then":                     ; preds = %match.case0.test
+  %List.payload6 = extractvalue %List %l, 1
+  br label %"match.case0.List::Nil.end"
+
+"match.case0.List::Nil.else":                     ; preds = %match.case0.test
+  br label %"match.case0.List::Nil.end"
+
+"match.case0.List::Nil.end":                      ; preds = %"match.case0.List::Nil.then", %"match.case0.List::Nil.else"
+  %"match.case0.List::Nil.phi" = phi i1 [ true, %"match.case0.List::Nil.then" ], [ false, %"match.case0.List::Nil.else" ]
+  br i1 %"match.case0.List::Nil.phi", label %match.case0.then, label %match.case1.test
+
+match.case0.then:                                 ; preds = %"match.case0.List::Nil.end"
+  %List.payload7 = extractvalue %List %l, 1
+  br label %match.end
+
+match.case1.test:                                 ; preds = %"match.case0.List::Nil.end"
+  %List.discriminant = extractvalue %List %l, 0
+  %1 = icmp eq i8 %List.discriminant, 1
+  br i1 %1, label %"match.case1.List::Cons.then", label %"match.case1.List::Cons.else"
+
+"match.case1.List::Cons.then":                    ; preds = %match.case1.test
+  %List.payload = extractvalue %List %l, 1
+  %"List::Cons.head" = extractvalue { i32, %List* } %List.payload, 0
+  %"List::Cons.tail" = extractvalue { i32, %List* } %List.payload, 1
+  %"List::Cons.tail.load" = load %List, %List* %"List::Cons.tail", align 8
+  br label %"match.case1.List::Cons.end"
+
+"match.case1.List::Cons.else":                    ; preds = %match.case1.test
+  br label %"match.case1.List::Cons.end"
+
+"match.case1.List::Cons.end":                     ; preds = %"match.case1.List::Cons.then", %"match.case1.List::Cons.else"
+  %"match.case1.List::Cons.phi" = phi i1 [ true, %"match.case1.List::Cons.then" ], [ false, %"match.case1.List::Cons.else" ]
+  br i1 %"match.case1.List::Cons.phi", label %match.case1.then, label %match.fail
+
+match.case1.then:                                 ; preds = %"match.case1.List::Cons.end"
+  %List.payload1 = extractvalue %List %l, 1
+  %"List::Cons.head2" = extractvalue { i32, %List* } %List.payload1, 0
+  %head.alloca = alloca i32, align 4
+  store i32 %"List::Cons.head2", i32* %head.alloca, align 4
+  %"List::Cons.tail3" = extractvalue { i32, %List* } %List.payload1, 1
+  %"List::Cons.tail.load4" = load %List, %List* %"List::Cons.tail3", align 8
+  %tail.alloca = alloca %List, align 8
+  store %List %"List::Cons.tail.load4", %List* %tail.alloca, align 8
+  %head = load i32, i32* %head.alloca, align 4
+  %sum.closure.alloca = alloca { i32 (i8*, %List)*, i8* }, align 8
+  %sum.closure.code = getelementptr inbounds { i32 (i8*, %List)*, i8* }, { i32 (i8*, %List)*, i8* }* %sum.closure.alloca, i32 0, i32 0
+  store i32 (i8*, %List)* @sum, i32 (i8*, %List)** %sum.closure.code, align 8
+  %sum.closure.env = getelementptr inbounds { i32 (i8*, %List)*, i8* }, { i32 (i8*, %List)*, i8* }* %sum.closure.alloca, i32 0, i32 1
+  store i8* null, i8** %sum.closure.env, align 8
+  %sum = load { i32 (i8*, %List)*, i8* }, { i32 (i8*, %List)*, i8* }* %sum.closure.alloca, align 8
+  %closure.code = extractvalue { i32 (i8*, %List)*, i8* } %sum, 0
+  %closure.env = extractvalue { i32 (i8*, %List)*, i8* } %sum, 1
+  %tail = load %List, %List* %tail.alloca, align 8
+  %call = call i32 %closure.code(i8* %closure.env, %List %tail)
+  %2 = add i32 %head, %call
+  br label %match.end
+
+match.fail:                                       ; preds = %"match.case1.List::Cons.end"
+  unreachable
+
+match.end:                                        ; preds = %match.case0.then, %match.case1.then
+  %match.phi = phi i32 [ %2, %match.case1.then ], [ 0, %match.case0.then ]
+  ret i32 %match.phi
+}
+
+define i32 @main(i8* %main.env) {
+main.entry:
+  %List.alloca = alloca %List, align 8
+  %List.discriminant.gep = getelementptr inbounds %List, %List* %List.alloca, i32 0, i32 0
+  store i8 1, i8* %List.discriminant.gep, align 1
+  %List.payload.gep = getelementptr inbounds %List, %List* %List.alloca, i32 0, i32 1
+  %"List::Cons.head.gep" = getelementptr inbounds { i32, %List* }, { i32, %List* }* %List.payload.gep, i32 0, i32 0
+  store i32 3, i32* %"List::Cons.head.gep", align 4
+  %List.alloca1 = alloca %List, align 8
+  %List.discriminant.gep2 = getelementptr inbounds %List, %List* %List.alloca1, i32 0, i32 0
+  store i8 1, i8* %List.discriminant.gep2, align 1
+  %List.payload.gep3 = getelementptr inbounds %List, %List* %List.alloca1, i32 0, i32 1
+  %"List::Cons.head.gep4" = getelementptr inbounds { i32, %List* }, { i32, %List* }* %List.payload.gep3, i32 0, i32 0
+  store i32 2, i32* %"List::Cons.head.gep4", align 4
+  %List.alloca5 = alloca %List, align 8
+  %List.discriminant.gep6 = getelementptr inbounds %List, %List* %List.alloca5, i32 0, i32 0
+  store i8 1, i8* %List.discriminant.gep6, align 1
+  %List.payload.gep7 = getelementptr inbounds %List, %List* %List.alloca5, i32 0, i32 1
+  %"List::Cons.head.gep8" = getelementptr inbounds { i32, %List* }, { i32, %List* }* %List.payload.gep7, i32 0, i32 0
+  store i32 1, i32* %"List::Cons.head.gep8", align 4
+  %List.alloca9 = alloca %List, align 8
+  %List.discriminant.gep10 = getelementptr inbounds %List, %List* %List.alloca9, i32 0, i32 0
+  store i8 0, i8* %List.discriminant.gep10, align 1
+  %List.payload.gep11 = getelementptr inbounds %List, %List* %List.alloca9, i32 0, i32 1
+  %List.load = load %List, %List* %List.alloca9, align 8
+  %"List::Cons.tail.gep" = getelementptr inbounds { i32, %List* }, { i32, %List* }* %List.payload.gep7, i32 0, i32 1
+  %"List::Cons.tail.alloca" = alloca %List, align 8
+  store %List %List.load, %List* %"List::Cons.tail.alloca", align 8
+  store %List* %"List::Cons.tail.alloca", %List** %"List::Cons.tail.gep", align 8
+  %List.load12 = load %List, %List* %List.alloca5, align 8
+  %"List::Cons.tail.gep13" = getelementptr inbounds { i32, %List* }, { i32, %List* }* %List.payload.gep3, i32 0, i32 1
+  %"List::Cons.tail.alloca14" = alloca %List, align 8
+  store %List %List.load12, %List* %"List::Cons.tail.alloca14", align 8
+  store %List* %"List::Cons.tail.alloca14", %List** %"List::Cons.tail.gep13", align 8
+  %List.load15 = load %List, %List* %List.alloca1, align 8
+  %"List::Cons.tail.gep16" = getelementptr inbounds { i32, %List* }, { i32, %List* }* %List.payload.gep, i32 0, i32 1
+  %"List::Cons.tail.alloca17" = alloca %List, align 8
+  store %List %List.load15, %List* %"List::Cons.tail.alloca17", align 8
+  store %List* %"List::Cons.tail.alloca17", %List** %"List::Cons.tail.gep16", align 8
+  %List.load18 = load %List, %List* %List.alloca, align 8
+  %l1.alloca = alloca %List, align 8
+  store %List %List.load18, %List* %l1.alloca, align 8
+  %map.closure.alloca = alloca { %List (i8*, %List, { i32 (i8*, i32)*, i8* })*, i8* }, align 8
+  %map.closure.code = getelementptr inbounds { %List (i8*, %List, { i32 (i8*, i32)*, i8* })*, i8* }, { %List (i8*, %List, { i32 (i8*, i32)*, i8* })*, i8* }* %map.closure.alloca, i32 0, i32 0
+  store %List (i8*, %List, { i32 (i8*, i32)*, i8* })* @map, %List (i8*, %List, { i32 (i8*, i32)*, i8* })** %map.closure.code, align 8
+  %map.closure.env = getelementptr inbounds { %List (i8*, %List, { i32 (i8*, i32)*, i8* })*, i8* }, { %List (i8*, %List, { i32 (i8*, i32)*, i8* })*, i8* }* %map.closure.alloca, i32 0, i32 1
+  store i8* null, i8** %map.closure.env, align 8
+  %map = load { %List (i8*, %List, { i32 (i8*, i32)*, i8* })*, i8* }, { %List (i8*, %List, { i32 (i8*, i32)*, i8* })*, i8* }* %map.closure.alloca, align 8
+  %closure.code = extractvalue { %List (i8*, %List, { i32 (i8*, i32)*, i8* })*, i8* } %map, 0
+  %closure.env = extractvalue { %List (i8*, %List, { i32 (i8*, i32)*, i8* })*, i8* } %map, 1
+  %l1 = load %List, %List* %l1.alloca, align 8
+  %closure.alloca = alloca { i32 (i8*, i32)*, i8* }, align 8
+  %closure.code19 = getelementptr inbounds { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %closure.alloca, i32 0, i32 0
+  store i32 (i8*, i32)* @lambda, i32 (i8*, i32)** %closure.code19, align 8
+  %closure.env20 = getelementptr inbounds { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %closure.alloca, i32 0, i32 1
+  %env.alloca = alloca {}, align 8
+  %env = bitcast {}* %env.alloca to i8*
+  store i8* %env, i8** %closure.env20, align 8
+  %closure = load { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %closure.alloca, align 8
+  %call = call %List %closure.code(i8* %closure.env, %List %l1, { i32 (i8*, i32)*, i8* } %closure)
+  %l2.alloca = alloca %List, align 8
+  store %List %call, %List* %l2.alloca, align 8
+  %sum.closure.alloca = alloca { i32 (i8*, %List)*, i8* }, align 8
+  %sum.closure.code = getelementptr inbounds { i32 (i8*, %List)*, i8* }, { i32 (i8*, %List)*, i8* }* %sum.closure.alloca, i32 0, i32 0
+  store i32 (i8*, %List)* @sum, i32 (i8*, %List)** %sum.closure.code, align 8
+  %sum.closure.env = getelementptr inbounds { i32 (i8*, %List)*, i8* }, { i32 (i8*, %List)*, i8* }* %sum.closure.alloca, i32 0, i32 1
+  store i8* null, i8** %sum.closure.env, align 8
+  %sum = load { i32 (i8*, %List)*, i8* }, { i32 (i8*, %List)*, i8* }* %sum.closure.alloca, align 8
+  %closure.code21 = extractvalue { i32 (i8*, %List)*, i8* } %sum, 0
+  %closure.env22 = extractvalue { i32 (i8*, %List)*, i8* } %sum, 1
+  %l2 = load %List, %List* %l2.alloca, align 8
+  %call23 = call i32 %closure.code21(i8* %closure.env22, %List %l2)
+  %s.alloca = alloca i32, align 4
+  store i32 %call23, i32* %s.alloca, align 4
+  %s = load i32, i32* %s.alloca, align 4
+  ret i32 %s
+}
+
+define i32 @lambda(i8* %env_ptr, i32 %params.0) {
+lambda.entry:
+  %env_ptr1 = bitcast i8* %env_ptr to {}*
+  %env = load {}, {}* %env_ptr1, align 1
+  %x.alloca = alloca i32, align 4
+  store i32 %params.0, i32* %x.alloca, align 4
+  %x = load i32, i32* %x.alloca, align 4
+  %x2 = load i32, i32* %x.alloca, align 4
+  %0 = mul i32 %x, %x2
+  ret i32 %0
+}
+

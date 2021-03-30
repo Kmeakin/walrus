@@ -5,22 +5,6 @@ impl<'ctx> Compiler<'ctx> {
         self.llvm.i8_type().ptr_type(AddressSpace::Generic).into()
     }
 
-    pub fn discriminant_type(&self, n: usize) -> Option<IntType> {
-        const I0: usize = 1;
-        const I8: usize = 2_usize.pow(8);
-        const I16: usize = 2_usize.pow(16);
-        const I32: usize = 2_usize.pow(32);
-
-        let ty = match n {
-            0..=I0 => return None,
-            0..=I8 => self.llvm.i8_type(),
-            0..=I16 => self.llvm.i16_type(),
-            0..=I32 => self.llvm.i32_type(),
-            _ => self.llvm.i64_type(),
-        };
-        Some(ty)
-    }
-
     pub fn value_type(&self, vars: &mut Vars<'ctx>, ty: &Type) -> BasicTypeEnum<'ctx> {
         match ty {
             Type::Fn(func) => self.closure_type(vars, func),
@@ -114,17 +98,17 @@ impl<'ctx> Compiler<'ctx> {
         }
     }
 
-    pub fn enum_type(&self, vars: &mut Vars<'ctx>, id: EnumDefId) -> StructType<'ctx> {
-        match vars.types.get(&Right(id)) {
+    pub fn enum_type(&self, vars: &mut Vars<'ctx>, enum_id: EnumDefId) -> StructType<'ctx> {
+        match vars.types.get(&Right(enum_id)) {
             Some(ty) => *ty,
             None => {
-                let enum_def = &self.hir[id];
+                let enum_def = &self.hir[enum_id];
                 let enum_name = &self.hir[enum_def.name];
                 let ty = self.llvm.opaque_struct_type(enum_name.as_str());
-                vars.types.insert(Right(id), ty);
+                vars.types.insert(Right(enum_id), ty);
 
                 let discriminant = self
-                    .discriminant_type(enum_def.variants.len())
+                    .enum_discriminant_type(enum_id)
                     .map_or_else(|| self.unit_type().into(), Into::into);
 
                 let target_triple = self.module.get_triple();

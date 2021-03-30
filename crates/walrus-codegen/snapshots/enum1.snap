@@ -1,6 +1,6 @@
 ---
 source: crates/walrus-codegen/src/tests.rs
-expression: llvm_module.print_to_string().to_string()
+expression: module
 
 ---
 ; ModuleID = 'module'
@@ -24,10 +24,11 @@ declare i32 @putchar(i32)
 
 define %Foo @main(i8* %main.env) {
 main.entry:
-  %"Foo::Bar.alloca" = alloca %Foo, align 8
-  %Foo.discriminant.gep = getelementptr inbounds %Foo, %Foo* %"Foo::Bar.alloca", i32 0, i32 0
+  %Foo.alloca = alloca %Foo, align 8
+  %Foo.discriminant.gep = getelementptr inbounds %Foo, %Foo* %Foo.alloca, i32 0, i32 0
   store {} zeroinitializer, {}* %Foo.discriminant.gep, align 1
-  %"Foo::Bar" = load %Foo, %Foo* %"Foo::Bar.alloca", align 1
-  ret %Foo %"Foo::Bar"
+  %Foo.payload.gep = getelementptr inbounds %Foo, %Foo* %Foo.alloca, i32 0, i32 1
+  %Foo.load = load %Foo, %Foo* %Foo.alloca, align 1
+  ret %Foo %Foo.load
 }
 

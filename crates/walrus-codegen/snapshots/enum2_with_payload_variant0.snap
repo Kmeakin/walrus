@@ -1,6 +1,6 @@
 ---
 source: crates/walrus-codegen/src/tests.rs
-expression: llvm_module.print_to_string().to_string()
+expression: module
 
 ---
 ; ModuleID = 'module'
@@ -24,13 +24,13 @@ declare i32 @putchar(i32)
 
 define %Foo @main(i8* %main.env) {
 main.entry:
-  %"Foo::Bar.alloca" = alloca %Foo, align 8
-  %Foo.discriminant.gep = getelementptr inbounds %Foo, %Foo* %"Foo::Bar.alloca", i32 0, i32 0
+  %Foo.alloca = alloca %Foo, align 8
+  %Foo.discriminant.gep = getelementptr inbounds %Foo, %Foo* %Foo.alloca, i32 0, i32 0
   store i8 0, i8* %Foo.discriminant.gep, align 1
-  %payload.gep = getelementptr inbounds %Foo, %Foo* %"Foo::Bar.alloca", i32 0, i32 1
-  %"Foo::Bar.x.gep" = getelementptr inbounds { i32 }, { i32 }* %payload.gep, i32 0, i32 0
+  %Foo.payload.gep = getelementptr inbounds %Foo, %Foo* %Foo.alloca, i32 0, i32 1
+  %"Foo::Bar.x.gep" = getelementptr inbounds { i32 }, { i32 }* %Foo.payload.gep, i32 0, i32 0
   store i32 5, i32* %"Foo::Bar.x.gep", align 4
-  %"Foo::Bar" = load %Foo, %Foo* %"Foo::Bar.alloca", align 4
-  ret %Foo %"Foo::Bar"
+  %Foo.load = load %Foo, %Foo* %Foo.alloca, align 4
+  ret %Foo %Foo.load
 }
 

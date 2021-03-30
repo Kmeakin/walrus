@@ -469,7 +469,7 @@ impl Ctx {
                     Type::Enum(enum_id) => {
                         let enum_def = self.hir[enum_id].clone();
                         let enum_type = Type::Enum(enum_id);
-                        let variant = enum_def.find_variant(&self.hir, variant);
+                        let variant = enum_def.get_variant(&self.hir, variant);
                         match variant {
                             None => todo!("No such variant"),
                             Some((_, variant)) => {
@@ -566,7 +566,7 @@ impl Ctx {
         match enum_type {
             Type::Enum(enum_id) => {
                 let enum_def = self.hir[enum_id].clone();
-                let variant = enum_def.find_variant(&self.hir, variant);
+                let variant = enum_def.get_variant(&self.hir, variant);
                 match variant {
                     None => todo!("No such variant"),
                     Some((_, variant)) => {

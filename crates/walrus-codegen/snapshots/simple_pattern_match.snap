@@ -24,25 +24,25 @@ declare i32 @putchar(i32)
 
 define i32 @main(i8* %main.env) {
 main.entry:
-  %"Option::Some.alloca" = alloca %Option, align 8
-  %Option.discriminant.gep = getelementptr inbounds %Option, %Option* %"Option::Some.alloca", i32 0, i32 0
+  %Option.alloca = alloca %Option, align 8
+  %Option.discriminant.gep = getelementptr inbounds %Option, %Option* %Option.alloca, i32 0, i32 0
   store i8 1, i8* %Option.discriminant.gep, align 1
-  %payload.gep = getelementptr inbounds %Option, %Option* %"Option::Some.alloca", i32 0, i32 1
-  %"Option::Some.x.gep" = getelementptr inbounds { i32 }, { i32 }* %payload.gep, i32 0, i32 0
+  %Option.payload.gep = getelementptr inbounds %Option, %Option* %Option.alloca, i32 0, i32 1
+  %"Option::Some.x.gep" = getelementptr inbounds { i32 }, { i32 }* %Option.payload.gep, i32 0, i32 0
   store i32 1, i32* %"Option::Some.x.gep", align 4
-  %"Option::Some" = load %Option, %Option* %"Option::Some.alloca", align 4
+  %Option.load = load %Option, %Option* %Option.alloca, align 4
   %opt.alloca = alloca %Option, align 8
-  store %Option %"Option::Some", %Option* %opt.alloca, align 4
+  store %Option %Option.load, %Option* %opt.alloca, align 4
   %opt = load %Option, %Option* %opt.alloca, align 4
   br label %match.case0.test
 
 match.case0.test:                                 ; preds = %main.entry
-  %0 = extractvalue %Option %opt, 0
-  %1 = icmp eq i8 %0, 0
-  br i1 %1, label %"match.case0.Option::None.then", label %"match.case0.Option::None.else"
+  %Option.discriminant3 = extractvalue %Option %opt, 0
+  %0 = icmp eq i8 %Option.discriminant3, 0
+  br i1 %0, label %"match.case0.Option::None.then", label %"match.case0.Option::None.else"
 
 "match.case0.Option::None.then":                  ; preds = %match.case0.test
-  %"Option::None.payload" = extractvalue %Option %opt, 1
+  %Option.payload4 = extractvalue %Option %opt, 1
   br label %"match.case0.Option::None.end"
 
 "match.case0.Option::None.else":                  ; preds = %match.case0.test
@@ -53,17 +53,17 @@ match.case0.test:                                 ; preds = %main.entry
   br i1 %"match.case0.Option::None.phi", label %match.case0.then, label %match.case1.test
 
 match.case0.then:                                 ; preds = %"match.case0.Option::None.end"
-  %"Option::None.payload3" = extractvalue %Option %opt, 1
+  %Option.payload5 = extractvalue %Option %opt, 1
   br label %match.end
 
 match.case1.test:                                 ; preds = %"match.case0.Option::None.end"
-  %2 = extractvalue %Option %opt, 0
-  %3 = icmp eq i8 %2, 1
-  br i1 %3, label %"match.case1.Option::Some.then", label %"match.case1.Option::Some.else"
+  %Option.discriminant = extractvalue %Option %opt, 0
+  %1 = icmp eq i8 %Option.discriminant, 1
+  br i1 %1, label %"match.case1.Option::Some.then", label %"match.case1.Option::Some.else"
 
 "match.case1.Option::Some.then":                  ; preds = %match.case1.test
-  %"Option::Some.payload" = extractvalue %Option %opt, 1
-  %Some.x = extractvalue { i32 } %"Option::Some.payload", 0
+  %Option.payload = extractvalue %Option %opt, 1
+  %"Option::Some.x" = extractvalue { i32 } %Option.payload, 0
   br label %"match.case1.Option::Some.end"
 
 "match.case1.Option::Some.else":                  ; preds = %match.case1.test
@@ -74,10 +74,10 @@ match.case1.test:                                 ; preds = %"match.case0.Option
   br i1 %"match.case1.Option::Some.phi", label %match.case1.then, label %match.fail
 
 match.case1.then:                                 ; preds = %"match.case1.Option::Some.end"
-  %"Option::Some.payload1" = extractvalue %Option %opt, 1
-  %Some.x2 = extractvalue { i32 } %"Option::Some.payload1", 0
+  %Option.payload1 = extractvalue %Option %opt, 1
+  %"Option::Some.x2" = extractvalue { i32 } %Option.payload1, 0
   %x.alloca = alloca i32, align 4
-  store i32 %Some.x2, i32* %x.alloca, align 4
+  store i32 %"Option::Some.x2", i32* %x.alloca, align 4
   %x = load i32, i32* %x.alloca, align 4
   br label %match.end
 
