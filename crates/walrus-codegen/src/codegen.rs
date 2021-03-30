@@ -27,6 +27,7 @@ use walrus_semantics::{
 
 use crate::free_vars::FreeVars;
 
+mod pat;
 mod types;
 mod util;
 
@@ -125,7 +126,7 @@ impl<'ctx> Compiler<'ctx> {
             .enumerate()
             .for_each(|(idx, (llvm_param, hir_param))| {
                 llvm_param.set_name(&format!("{name}.params.{idx}"));
-                self.codegen_local_pat(vars, hir_param.pat, llvm_param)
+                self.codegen_pat(vars, hir_param.pat, llvm_param)
             });
 
         if let Some(value) = self.codegen_expr(vars, fn_def.expr) {
@@ -141,32 +142,6 @@ impl<'ctx> Compiler<'ctx> {
             .build_alloca(self.value_type(vars, var_type), &name);
         vars.locals.insert(var_id, alloca);
         self.builder.build_store(alloca, val);
-    }
-
-    fn codegen_local_pat(&self, vars: &mut Vars<'ctx>, id: PatId, val: BasicValueEnum<'ctx>) {
-        let pat = &self.hir[id];
-        assert!(pat.is_infalliable(&self.hir));
-        match pat {
-            hir::Pat::Ignore => {}
-            hir::Pat::Var(var) => self.codegen_local_var(vars, *var, val),
-            hir::Pat::Tuple(pats) => pats.iter().enumerate().for_each(|(idx, id)| {
-                let val = self.get_tuple_field(val, idx);
-                self.codegen_local_pat(vars, *id, val)
-            }),
-            hir::Pat::Struct { fields, .. } => {
-                let struct_id = self.types[id].as_struct().unwrap();
-                for field in fields {
-                    let val = self.get_struct_field(struct_id, val, field.name);
-                    match field.pat {
-                        None => self.codegen_local_var(vars, field.name, val),
-                        Some(pat) => self.codegen_local_pat(vars, pat, val),
-                    }
-                }
-            }
-            hir::Pat::Lit(_) | hir::Pat::Enum { .. } => {
-                unreachable!("Attempt to codegen falliable pattern: {:#?}", pat)
-            }
-        }
     }
 
     fn codegen_expr(&'ctx self, vars: &mut Vars<'ctx>, id: ExprId) -> Value<'ctx> {
@@ -202,7 +177,7 @@ impl<'ctx> Compiler<'ctx> {
                         }
                         hir::Stmt::Let { pat, expr, .. } => {
                             let val = self.codegen_expr(vars, *expr)?;
-                            self.codegen_local_pat(vars, *pat, val);
+                            self.codegen_pat(vars, *pat, val);
                         }
                     }
                 }
@@ -461,6 +436,68 @@ impl<'ctx> Compiler<'ctx> {
         Some(phi.as_basic_value())
     }
 
+    fn codegen_match(
+        &'ctx self,
+        vars: &mut Vars<'ctx>,
+        parent: ExprId,
+        test: ExprId,
+        cases: &[MatchCase],
+    ) -> Value<'ctx> {
+        let test_value = self.codegen_expr(vars, test)?;
+
+        let bb = self.builder.get_insert_block().unwrap();
+        let end_bb = self.llvm.insert_basic_block_after(bb, "match.end");
+        let mut next_bb = self.llvm.insert_basic_block_after(bb, "match.fail");
+
+        // failure to match is UB
+        self.builder.position_at_end(next_bb);
+        self.builder.build_unreachable();
+
+        let mut incomings = Vec::new();
+        for (idx, case) in cases.iter().enumerate().rev() {
+            let then_bb = self
+                .llvm
+                .insert_basic_block_after(bb, &format!("match.case{idx}.then"));
+            let test_bb = self
+                .llvm
+                .insert_basic_block_after(bb, &format!("match.case{idx}.test"));
+
+            // test agaisnt the pattern
+            self.builder.position_at_end(test_bb);
+            let matched = self.codegen_match_attempt(idx, test_value, case.pat);
+            self.builder
+                .build_conditional_branch(matched, then_bb, next_bb);
+
+            // the then block
+            self.builder.position_at_end(then_bb);
+            self.codegen_pat(vars, case.pat, test_value);
+            let val = self
+                .codegen_expr(vars, case.expr)
+                .unwrap_or_else(|| self.codegen_undef());
+            let val: Box<dyn BasicValue> = Box::new(val);
+            self.builder.build_unconditional_branch(end_bb);
+
+            incomings.push((val, then_bb));
+
+            next_bb = test_bb;
+        }
+        self.builder.position_at_end(bb);
+        self.builder.build_unconditional_branch(next_bb);
+
+        // merge the branches
+        self.builder.position_at_end(end_bb);
+        let expr_type = self.value_type(vars, &self.types[parent]);
+        let phi = self.builder.build_phi(expr_type, "match.phi");
+        phi.add_incoming(
+            incomings
+                .iter()
+                .map(|(val, bb)| (val.as_ref(), *bb))
+                .collect::<Vec<_>>()
+                .as_slice(),
+        );
+        Some(phi.as_basic_value())
+    }
+
     fn codegen_loop(&'ctx self, vars: &mut Vars<'ctx>, expr: ExprId, body: ExprId) -> Value<'ctx> {
         let old_bb = self.builder.get_insert_block().unwrap();
         let exit_bb = self.llvm.insert_basic_block_after(old_bb, "loop.exit");
@@ -691,7 +728,7 @@ impl<'ctx> Compiler<'ctx> {
             .enumerate()
             .for_each(|(idx, (llvm_param, hir_param))| {
                 llvm_param.set_name(&format!("params.{idx}"));
-                self.codegen_local_pat(vars, hir_param.pat, llvm_param)
+                self.codegen_pat(vars, hir_param.pat, llvm_param)
             });
 
         if let Some(value) = self.codegen_expr(vars, body) {
@@ -886,214 +923,5 @@ impl<'ctx> Compiler<'ctx> {
         let rhs = self.codegen_expr(vars, rhs)?;
         self.builder.build_store(lhs, rhs);
         Some(self.codegen_unit())
-    }
-}
-
-impl<'ctx> Compiler<'ctx> {
-    fn codegen_match(
-        &'ctx self,
-        vars: &mut Vars<'ctx>,
-        parent: ExprId,
-        test: ExprId,
-        cases: &[MatchCase],
-    ) -> Value<'ctx> {
-        let test_value = self.codegen_expr(vars, test)?;
-
-        let bb = self.builder.get_insert_block().unwrap();
-        let end_bb = self.llvm.insert_basic_block_after(bb, "match.end");
-        let mut next_bb = self.llvm.insert_basic_block_after(bb, "match.fail");
-
-        // failure to match is UB
-        self.builder.position_at_end(next_bb);
-        self.builder.build_unreachable();
-
-        let mut incomings = Vec::new();
-        for (idx, case) in cases.iter().enumerate().rev() {
-            let then_bb = self
-                .llvm
-                .insert_basic_block_after(bb, &format!("match.case{idx}.then"));
-            let test_bb = self
-                .llvm
-                .insert_basic_block_after(bb, &format!("match.case{idx}.test"));
-
-            // test agaisnt the pattern
-            self.builder.position_at_end(test_bb);
-            let matched = self.codegen_match_attempt(idx, test_value, case.pat);
-            self.builder
-                .build_conditional_branch(matched, then_bb, next_bb);
-
-            // the then block
-            self.builder.position_at_end(then_bb);
-            self.capture_variables_from_pattern(vars, test_value, case.pat);
-            let val = self
-                .codegen_expr(vars, case.expr)
-                .unwrap_or_else(|| self.codegen_undef());
-            let val: Box<dyn BasicValue> = Box::new(val);
-            self.builder.build_unconditional_branch(end_bb);
-
-            incomings.push((val, then_bb));
-
-            next_bb = test_bb;
-        }
-        self.builder.position_at_end(bb);
-        self.builder.build_unconditional_branch(next_bb);
-
-        // merge the branches
-        self.builder.position_at_end(end_bb);
-        let expr_type = self.value_type(vars, &self.types[parent]);
-        let phi = self.builder.build_phi(expr_type, "match.phi");
-        phi.add_incoming(
-            incomings
-                .iter()
-                .map(|(val, bb)| (val.as_ref(), *bb))
-                .collect::<Vec<_>>()
-                .as_slice(),
-        );
-        Some(phi.as_basic_value())
-    }
-
-    fn codegen_match_attempt(
-        &self,
-        case_idx: usize,
-        test: BasicValueEnum<'ctx>,
-        pat_id: PatId,
-    ) -> IntValue<'ctx> {
-        let pat = &self.hir[pat_id];
-
-        match pat {
-            Pat::Lit(_) => todo!(),
-            Pat::Var(_) | Pat::Ignore => self.codegen_true(),
-            Pat::Tuple(pats) => self.codegen_all(pats.iter().enumerate().map(|(idx, pat)| {
-                let val = self.get_tuple_field(test, idx);
-                self.codegen_match_attempt(idx, val, *pat)
-            })),
-            Pat::Struct { fields, .. } => {
-                let struct_id = self.types[pat_id].as_struct().unwrap();
-                self.codegen_all(fields.iter().map(|field| match field.pat {
-                    None => self.codegen_true(),
-                    Some(pat) => {
-                        let val = self.get_struct_field(struct_id, test, field.name);
-                        self.codegen_match_attempt(case_idx, val, pat)
-                    }
-                }))
-            }
-            Pat::Enum {
-                variant, fields, ..
-            } => {
-                let enum_id = self.types[pat_id].as_enum().unwrap();
-                let enum_def = &self.hir[enum_id];
-                let enum_name = &self.hir[enum_def.name];
-
-                let (variant_idx, enum_variant) =
-                    enum_def.get_variant(&self.hir, *variant).unwrap();
-                let variant_name = &self.hir[enum_variant.name];
-
-                let discriminant_matched = match self.enum_discriminant_type(enum_id) {
-                    None => self.codegen_true(),
-                    Some(int_type) => {
-                        let discriminant = self.get_enum_discriminant(enum_id, test);
-                        self.builder.build_int_compare(
-                            IntPredicate::EQ,
-                            discriminant,
-                            int_type.const_int(variant_idx as u64, false),
-                            &format!("{enum_name}::{variant_name}.cmp_discriminant"),
-                        )
-                    }
-                };
-                let bb = self.builder.get_insert_block().unwrap();
-                let end_bb = self.llvm.insert_basic_block_after(
-                    bb,
-                    &format!("match.case{case_idx}.{enum_name}::{variant_name}.end"),
-                );
-                let else_bb = self.llvm.insert_basic_block_after(
-                    bb,
-                    &format!("match.case{case_idx}.{enum_name}::{variant_name}.else"),
-                );
-                let then_bb = self.llvm.insert_basic_block_after(
-                    bb,
-                    &format!("match.case{case_idx}.{enum_name}::{variant_name}.then"),
-                );
-
-                self.builder
-                    .build_conditional_branch(discriminant_matched, then_bb, else_bb);
-
-                // else branch
-                self.builder.position_at_end(else_bb);
-                let else_value = self.codegen_false();
-                self.builder.build_unconditional_branch(end_bb);
-
-                // then branch
-                self.builder.position_at_end(then_bb);
-                let (payload, variant) = self.get_enum_payload(enum_id, *variant, test);
-                let then_value = self.codegen_all(fields.iter().map(|field| match field.pat {
-                    None => self.codegen_true(),
-                    Some(pat) => {
-                        let val = self.get_variant_field(enum_id, &variant, payload, field.name);
-                        self.codegen_match_attempt(case_idx, val, pat)
-                    }
-                }));
-                self.builder.build_unconditional_branch(end_bb);
-
-                // merge the 2 branches
-                self.builder.position_at_end(end_bb);
-                let phi = self.builder.build_phi(
-                    self.llvm.bool_type(),
-                    &format!("match.case{case_idx}.{enum_name}::{variant_name}.phi"),
-                );
-                phi.add_incoming(&[(&then_value, then_bb), (&else_value, else_bb)]);
-                phi.as_basic_value().into_int_value()
-            }
-        }
-    }
-
-    fn capture_variables_from_pattern(
-        &self,
-        vars: &mut Vars<'ctx>,
-        test: BasicValueEnum<'ctx>,
-        pat_id: PatId,
-    ) {
-        let pat = &self.hir[pat_id];
-
-        match pat {
-            Pat::Lit(_) | Pat::Ignore => {}
-            Pat::Var(var_id) => self.codegen_local_var(vars, *var_id, test),
-            Pat::Tuple(pats) => pats.iter().enumerate().for_each(|(idx, pat)| {
-                let val = self.get_tuple_field(test, idx);
-                self.capture_variables_from_pattern(vars, val, *pat)
-            }),
-            Pat::Struct { fields, .. } => {
-                let struct_id = self.types[pat_id].as_struct().unwrap();
-                fields.iter().for_each(|field| {
-                    let val = self.get_struct_field(struct_id, test, field.name);
-                    match field.pat {
-                        None => self.codegen_local_var(vars, field.name, val),
-                        Some(pat) => self.capture_variables_from_pattern(vars, val, pat),
-                    }
-                })
-            }
-            Pat::Enum {
-                variant, fields, ..
-            } => {
-                let enum_id = self.types[pat_id].as_enum().unwrap();
-
-                let (payload, variant) = self.get_enum_payload(enum_id, *variant, test);
-                fields.iter().for_each(|field| {
-                    let val = self.get_variant_field(enum_id, &variant, payload, field.name);
-                    match field.pat {
-                        None => self.codegen_local_var(vars, field.name, val),
-                        Some(pat) => self.capture_variables_from_pattern(vars, val, pat),
-                    }
-                })
-            }
-        }
-    }
-
-    fn codegen_true(&self) -> IntValue<'ctx> { self.llvm.bool_type().const_int(true as _, false) }
-    fn codegen_false(&self) -> IntValue<'ctx> { self.llvm.bool_type().const_int(false as _, false) }
-
-    fn codegen_all(&self, bools: impl Iterator<Item = IntValue<'ctx>>) -> IntValue<'ctx> {
-        bools.fold(self.codegen_true(), |acc, e| {
-            self.builder.build_and(acc, e, "")
-        })
     }
 }
