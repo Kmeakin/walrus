@@ -10,12 +10,12 @@ edition = "2018"
 arena = { path = "../arena" }
 walrus-syntax = { path = "../walrus-syntax" }
 
-ordered-float = "2.0.1"
+ordered-float = "2.1.1"
 smol_str = "0.1.17"
 ena = "0.14.0"
 either = "1.6.1"
-derive_more = "0.99.11"
+derive_more = "0.99.13"
 
 [dev-dependencies]
 walrus-parser = { path = "../walrus-parser" }
-insta = "1.5.3"
+insta = "1.7.1"

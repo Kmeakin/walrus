@@ -15,4 +15,4 @@ either = "1.6.1"
 
 [dev-dependencies]
 walrus-parser = { path = "../walrus-parser" }
-insta = "1.5.3"
+insta = "1.7.1"

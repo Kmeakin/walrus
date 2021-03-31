@@ -10,8 +10,8 @@ edition = "2018"
 walrus-lexer = { path = "../walrus-lexer" }
 walrus-syntax = { path = "../walrus-syntax" }
 
-nom = "6.1.0"
-nom-supreme = "0.4.1"
+nom = "6.1.2"
+nom-supreme = "0.4.2"
 
 [dev-dependencies]
-insta = "1.5.3"
+insta = "1.7.1"
