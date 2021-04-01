@@ -1,0 +1,173 @@
+---
+title: Grammar
+author: Karl Meakin
+geometry: margin=1cm
+output:
+  pdf_document:
+    highlight: pygments
+    latex_engine: xelatex
+    pandoc_args: "--pdf-engine-opt=--shell-escape"
+header-includes:
+    - \usepackage{syntax}
+---
+
+# Comments
+\begin{grammar}
+<LineComment> ::= `//' <any character> <newline or end of file>
+
+<BlockComment> ::= `/*' <any character> <BlockComment> <any character> `*/'
+\end{grammar}
+
+# Definitions
+\begin{grammar}
+<SourceFile> ::= <Definition>
+
+<Definition> ::= <FnDefinition> | <StructDefinition> | <EnumDefinition> 
+
+<FnDefinition> ::= `fn' <ParamList> <ReturnType> <BlockExpr>
+
+<StructDefinition> ::= `struct' <Ident> `{' <Field>\textsuperscript{,*} `}'
+
+<EnumDefinition> ::= `enum' <Ident> `{' <EnumVariant>\textsuperscript{,*} `}'
+
+<EnumVariant> ::= <Ident> `{' <Field>\textsuperscript{,*} `}'
+
+<Field> ::= <Ident> `:' <Type>
+\end{grammar}
+
+# Literals
+\begin{grammar}
+<Lit> ::= <BoolLit> | <IntLit> | <FloatLit> | <CharLit>
+
+<BooLit> ::= `true' | `false'
+
+<IntLit> ::= <BinInt> | <DecInt> | <HexInt>
+
+<BinInt> ::= (`0b' | `0B') <BinDigit> <BinDigit_>\textsuperscript{*}
+
+<BinDigit> ::= `0' | `1'
+
+<BinDigit_> ::= <BinDigit> | `_'
+
+<DecInt> ::= <DecDigit> <DecDigit_>\textsuperscript{*}
+
+<DecDigit> ::= `0' | `1' | `2' | `3' | `4' | `5' | `6' | `7' | `8' | `9'
+
+<DecDigit_> ::= <DecDigit> | `_'
+
+<HexInt> ::= (`0x' | `0X') <HexDigit> <HexDigit_>\textsuperscript{*}
+
+<HexDigit_> ::= <HexDigit> | `_'
+
+<CharLit> ::= <SimpleChar> | <EscapedChar> | <UnicodeChar>
+
+<SimpleChar> ::= `\'' <any character except single quote> `\''
+
+<EscapedChar> ::= `\\n' | `\\r' | `\\t' | `\\\\' | `\\0' | `\\\'' | `\\"'
+
+<UnicodeChar> ::= `\'' (`\\u' | `\\U') <HexDigit> <HexDigit_>\textsuperscript{*} `\''
+\end{grammar}
+
+# Expressions
+\begin{grammar}
+<Expr> ::= <LitExpr> 
+\alt <ParenExpr> 
+\alt <VarExpr> 
+\alt <UnopExpr> 
+\alt <BinopExpr> 
+\alt <CallExpr> 
+\alt <LambdaExpr> 
+\alt <IfExpr> 
+\alt <LoopExpr> 
+\alt <BreakExpr>
+\alt <ContinueExpr>
+\alt <ReturnExpr>
+\alt <TupleExpr>
+\alt <StructExpr>
+\alt <EnumExpr>
+\alt <FieldExpr>
+\alt <MatchExpr>
+\alt <BlockExpr> 
+
+<LitExpr> ::= <Lit>
+
+<ParenExpr> ::= `(' <Expr> `)'
+
+<VarExpr> ::= <Ident>
+
+<UnopExpr> ::= <Unop> <Expr>
+
+<Unop> ::= `+' | `-'
+
+<BinopExpr> ::= <Expr> <Binop> <Expr>
+
+<Binop> ::= `+' | `-' | `*' | `/' | `=' | `==' | `!=' | `<' | `>' | `<=' | `>=' | `||' | `&&'
+
+<CallExpr> ::= <Expr> `(' <Expr>\textsuperscript{,*} `)'
+
+<LambdaExpr> ::= `(' <Pat>\textsuperscript{,*} `)' `=>' <Expr>
+
+<IfExpr> ::= `if' <Expr> <BlockExpr> (`else' `if' <Expr> <BlockExpr>)\textsuperscript{*} (`else' <BlockExpr>)\textsuperscript{?}
+
+<LoopExpr> ::= `loop' <Expr> <BlockExpr>
+
+<BreakExpr> ::= `break' <Expr>\textsuperscript{?}
+
+<ContinueExpr> ::= `continue'
+
+<ReturnExpr> ::= `return' <Expr>\textsuperscript{?}
+
+<TupleExpr> ::= `(' <Expr> `,' `)' | `(' <Expr>\textsuperscript{,*} `)'
+
+<StructExpr> ::= <Ident> `{' (<Ident> `:' <Expr>)\textsuperscript{,*} `}'
+
+<EnumExpr> ::= <Ident> `::' <Ident> `{' (<Ident> `:' <Expr>)\textsuperscript{,*} `}'
+
+<FieldExpr> ::= <Expr> `.' (<Ident> | <IntLit>)
+
+<MatchExpr> ::= `match' <Expr> `{' <MatchCase>\textsuperscript{,*} `}'
+
+<MatchCase> ::= <Pat> `=>' <Expr>
+\end{grammar}
+
+
+# Types
+\begin{grammar}
+<Type> ::= <VarType> 
+\alt <InferType>
+\alt <TupleType>
+\alt <FnType>
+
+<VarType> ::= <Ident>
+
+<InferType> ::= `_'
+
+<TupleType> ::= `(' <Type> `,' `)'
+
+<FnType> ::= `(' <Type>\textsuperscript{,*} `)' `->' <Type>
+\end{grammar}
+
+
+# Patterns
+\begin{grammar}
+<Pat> ::= <LitPat> 
+\alt <VarPat>
+\alt <IgnorePat>
+\alt <TuplePat>
+\alt <StructPat>
+\alt <EnumPat>
+
+<LitPat> ::= <Lit>
+
+<VarPat> ::= <Ident>
+
+<IgnorePat> ::= `_'
+
+<TuplePat> ::= `(' <Pat> `,' `)' | `(' <Pat>\textsuperscript{,*} `)'
+
+<StructPat> ::= <Ident> `{' <FieldPat>\textsuperscript{,*} `}'
+
+<EnumExpr> ::= <Ident> `::' <Ident> `{' <FieldPat>\textsuperscript{,*} `}'
+\end{grammar}
+
+

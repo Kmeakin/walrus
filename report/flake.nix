@@ -1,5 +1,5 @@
 {
-  description = "A very basic flake";
+  description = "Walrus language report";
   # Provides abstraction to boiler-code when specifying multi-platform outputs.
   inputs.flake-utils.url = "github:numtide/flake-utils";
   outputs = { self, nixpkgs, flake-utils }:
@@ -9,7 +9,11 @@
       in
         {
           devShell = pkgs.mkShell {
-            nativeBuildInputs = with pkgs; [ pandoc ];
+            nativeBuildInputs = with pkgs; [
+              (rWrapper.override { packages = with rPackages; [ rmarkdown ]; })
+              pandoc
+              texlive.combined.scheme-full
+            ];
           };
         }
     );
