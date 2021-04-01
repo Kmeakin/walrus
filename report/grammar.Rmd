@@ -61,7 +61,7 @@ header-includes:
 \begin{grammar}
 <Lit> ::= <BoolLit> | <IntLit> | <FloatLit> | <CharLit>
 
-<BooLit> ::= \lit{true} | \lit{false} 
+<BoolLit> ::= \lit{true} | \lit{false} 
 
 <IntLit> ::= <BinInt> | <DecInt> | <HexInt>
 
@@ -152,6 +152,21 @@ header-includes:
 <MatchCase> ::= <Pat> \lit{=>} <Expr>
 \end{grammar}
 
+## Expression precedence
+| Expression/Operator    | Associativity
+|------------------------|-----------
+| VarExpr (strongest)    |
+| FieldExpr              | left
+| CallExpr               | 
+| UnaryExpr              |
+| \lit{*}, \lit{/}       | left
+| \lit{+}, \lit{-}       | left
+| \lit{==}, \lit{!=}, \lit{<}, \lit{>}, \lit{<=}, \lit{>=} | left 
+| \verb$&&$              | left
+| \lit{||}               | left
+| \lit{=}                | right
+| LambdaExpr (weakest)   | right
+
 
 # Types
 \begin{grammar}
@@ -168,6 +183,12 @@ header-includes:
 
 <FnType> ::= \lit{(} <Type>\textsuperscript{,*} \lit{)} \lit{->} <Type>
 \end{grammar}
+
+
+## Type precedence
+| Operator           | Associativity
+|--------------------|--------------
+| FnType (\lit{->})  | Right
 
 
 # Patterns
