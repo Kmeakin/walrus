@@ -118,27 +118,27 @@ header-includes:
 
 <LambdaExpr> ::= \lit{(} \manyZeroComma{<Pat>} \lit{)} \lit{=>} <Expr>
 
-<IfExpr> ::= `if' <Expr> <BlockExpr> (`else' `if' <Expr> <BlockExpr>)\textsuperscript{*} (`else' <BlockExpr>)\textsuperscript{?}
+<IfExpr> ::= \lit{if} <Expr> <BlockExpr> \manyZero{(\lit{else}  <Expr> <BlockExpr>)} \opt{(\lit{else} <BlockExpr>)}
 
-<LoopExpr> ::= `loop' <Expr> <BlockExpr>
+<LoopExpr> ::= \lit{loop} <Expr> <BlockExpr>
 
-<BreakExpr> ::= `break' <Expr>\textsuperscript{?}
+<BreakExpr> ::= \lit{break} \opt{<Expr>}
 
-<ContinueExpr> ::= `continue'
+<ContinueExpr> ::= \lit{continue}
 
-<ReturnExpr> ::= `return' <Expr>\textsuperscript{?}
+<ReturnExpr> ::= \lit{return} \opt{<Expr>}
 
-<TupleExpr> ::= `(' <Expr> `,' `)' | `(' <Expr>\textsuperscript{,*} `)'
+<TupleExpr> ::= \lit{(} <Expr> \lit{,} \lit{)} | \lit{(} \manyZeroComma{<Expr>} \lit{)}
 
-<StructExpr> ::= <Ident> `{' (<Ident> `:' <Expr>)\textsuperscript{,*} `}'
+<StructExpr> ::= <Ident> \lcurly \manyZeroComma{(<Ident> \lit{:} <Expr>)} \rcurly
 
-<EnumExpr> ::= <Ident> `::' <Ident> `{' (<Ident> `:' <Expr>)\textsuperscript{,*} `}'
+<EnumExpr> ::= <Ident> \lit{::} <Ident> \lcurly \manyZeroComma{(<Ident> \lit{:} <Expr>)} \rcurly
 
-<FieldExpr> ::= <Expr> `.' (<Ident> | <IntLit>)
+<FieldExpr> ::= <Expr> \lit{.} (<Ident> | <IntLit>)
 
-<MatchExpr> ::= `match' <Expr> `{' <MatchCase>\textsuperscript{,*} `}'
+<MatchExpr> ::= \lit{match} <Expr> \lcurly \manyZeroComma{<MatchCase>} \rcurly
 
-<MatchCase> ::= <Pat> `=>' <Expr>
+<MatchCase> ::= <Pat> \lit{=>} <Expr>
 \end{grammar}
 
 
@@ -151,11 +151,11 @@ header-includes:
 
 <VarType> ::= <Ident>
 
-<InferType> ::= `_'
+<InferType> ::= \lit{_}
 
-<TupleType> ::= `(' <Type> `,' `)'
+<TupleType> ::= \lit{(} <Type> \lit{,} \lit{)} | \lit{(} \manyZeroComma{<Type>} \lit{)}
 
-<FnType> ::= `(' <Type>\textsuperscript{,*} `)' `->' <Type>
+<FnType> ::= \lit{(} <Type>\textsuperscript{,*} \lit{)} \lit{->} <Type>
 \end{grammar}
 
 
@@ -172,13 +172,13 @@ header-includes:
 
 <VarPat> ::= <Ident>
 
-<IgnorePat> ::= `_'
+<IgnorePat> ::= \lit{_}
 
-<TuplePat> ::= `(' <Pat> `,' `)' | `(' <Pat>\textsuperscript{,*} `)'
+<TuplePat> ::= \lit{(} <Pat> \lit{,} \lit{)} | \lit{(} \manyZeroComma{<Pat>} \lit{)}
 
-<StructPat> ::= <Ident> `{' <FieldPat>\textsuperscript{,*} `}'
+<StructPat> ::= <Ident> \lcurly <FieldPat>\textsuperscript{,*} \rcurly
 
-<EnumExpr> ::= <Ident> `::' <Ident> `{' <FieldPat>\textsuperscript{,*} `}'
+<EnumExpr> ::= <Ident> \lit{::} <Ident> \lcurly \manyZeroComma{<FieldPat>} \rcurly
 \end{grammar}
 
 
