@@ -11,11 +11,22 @@ header-includes:
     - \usepackage{syntax}
 ---
 
+\renewcommand{\lit}[1]{\texttt{#1}}
+\newcommand{\opt}[1]{#1\textsuperscript{?}}
+\newcommand{\manyZero}[1]{#1\textsuperscript{*}}
+\newcommand{\manyOne}[1]{#1\textsuperscript{+}}
+
+\newcommand{\manyZeroComma}[1]{#1\textsuperscript{,*}}
+\newcommand{\manyOneComma}[1]{#1\textsuperscript{,+}}
+
+\newcommand{\lcurly}{\lit{\{}}
+\newcommand{\rcurly}{\lit{\}}}
+
 # Comments
 \begin{grammar}
-<LineComment> ::= `//' <any character> <newline or end of file>
+<LineComment> ::= \lit{//} \manyZero{<any character>} <newline or end of file>
 
-<BlockComment> ::= `/*' <any character> <BlockComment> <any character> `*/'
+<BlockComment> ::= \lit{/*} \manyZero{<any character>} \manyZero{<BlockComment>} <any character> \lit{*/}
 \end{grammar}
 
 # Definitions
@@ -24,48 +35,48 @@ header-includes:
 
 <Definition> ::= <FnDefinition> | <StructDefinition> | <EnumDefinition> 
 
-<FnDefinition> ::= `fn' <ParamList> <ReturnType> <BlockExpr>
+<FnDefinition> ::= \lit{fn} <ParamList> <ReturnType> <BlockExpr>
 
-<StructDefinition> ::= `struct' <Ident> `{' <Field>\textsuperscript{,*} `}'
+<StructDefinition> ::= \lit{struct} <Ident> \lcurly \manyZero{<Field>} \rcurly
 
-<EnumDefinition> ::= `enum' <Ident> `{' <EnumVariant>\textsuperscript{,*} `}'
+<EnumDefinition> ::= \lit{enum} <Ident> \lcurly \manyZero{<EnumVariant>} \rcurly
 
-<EnumVariant> ::= <Ident> `{' <Field>\textsuperscript{,*} `}'
+<EnumVariant> ::= <Ident> \lcurly \manyZero{<Field>} \rcurly
 
-<Field> ::= <Ident> `:' <Type>
+<Field> ::= <Ident> \lit{:} <Type>
 \end{grammar}
 
 # Literals
 \begin{grammar}
 <Lit> ::= <BoolLit> | <IntLit> | <FloatLit> | <CharLit>
 
-<BooLit> ::= `true' | `false'
+<BooLit> ::= \lit{true} | \lit{false} 
 
 <IntLit> ::= <BinInt> | <DecInt> | <HexInt>
 
-<BinInt> ::= (`0b' | `0B') <BinDigit> <BinDigit_>\textsuperscript{*}
+<BinInt> ::= \lit{0b} | \lit{0B}) <BinDigit> \manyZero{<BinDigit_>}
 
-<BinDigit> ::= `0' | `1'
+<BinDigit> ::= \lit{0} | \lit{1}
 
-<BinDigit_> ::= <BinDigit> | `_'
+<BinDigit_> ::= <BinDigit> | \lit{_}
 
-<DecInt> ::= <DecDigit> <DecDigit_>\textsuperscript{*}
+<DecInt> ::= <DecDigit> \manyZero{<DecDigit_>}
 
-<DecDigit> ::= `0' | `1' | `2' | `3' | `4' | `5' | `6' | `7' | `8' | `9'
+<DecDigit> ::= \lit{0} | \lit{1} | \lit{2} | \lit{3} | \lit{4} | \lit{5} | \lit{6} | \lit{7} | \lit{8} | \lit{9}
 
-<DecDigit_> ::= <DecDigit> | `_'
+<DecDigit_> ::= <DecDigit> | \lit{_}
 
-<HexInt> ::= (`0x' | `0X') <HexDigit> <HexDigit_>\textsuperscript{*}
+<HexInt> ::= (\lit{0x} | \lit{0X}) <HexDigit> \manyZero{<HexDigit_>}
 
-<HexDigit_> ::= <HexDigit> | `_'
+<HexDigit_> ::= <HexDigit> | \lit{_}
 
 <CharLit> ::= <SimpleChar> | <EscapedChar> | <UnicodeChar>
 
-<SimpleChar> ::= `\'' <any character except single quote> `\''
+<SimpleChar> ::= \lit{'} <any character except single quote> \lit{'}
 
-<EscapedChar> ::= `\\n' | `\\r' | `\\t' | `\\\\' | `\\0' | `\\\'' | `\\"'
+<EscapedChar> ::= \verb$'\n'$ | \verb$'\t'$ | \verb$'\\'$ | \verb$'\0'$ | \verb$'\''$ | \verb$'\"'$
 
-<UnicodeChar> ::= `\'' (`\\u' | `\\U') <HexDigit> <HexDigit_>\textsuperscript{*} `\''
+<UnicodeChar> ::= \lit{'} (\verb$\u$ | \verb$\U$) <HexDigit> \manyZero{<HexDigit_>} \lit{'}
 \end{grammar}
 
 # Expressions
@@ -91,21 +102,21 @@ header-includes:
 
 <LitExpr> ::= <Lit>
 
-<ParenExpr> ::= `(' <Expr> `)'
+<ParenExpr> ::= \lit{(} <Expr> \lit{)}
 
 <VarExpr> ::= <Ident>
 
 <UnopExpr> ::= <Unop> <Expr>
 
-<Unop> ::= `+' | `-'
+<Unop> ::= \lit{+} | \lit{-}
 
 <BinopExpr> ::= <Expr> <Binop> <Expr>
 
-<Binop> ::= `+' | `-' | `*' | `/' | `=' | `==' | `!=' | `<' | `>' | `<=' | `>=' | `||' | `&&'
+<Binop> ::= \lit{+} | \lit{-} | \lit{*} | \lit{/} | \lit{=} | \lit{==} | \lit{!=}  | \verb$<$ | \verb$>$ | \verb$<=$ | \verb$>=$ | \verb$||$ | \verb$&&$
 
-<CallExpr> ::= <Expr> `(' <Expr>\textsuperscript{,*} `)'
+<CallExpr> ::= <Expr> \lit{(} \manyZeroComma{<Expr>} \lit{)}
 
-<LambdaExpr> ::= `(' <Pat>\textsuperscript{,*} `)' `=>' <Expr>
+<LambdaExpr> ::= \lit{(} \manyZeroComma{<Pat>} \lit{)} \lit{=>} <Expr>
 
 <IfExpr> ::= `if' <Expr> <BlockExpr> (`else' `if' <Expr> <BlockExpr>)\textsuperscript{*} (`else' <BlockExpr>)\textsuperscript{?}
 
