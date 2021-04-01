@@ -3,4 +3,4 @@ all: report.Rmd
 	Rscript -e 'rmarkdown::render("report.Rmd")'	
 
 clean:
-	rm -rf out
+	rm -rf *.pdf
