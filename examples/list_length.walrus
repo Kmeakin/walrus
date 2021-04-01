@@ -1,0 +1,17 @@
+enum List {
+    Nil {},
+    Cons {head: Int, tail: List}
+}
+
+fn length(l: List) -> Int {
+    match l {
+        List::Nil {} => 0,
+        List::Cons{head: _, tail} => 1 + length(tail),
+    }
+}
+
+fn main() -> _ {
+    let l = List::Cons{head: 2, tail: List::Cons {head: 1, tail: List::Nil{}}};
+    length(l)
+}
+ 
