@@ -46,6 +46,17 @@ header-includes:
 <Field> ::= <Ident> \lit{:} <Type>
 \end{grammar}
 
+# Identifiers
+\begin{grammar}
+<Ident> ::= (<IdentStart>) \manyZero{<IdentContinue>}
+
+<IdentStart> ::= <any character in the Unicode XID_Start character class> | \lit{_}
+
+<IdentContinue> ::= <any character in the Unicode XID_Continue character class>
+\end{grammar}
+
+(FOOTNOTE: https://www.unicode.org/reports/tr31/#Table_Lexical_Classes_for_Identifiers)
+
 # Literals
 \begin{grammar}
 <Lit> ::= <BoolLit> | <IntLit> | <FloatLit> | <CharLit>
