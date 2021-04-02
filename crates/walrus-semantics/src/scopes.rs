@@ -142,7 +142,7 @@ impl Scopes {
         if self.insert_var(hir, vars, id) {
             self.scopes[self.scope]
                 .denotations
-                .insert(var.to_string(), denotation);
+                .insert(var.into_string(), denotation);
         }
     }
 
@@ -151,7 +151,7 @@ impl Scopes {
         let var = hir[id].clone();
         match vars.get(var.as_str()) {
             None => {
-                vars.insert(var.to_string(), id);
+                vars.insert(var.into_string(), id);
                 true
             }
             Some(first) => {

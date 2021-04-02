@@ -35,7 +35,7 @@ pub fn codegen(name: &str, hir: HirData, scopes: Scopes, types: InferenceResult)
     let builder = llvm.create_builder();
     let module = llvm.create_module(name);
 
-    let module = {
+    {
         let compiler = Compiler {
             llvm: &llvm,
             module,
@@ -46,7 +46,5 @@ pub fn codegen(name: &str, hir: HirData, scopes: Scopes, types: InferenceResult)
             types,
         };
         compiler.codegen_module()
-    };
-
-    module
+    }
 }

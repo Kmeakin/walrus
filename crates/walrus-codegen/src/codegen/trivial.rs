@@ -3,7 +3,7 @@ use super::*;
 impl<'ctx> Compiler<'ctx> {
     pub fn codegen_unit(&self) -> BasicValueEnum { self.llvm.const_struct(&[], false).into() }
 
-    pub fn codegen_null_ptr(&self) -> BasicValueEnum { self.void_ptr_type().const_zero().into() }
+    pub fn codegen_null_ptr(&self) -> BasicValueEnum { self.void_ptr_type().const_zero() }
 
     pub fn codegen_undef(&self) -> BasicValueEnum { self.llvm.i8_type().get_undef().into() }
 

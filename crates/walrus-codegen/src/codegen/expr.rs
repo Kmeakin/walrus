@@ -115,7 +115,7 @@ impl<'ctx> Compiler<'ctx> {
         );
         let closure = self
             .closure_type(vars, fn_type)
-            .const_named_struct(&[code_ptr.into(), self.codegen_null_ptr()]);
+            .const_named_struct(&[code_ptr, self.codegen_null_ptr()]);
         closure.into()
     }
 
@@ -455,7 +455,7 @@ impl<'ctx> Compiler<'ctx> {
                         }
                     }
                 }
-                Some(Denotation::Builtin(Builtin::Fn { name, ty })) => {
+                Some(Denotation::Builtin(Builtin::Fn { name, .. })) => {
                     return {
                         let fn_value = self
                             .module

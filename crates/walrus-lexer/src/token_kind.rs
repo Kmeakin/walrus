@@ -1,4 +1,5 @@
 #![allow(clippy::use_self)] // Gives a false positive on the Logos proc-macro
+#![allow(clippy::non_ascii_literal)]
 
 use logos::Logos;
 

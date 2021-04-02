@@ -39,8 +39,10 @@ impl Var {
     }
 
     pub fn as_str(&self) -> &str { &self.var }
-    pub fn as_string(&self) -> &SmolStr { &self.var }
-    pub fn to_string(self) -> SmolStr { self.var }
+    pub const fn as_string(&self) -> &SmolStr { &self.var }
+
+    #[allow(clippy::missing_const_for_fn)]
+    pub fn into_string(self) -> SmolStr { self.var }
 }
 
 impl fmt::Debug for Var {

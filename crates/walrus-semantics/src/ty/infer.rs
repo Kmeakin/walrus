@@ -827,7 +827,7 @@ impl Ctx {
     }
 
     fn check_assign_expr(&mut self, lhs: ExprId) {
-        let expr = &self.hir[lhs];
+        let expr = &self.hir[lhs].clone();
         if expr.is_lvalue(&self.hir) {
             match expr {
                 Expr::Var(var) => self.check_assign_var(*var),
