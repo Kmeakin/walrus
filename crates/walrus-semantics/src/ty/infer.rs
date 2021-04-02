@@ -939,7 +939,7 @@ impl Lit {
             Self::Int(_) => Type::INT,
             Self::Float(_) => Type::FLOAT,
             Self::Char(_) => Type::CHAR,
-            Self::String(_) => Type::CHAR,
+            Self::String(_) => Type::STRING,
         }
     }
 }

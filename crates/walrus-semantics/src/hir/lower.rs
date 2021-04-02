@@ -1,8 +1,6 @@
-use std::convert::TryInto;
-
 use super::*;
 use crate::diagnostic::LitError;
-use ordered_float::OrderedFloat;
+use std::convert::TryInto;
 use syntax::{EnumPat, Span, StructPat};
 
 pub fn lower(syntax: &syntax::SourceFile) -> Module {
@@ -399,16 +397,16 @@ impl Ctx {
         }
     }
 
-    fn lower_float(&mut self, span: Span, text: &str) -> OrderedFloat<f32> {
+    fn lower_float(&mut self, span: Span, text: &str) -> f32 {
         let text = text.replace("_", "");
         match text.parse() {
-            Ok(x) => OrderedFloat(x),
+            Ok(x) => x,
             Err(err) => {
                 self.diagnostics.push(Diagnostic::BadLit {
                     err: LitError::Float(err),
                     span,
                 });
-                OrderedFloat(0.0)
+                0.0
             }
         }
     }

@@ -106,6 +106,7 @@ pub enum PrimitiveType {
     Int,
     Float,
     Char,
+    String,
     Never,
 }
 
@@ -115,6 +116,7 @@ impl Type {
     pub const INT: Self = Self::Primitive(PrimitiveType::Int);
     pub const FLOAT: Self = Self::Primitive(PrimitiveType::Float);
     pub const CHAR: Self = Self::Primitive(PrimitiveType::Char);
+    pub const STRING: Self = Self::Primitive(PrimitiveType::String);
     pub const NEVER: Self = Self::Primitive(PrimitiveType::Never);
 
     pub fn function(params: Vec<Self>, ret: Self) -> Self {

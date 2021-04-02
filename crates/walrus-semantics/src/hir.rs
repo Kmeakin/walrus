@@ -55,7 +55,7 @@ impl From<syntax::Var> for Var {
     fn from(var: syntax::Var) -> Self { Self::new(var.0.text) }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Module {
     pub decls: Vec<Decl>,
     pub hir: HirData,

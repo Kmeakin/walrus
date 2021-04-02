@@ -59,6 +59,10 @@ impl Builtin {
                 ty: PrimitiveType::Char,
             },
             Self::Type {
+                name: "String",
+                ty: PrimitiveType::String,
+            },
+            Self::Type {
                 name: "Never",
                 ty: PrimitiveType::Never,
             },
@@ -69,6 +73,10 @@ impl Builtin {
             Self::Fn {
                 name: "putchar",
                 ty: FnType::new(&[Type::CHAR], Type::UNIT),
+            },
+            Self::Fn {
+                name: "print",
+                ty: FnType::new(&[Type::STRING], Type::UNIT),
             },
         ]
     }

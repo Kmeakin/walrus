@@ -11,7 +11,7 @@ impl<'ctx> Compiler<'ctx> {
         match lit {
             Lit::Bool(b) => self.llvm.bool_type().const_int(*b as _, false).into(),
             Lit::Int(val) => self.llvm.i32_type().const_int((*val).into(), false).into(),
-            Lit::Float(val) => self.llvm.f32_type().const_float(val.0.into()).into(),
+            Lit::Float(val) => self.llvm.f32_type().const_float((*val).into()).into(),
             Lit::Char(val) => self.llvm.i32_type().const_int((*val).into(), false).into(),
             _ => todo!(),
         }
