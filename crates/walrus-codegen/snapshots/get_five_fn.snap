@@ -22,16 +22,8 @@ declare i32 @putchar(i32)
 
 define i32 @main(i8* %main.env) {
 main.entry:
-  %get_five.closure.alloca = alloca { i32 (i8*)*, i8* }, align 8
-  %get_five.closure.code = getelementptr inbounds { i32 (i8*)*, i8* }, { i32 (i8*)*, i8* }* %get_five.closure.alloca, i32 0, i32 0
-  store i32 (i8*)* @get_five, i32 (i8*)** %get_five.closure.code, align 8
-  %get_five.closure.env = getelementptr inbounds { i32 (i8*)*, i8* }, { i32 (i8*)*, i8* }* %get_five.closure.alloca, i32 0, i32 1
-  store i8* null, i8** %get_five.closure.env, align 8
-  %get_five = load { i32 (i8*)*, i8* }, { i32 (i8*)*, i8* }* %get_five.closure.alloca, align 8
-  %closure.code = extractvalue { i32 (i8*)*, i8* } %get_five, 0
-  %closure.env = extractvalue { i32 (i8*)*, i8* } %get_five, 1
-  %call = call i32 %closure.code(i8* %closure.env)
-  ret i32 %call
+  %get_five.call = call i32 @get_five(i8* null)
+  ret i32 %get_five.call
 }
 
 define i32 @get_five(i8* %get_five.env) {

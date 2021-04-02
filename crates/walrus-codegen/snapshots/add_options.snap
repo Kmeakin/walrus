@@ -135,17 +135,9 @@ main.entry:
   %Option.load5 = load %Option, %Option* %Option.alloca1, align 4
   %b.alloca = alloca %Option, align 8
   store %Option %Option.load5, %Option* %b.alloca, align 4
-  %add_options.closure.alloca = alloca { %Option (i8*, %Option, %Option)*, i8* }, align 8
-  %add_options.closure.code = getelementptr inbounds { %Option (i8*, %Option, %Option)*, i8* }, { %Option (i8*, %Option, %Option)*, i8* }* %add_options.closure.alloca, i32 0, i32 0
-  store %Option (i8*, %Option, %Option)* @add_options, %Option (i8*, %Option, %Option)** %add_options.closure.code, align 8
-  %add_options.closure.env = getelementptr inbounds { %Option (i8*, %Option, %Option)*, i8* }, { %Option (i8*, %Option, %Option)*, i8* }* %add_options.closure.alloca, i32 0, i32 1
-  store i8* null, i8** %add_options.closure.env, align 8
-  %add_options = load { %Option (i8*, %Option, %Option)*, i8* }, { %Option (i8*, %Option, %Option)*, i8* }* %add_options.closure.alloca, align 8
-  %closure.code = extractvalue { %Option (i8*, %Option, %Option)*, i8* } %add_options, 0
-  %closure.env = extractvalue { %Option (i8*, %Option, %Option)*, i8* } %add_options, 1
   %a = load %Option, %Option* %a.alloca, align 4
   %b = load %Option, %Option* %b.alloca, align 4
-  %call = call %Option %closure.code(i8* %closure.env, %Option %a, %Option %b)
-  ret %Option %call
+  %add_options.call = call %Option @add_options(i8* null, %Option %a, %Option %b)
+  ret %Option %add_options.call
 }
 

@@ -220,6 +220,8 @@ impl<'ctx> Compiler<'ctx> {
 
     fn codegen_unit(&self) -> BasicValueEnum { self.llvm.const_struct(&[], false).into() }
 
+    fn codegen_null_ptr(&self) -> BasicValueEnum { self.void_ptr_type().const_zero().into() }
+
     fn codegen_undef(&self) -> BasicValueEnum { self.llvm.i8_type().get_undef().into() }
 
     fn codegen_lit(&self, lit: Lit) -> BasicValueEnum<'ctx> {
@@ -586,6 +588,36 @@ impl<'ctx> Compiler<'ctx> {
         func: ExprId,
         args: &[ExprId],
     ) -> Value<'ctx> {
+        let func_val = &self.hir[func];
+        if let Expr::Var(var_id) = func_val {
+            let var = &self.hir[*var_id];
+            let denotation = self.scopes.lookup_var(*var_id, var);
+            match denotation {
+                Some(Denotation::Fn(id)) => {
+                    return {
+                        let fn_def = &self.hir[id];
+                        let fn_name = &self.hir[fn_def.name].as_str();
+                        let fn_value = vars[id];
+                        let args = &std::iter::once(Some(self.codegen_null_ptr()))
+                            .chain(args.iter().map(|arg| self.codegen_expr(vars, *arg)))
+                            .collect::<Option<Vec<_>>>()?;
+                        match self
+                            .builder
+                            .build_call(fn_value, &args, &format!("{fn_name}.call"))
+                            .try_as_basic_value()
+                        {
+                            Left(value) => Some(value),
+                            Right(_) => {
+                                self.builder.build_unreachable();
+                                None
+                            }
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+
         let closure_value = self.codegen_expr(vars, func)?.into_struct_value();
         let code_ptr = self
             .builder

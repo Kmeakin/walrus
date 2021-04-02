@@ -22,16 +22,8 @@ declare i32 @putchar(i32)
 
 define i32 @main(i8* %main.env) {
 main.entry:
-  %id.closure.alloca = alloca { i32 (i8*, i32)*, i8* }, align 8
-  %id.closure.code = getelementptr inbounds { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %id.closure.alloca, i32 0, i32 0
-  store i32 (i8*, i32)* @id, i32 (i8*, i32)** %id.closure.code, align 8
-  %id.closure.env = getelementptr inbounds { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %id.closure.alloca, i32 0, i32 1
-  store i8* null, i8** %id.closure.env, align 8
-  %id = load { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %id.closure.alloca, align 8
-  %closure.code = extractvalue { i32 (i8*, i32)*, i8* } %id, 0
-  %closure.env = extractvalue { i32 (i8*, i32)*, i8* } %id, 1
-  %call = call i32 %closure.code(i8* %closure.env, i32 5)
-  ret i32 %call
+  %id.call = call i32 @id(i8* null, i32 5)
+  ret i32 %id.call
 }
 
 define i32 @id(i8* %id.env, i32 %id.params.0) {
