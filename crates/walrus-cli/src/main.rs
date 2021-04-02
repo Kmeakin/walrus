@@ -225,6 +225,39 @@ fn render_diagnostic(module: &Module, diag: &Diagnostic) -> CodespanDiagnostic<(
                     Label::primary((), span).with_message("Can only assign to lvalue expressions")
                 ])
         }
+        Diagnostic::NotMutable {
+            def: definition,
+            usage,
+        } => {
+            let def_syntax = &module.source[*definition];
+            let usage_syntax = &module.source[*usage];
+            CodespanDiagnostic::error()
+                .with_message("Assignment to immutable variable")
+                .with_labels(vec![
+                    Label::primary((), usage_syntax.span())
+                        .with_message("This variable was not bound with `mut`"),
+                    Label::secondary((), def_syntax.span())
+                        .with_message("The variable is bound here"),
+                ])
+        }
+        Diagnostic::NotLocal { var, denotation } => {
+            let syntax = &module.source[*var];
+            let msg = match denotation {
+                Denotation::Local(_) => "local variable",
+                Denotation::Fn(_) => "function",
+                Denotation::Struct(_) => "struct",
+                Denotation::Enum(_) => "enum",
+                Denotation::Builtin(b) => match b.kind() {
+                    BuiltinKind::Type => "builtin type",
+                    BuiltinKind::Value => "builtin value",
+                },
+            };
+            CodespanDiagnostic::error()
+                .with_message("Assignment to non-local variable")
+                .with_labels(vec![Label::primary((), syntax.span()).with_message(
+                    format!("This variable refers to a {msg}, not a local variable",),
+                )])
+        }
         Diagnostic::NoSuchField {
             parent,
             field,

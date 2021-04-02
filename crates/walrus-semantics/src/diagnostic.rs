@@ -84,6 +84,14 @@ pub enum Diagnostic {
     NotLValue {
         lhs: ExprId,
     },
+    NotMutable {
+        def: VarId,
+        usage: VarId,
+    },
+    NotLocal {
+        var: VarId,
+        denotation: Denotation,
+    },
     NoSuchField {
         parent: Either<ExprId, PatId>,
         field: Field,

@@ -794,13 +794,19 @@ impl Ctx {
     fn check_assign_var(&mut self, var: VarId) {
         let denotation = self.scopes.lookup_var(var, &self.hir[var]);
         match denotation {
-            Some(Denotation::Local(var)) => {
-                let var = &self.hir[var];
-                if !var.is_mut {
-                    todo!("var not mutable")
+            Some(Denotation::Local(def_idx)) => {
+                let def = &self.hir[def_idx];
+                if !def.is_mut {
+                    self.result.diagnostics.push(Diagnostic::NotMutable {
+                        def: def_idx,
+                        usage: var,
+                    });
                 }
             }
-            Some(_) => todo!("Not local variable"),
+            Some(denotation) => self
+                .result
+                .diagnostics
+                .push(Diagnostic::NotLocal { var, denotation }),
             None => {
                 self.result.diagnostics.push(Diagnostic::UnboundVar {
                     var,
@@ -816,7 +822,7 @@ impl Ctx {
         match base {
             Expr::Var(var) => self.check_assign_var(var),
             Expr::Field { expr, .. } => self.check_assign_field(expr),
-            _ => unreachable!(),
+            _ => unreachable!("Already checked that the expr was an lvalue"),
         }
     }
 
@@ -826,7 +832,7 @@ impl Ctx {
             match expr {
                 Expr::Var(var) => self.check_assign_var(*var),
                 Expr::Field { expr, .. } => self.check_assign_field(*expr),
-                _ => unreachable!(),
+                _ => unreachable!("Already checked that the expr was an lvalue"),
             }
         } else {
             self.result.diagnostics.push(Diagnostic::NotLValue { lhs });
