@@ -42,6 +42,7 @@ pub enum TokenKind {
     #[regex(r"'[^']'")]                              SimpleChar,
     #[regex(r"'\\.'")]                               EscapedChar,
     #[regex(r"'\\(u|U)\{(?&HexDigit)(?&HexDigit_)*\}'")] UnicodeChar,
+    #[regex(r#""([^"]|\\")*""#)] String,
 
     #[token("(")] LParen,
     #[token(")")] RParen,
@@ -144,6 +145,8 @@ mod tests {
     test_lex!(simple_char, "'a'");
     test_lex!(escaped_char, r"'\n'");
     test_lex!(unicode_char, r"'\u{0a}'");
+    test_lex!(simple_string, r#""hello world""#);
+    test_lex!(escaped_string, r#""he said \"hello world\"""#);
     test_lex!(symbols, "() {} . , ; : :: -> => _");
     test_lex!(operators, "+ - * / ! = == != < <= > >= || &&");
 }
