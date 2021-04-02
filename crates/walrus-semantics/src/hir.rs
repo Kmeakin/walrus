@@ -19,22 +19,39 @@ pub type TypeId = Idx<Type>;
 pub type PatId = Idx<Pat>;
 
 #[derive(Clone, PartialEq, Eq, Hash)]
-pub struct Var(SmolStr);
+pub struct Var {
+    pub is_mut: bool,
+    var: SmolStr,
+}
 
 impl Var {
-    pub fn new(s: impl Into<SmolStr>) -> Self { Self(s.into()) }
-    pub fn as_str(&self) -> &str { &self.0 }
+    pub fn new(s: impl Into<SmolStr>) -> Self {
+        Self {
+            is_mut: false,
+            var: s.into(),
+        }
+    }
+    pub fn new_with_mutability(s: impl Into<SmolStr>, is_mut: bool) -> Self {
+        Self {
+            is_mut,
+            var: s.into(),
+        }
+    }
+
+    pub fn as_str(&self) -> &str { &self.var }
+    pub fn as_string(&self) -> &SmolStr { &self.var }
+    pub fn to_string(self) -> SmolStr { self.var }
 }
 
 impl fmt::Debug for Var {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "{:?}", self.0) }
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "{:?}", self.var) }
 }
 impl fmt::Display for Var {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "{}", self.0) }
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "{}", self.var) }
 }
 
 impl From<syntax::Var> for Var {
-    fn from(var: syntax::Var) -> Self { Self(var.0.text) }
+    fn from(var: syntax::Var) -> Self { Self::new(var.0.text) }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

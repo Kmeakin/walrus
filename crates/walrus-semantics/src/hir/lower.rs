@@ -75,7 +75,7 @@ impl Ctx {
 
 impl Ctx {
     fn lower_var(&mut self, syntax: syntax::Var) -> VarId {
-        let hir = Var(syntax.0.text.clone());
+        let hir = Var::from(syntax.clone());
         self.alloc_var(syntax, hir)
     }
 
@@ -178,10 +178,12 @@ impl Ctx {
     fn lower_pat(&mut self, syntax: &syntax::Pat) -> PatId {
         let hir = match syntax {
             syntax::Pat::Lit(lit) => Pat::Lit(self.lower_lit(lit)),
-            syntax::Pat::Var { kw_mut, var } => Pat::Var {
-                is_mut: kw_mut.is_some(),
-                var: self.lower_var(var.clone()),
-            },
+            syntax::Pat::Var { kw_mut, var } => {
+                let is_mut = kw_mut.is_some();
+                let hir = Var::new_with_mutability(var.0.text.clone(), is_mut);
+                let var = self.alloc_var(var.clone(), hir);
+                Pat::Var { var, is_mut }
+            }
             syntax::Pat::Ignore(_) => Pat::Ignore,
             syntax::Pat::Paren(pat) => return self.lower_pat(&pat.inner),
             syntax::Pat::Tuple(pats) => {

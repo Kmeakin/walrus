@@ -791,6 +791,48 @@ impl Ctx {
         op.return_type(&lhs_type)
     }
 
+    fn check_assign_var(&mut self, var: VarId) {
+        let denotation = self.scopes.lookup_var(var, &self.hir[var]);
+        match denotation {
+            Some(Denotation::Local(var)) => {
+                let var = &self.hir[var];
+                if !var.is_mut {
+                    todo!("var not mutable")
+                }
+            }
+            Some(_) => todo!("Not local variable"),
+            None => {
+                self.result.diagnostics.push(Diagnostic::UnboundVar {
+                    var,
+                    mode: VarMode::Value,
+                    denotation,
+                });
+            }
+        }
+    }
+
+    fn check_assign_field(&mut self, base: ExprId) {
+        let base = self.hir[base].clone();
+        match base {
+            Expr::Var(var) => self.check_assign_var(var),
+            Expr::Field { expr, .. } => self.check_assign_field(expr),
+            _ => unreachable!(),
+        }
+    }
+
+    fn check_assign_expr(&mut self, lhs: ExprId) {
+        let expr = &self.hir[lhs];
+        if expr.is_lvalue(&self.hir) {
+            match expr {
+                Expr::Var(var) => self.check_assign_var(*var),
+                Expr::Field { expr, .. } => self.check_assign_field(*expr),
+                _ => unreachable!(),
+            }
+        } else {
+            self.result.diagnostics.push(Diagnostic::NotLValue { lhs });
+        }
+    }
+
     fn infer_binop_expr(
         &mut self,
         parent_expr: ExprId,
@@ -798,16 +840,13 @@ impl Ctx {
         lhs: ExprId,
         rhs: ExprId,
     ) -> Type {
-        if let Binop::Assign = op {
-            if !self.hir[lhs].is_lvalue(&self.hir) {
-                self.result.diagnostics.push(Diagnostic::NotLValue { lhs });
-            }
-        }
-
-        // TODO: check the variable is mutable
-
         let lhs_expectation = op.lhs_expectation();
         let lhs_type = self.infer_expr(&lhs_expectation, lhs);
+
+        if let Binop::Assign = op {
+            self.check_assign_expr(lhs);
+        }
+
         let rhs_expectation = op.rhs_expectation(&lhs_type);
         if lhs_type != Type::Unknown && rhs_expectation == Type::Unknown {
             self.result.diagnostics.push(Diagnostic::CannotApplyBinop {

@@ -1,5 +1,6 @@
 use crate::{builtins::Builtin, diagnostic::Diagnostic, hir::*};
 use arena::{Arena, ArenaMap, Idx};
+use smol_str::SmolStr;
 use std::collections::HashMap;
 
 pub fn scopes(module: &Module) -> Scopes {
@@ -9,8 +10,8 @@ pub fn scopes(module: &Module) -> Scopes {
 }
 
 pub type ScopeId = Idx<Scope>;
-pub type Denotations = HashMap<Var, Denotation>;
-type Vars = HashMap<Var, VarId>;
+pub type Denotations = HashMap<SmolStr, Denotation>;
+type Vars = HashMap<SmolStr, VarId>;
 type LambdaDepth = u32;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -48,7 +49,7 @@ impl Scopes {
 
     fn lookup_in_scope(&self, scope: ScopeId, var: &Var) -> Option<Denotation> {
         self.scope_chain(scope)
-            .find_map(|scope| self.scopes[scope].denotations.get(var))
+            .find_map(|scope| self.scopes[scope].denotations.get(var.as_str()))
             .copied()
             .or_else(|| Builtin::lookup(var).map(Denotation::Builtin))
     }
@@ -127,16 +128,18 @@ impl Scopes {
     ) {
         let var = hir[id].clone();
         if self.insert_var(hir, vars, id) {
-            self.scopes[self.scope].denotations.insert(var, denotation);
+            self.scopes[self.scope]
+                .denotations
+                .insert(var.to_string(), denotation);
         }
     }
 
     fn insert_var(&mut self, hir: &HirData, vars: &mut Vars, id: VarId) -> bool {
         self.set_scope_of_var(id, self.scope);
         let var = hir[id].clone();
-        match vars.get(&var) {
+        match vars.get(var.as_str()) {
             None => {
-                vars.insert(var, id);
+                vars.insert(var.to_string(), id);
                 true
             }
             Some(first) => {
