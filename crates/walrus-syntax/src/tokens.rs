@@ -53,7 +53,6 @@ token!(KwEnum);
 token!(KwFalse);
 token!(KwFn);
 token!(KwIf);
-token!(KwImport);
 token!(KwLet);
 token!(KwLoop);
 token!(KwMatch);

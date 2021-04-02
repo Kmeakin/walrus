@@ -25,10 +25,10 @@ pub enum TokenKind {
     #[token("false")] KwFalse,
     #[token("fn")] KwFn,
     #[token("if")] KwIf,
-    #[token("import")] KwImport,
     #[token("let")] KwLet,
     #[token("loop")] KwLoop,
     #[token("match")] KwMatch,
+    #[token("mut")] KwMut,
     #[token("return")] KwReturn,
     #[token("struct")] KwStruct,
     #[token("true")] KwTrue,
@@ -132,7 +132,7 @@ mod tests {
     );
     test_lex!(
         keywords,
-        r"break continue else enum false fn if import let loop match return struct true"
+        r"break continue else enum false fn if let loop match mut return struct true"
     );
     test_lex!(idents, "abc_DEF_123");
     test_lex!(unicode_idents, "セイウチ");
