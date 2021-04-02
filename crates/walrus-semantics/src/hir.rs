@@ -1,7 +1,6 @@
 use crate::{diagnostic::Diagnostic, syntax};
 use arena::{Arena, ArenaMap, Idx};
 use derive_more::Display;
-use ordered_float::OrderedFloat;
 use smol_str::SmolStr;
 use std::{fmt, ops::Index};
 
@@ -64,7 +63,7 @@ pub struct Module {
     pub diagnostics: Vec<Diagnostic>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct HirData {
     pub vars: Arena<Var>,
     pub fn_defs: Arena<FnDef>,
@@ -224,7 +223,7 @@ pub struct Param {
     pub ty: Option<TypeId>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
     Lit(Lit),
     Var(VarId),
@@ -399,15 +398,16 @@ pub enum Stmt {
     Expr(ExprId),
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Lit {
     Bool(bool),
     Int(u32),
-    Float(OrderedFloat<f32>),
+    Float(f32),
     Char(char),
+    String(SmolStr),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Pat {
     Lit(Lit),
     Var {

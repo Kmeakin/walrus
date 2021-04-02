@@ -7,12 +7,13 @@ impl<'ctx> Compiler<'ctx> {
 
     pub fn codegen_undef(&self) -> BasicValueEnum { self.llvm.i8_type().get_undef().into() }
 
-    pub fn codegen_lit(&self, lit: Lit) -> BasicValueEnum<'ctx> {
+    pub fn codegen_lit(&self, lit: &Lit) -> BasicValueEnum<'ctx> {
         match lit {
-            Lit::Bool(b) => self.llvm.bool_type().const_int(b as _, false).into(),
-            Lit::Int(val) => self.llvm.i32_type().const_int(val.into(), false).into(),
+            Lit::Bool(b) => self.llvm.bool_type().const_int(*b as _, false).into(),
+            Lit::Int(val) => self.llvm.i32_type().const_int((*val).into(), false).into(),
             Lit::Float(val) => self.llvm.f32_type().const_float(val.0.into()).into(),
-            Lit::Char(val) => self.llvm.i32_type().const_int(val.into(), false).into(),
+            Lit::Char(val) => self.llvm.i32_type().const_int((*val).into(), false).into(),
+            _ => todo!(),
         }
     }
 

@@ -933,12 +933,13 @@ impl Ctx {
 }
 
 impl Lit {
-    const fn ty(self) -> Type {
+    const fn ty(&self) -> Type {
         match self {
             Self::Bool(_) => Type::BOOL,
             Self::Int(_) => Type::INT,
             Self::Float(_) => Type::FLOAT,
             Self::Char(_) => Type::CHAR,
+            Self::String(_) => Type::CHAR,
         }
     }
 }

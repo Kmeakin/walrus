@@ -10,7 +10,6 @@ edition = "2018"
 arena = { path = "../arena" }
 walrus-syntax = { path = "../walrus-syntax" }
 
-ordered-float = "2.1.1"
 smol_str = "0.1.17"
 ena = "0.14.0"
 either = "1.6.1"
