@@ -28,14 +28,15 @@ Ok(
                     inner: Punctuated0 {
                         first: Some(
                             MatchCase {
-                                pat: Var(
-                                    Var(
+                                pat: Var {
+                                    kw_mut: None,
+                                    var: Var(
                                         Ident {
                                             span: 9..10,
                                             text: "x",
                                         },
                                     ),
-                                ),
+                                },
                                 fat_arrow: FatArrow {
                                     span: 11..13,
                                 },

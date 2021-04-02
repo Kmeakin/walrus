@@ -56,6 +56,7 @@ token!(KwIf);
 token!(KwLet);
 token!(KwLoop);
 token!(KwMatch);
+token!(KwMut);
 token!(KwReturn);
 token!(KwTrue);
 token!(KwStruct);

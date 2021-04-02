@@ -218,7 +218,9 @@ impl Scopes {
         self.set_scope_of_pat(id, self.scope);
         let pat = &hir[id];
         match pat {
-            Pat::Var(var) => self.insert_denotation(hir, vars, *var, Denotation::Local(*var)),
+            Pat::Var { var, .. } => {
+                self.insert_denotation(hir, vars, *var, Denotation::Local(*var))
+            }
             Pat::Struct { name, fields, .. } | Pat::Enum { name, fields, .. } => {
                 self.set_scope_of_var(*name, self.scope);
                 let mut seen_fields = Vars::new();

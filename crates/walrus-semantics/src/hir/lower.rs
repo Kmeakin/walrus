@@ -178,7 +178,10 @@ impl Ctx {
     fn lower_pat(&mut self, syntax: &syntax::Pat) -> PatId {
         let hir = match syntax {
             syntax::Pat::Lit(lit) => Pat::Lit(self.lower_lit(lit)),
-            syntax::Pat::Var(var) => Pat::Var(self.lower_var(var.clone())),
+            syntax::Pat::Var { kw_mut, var } => Pat::Var {
+                is_mut: kw_mut.is_some(),
+                var: self.lower_var(var.clone()),
+            },
             syntax::Pat::Ignore(_) => Pat::Ignore,
             syntax::Pat::Paren(pat) => return self.lower_pat(&pat.inner),
             syntax::Pat::Tuple(pats) => {

@@ -391,7 +391,10 @@ pub enum Lit {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Pat {
     Lit(Lit),
-    Var(VarId),
+    Var {
+        is_mut: bool,
+        var: VarId,
+    },
     Ignore,
     Tuple(Vec<PatId>),
     Struct {
@@ -408,7 +411,7 @@ pub enum Pat {
 impl Pat {
     pub fn is_infalliable(&self, hir: &HirData) -> bool {
         match self {
-            Self::Lit(_) | Self::Var(_) | Self::Ignore => true,
+            Self::Lit(_) | Self::Var { .. } | Self::Ignore => true,
             Self::Tuple(pats) => pats.iter().all(|pat| hir[*pat].is_infalliable(hir)),
             Self::Struct { fields, .. } => fields
                 .iter()

@@ -1,6 +1,7 @@
 ---
 source: crates/walrus-parser/src/grammar.rs
 expression: got
+
 ---
 Ok(
     (
@@ -15,14 +16,15 @@ Ok(
                         inner: Punctuated0 {
                             first: Some(
                                 Param {
-                                    pat: Var(
-                                        Var(
+                                    pat: Var {
+                                        kw_mut: None,
+                                        var: Var(
                                             Ident {
                                                 span: 1..2,
                                                 text: "x",
                                             },
                                         ),
-                                    ),
+                                    },
                                     ascription: None,
                                 },
                             ),

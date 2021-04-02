@@ -427,7 +427,7 @@ impl Ctx {
         let ty = match pat {
             Pat::Lit(lit) => lit.ty(),
             Pat::Ignore => expected.clone(),
-            Pat::Var(var) => {
+            Pat::Var { var, .. } => {
                 self.set_var_type(var, expected.clone());
                 expected.clone()
             }
@@ -803,6 +803,8 @@ impl Ctx {
                 self.result.diagnostics.push(Diagnostic::NotLValue { lhs });
             }
         }
+
+        // TODO: check the variable is mutable
 
         let lhs_expectation = op.lhs_expectation();
         let lhs_type = self.infer_expr(&lhs_expectation, lhs);
