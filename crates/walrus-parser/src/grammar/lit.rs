@@ -52,5 +52,5 @@ mod tests {
     test_parse!(float_lit, lit, "1234.56789");
     test_parse!(simple_char_lit, lit, "'a'");
     test_parse!(escaped_char_lit, lit, r"'\a'");
-    test_parse!(unicode_char_lit, lit, r"'\u0a'");
+    test_parse!(unicode_char_lit, lit, r"'\u{0a}'");
 }

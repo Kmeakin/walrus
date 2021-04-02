@@ -9,8 +9,8 @@ Ok(
         Char(
             Unicode(
                 UnicodeChar {
-                    span: 0..6,
-                    text: "'\\u0a'",
+                    span: 0..8,
+                    text: "'\\u{0a}'",
                 },
             ),
         ),

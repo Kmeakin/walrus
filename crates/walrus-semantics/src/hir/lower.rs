@@ -432,7 +432,7 @@ impl Ctx {
             Unicode(c) => {
                 let text = &c.text;
                 let len = text.len();
-                let digits = &text["'\\u".len()..len - "'".len()];
+                let digits = &text["'\\u{".len()..len - "}'".len()];
                 let val = self.lower_int(span, digits, 16);
                 match std::char::from_u32(val) {
                     Some(c) => c,

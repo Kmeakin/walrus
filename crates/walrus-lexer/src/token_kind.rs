@@ -40,7 +40,7 @@ pub enum TokenKind {
     #[regex(r"(?&DecDigit)(?&DecDigit_)*\.(?&DecDigit)(?&DecDigit_)*")] Float,
     #[regex(r"'[^']'")]                              SimpleChar,
     #[regex(r"'\\.'")]                               EscapedChar,
-    #[regex(r"'\\(u|U)(?&HexDigit)(?&HexDigit_)*'")] UnicodeChar,
+    #[regex(r"'\\(u|U)\{(?&HexDigit)(?&HexDigit_)*\}'")] UnicodeChar,
 
     #[token("(")] LParen,
     #[token(")")] RParen,
@@ -135,13 +135,14 @@ mod tests {
         r"break continue else enum false fn if import let loop match return struct true"
     );
     test_lex!(idents, "abc_DEF_123");
+    test_lex!(unicode_idents, "セイウチ");
     test_lex!(dec_int, "123_456_7890");
     test_lex!(bin_int, "0b101");
     test_lex!(hex_int, "0x1234_56789_abc_def");
     test_lex!(float, "123.456");
     test_lex!(simple_char, "'a'");
     test_lex!(escaped_char, r"'\n'");
-    test_lex!(unicode_char, r"'\u0a'");
+    test_lex!(unicode_char, r"'\u{0a}'");
     test_lex!(symbols, "() {} . , ; : :: -> => _");
     test_lex!(operators, "+ - * / ! = == != < <= > >= || &&");
 }
