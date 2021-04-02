@@ -2,7 +2,8 @@
 
 \usepackage{url} % Typeset URLs sensibly
 \usepackage{pslatex} % Use Postscript fonts
-\usepackage{listings}
+\usepackage[outputdir=out]{minted}
+\usepackage[utf8]{inputenc}
 
 \title{The Walrus Programming Language}
 \author{Karl Meakin}
@@ -24,8 +25,8 @@
 \include{chapters/implementation}
 \include{chapters/evaluation}
 
-\bibliography{refs}
-\bibliographystyle{alpha}
+% \bibliography{refs}
+% \bibliographystyle{alpha}
 
 \appendix
 \include{chapters/grammar}

@@ -1,7 +1,23 @@
 \chapter{Language reference}\label{chapter:reference}
 
 \section{Identifiers}\label{section:reference:identifiers}
+Identifiers are used in Walrus to signify any entity that requires a name:
+local variables, functions, structs and enums, and fields.
+Identifiers may consist of any sequence of alphabetic characters, digits, and underscores,
+as long as the resulting identifier would not be a single underscore or a decimal integer.
+
+\begin{minted}{rust}
+abcXYZ
+hello_world // Identifiers can include underscores
+_hello      // or start with underscores
+_           // but a single underscore is not an identifier
+
+the_number_123 // Identifiers can include digits
+123abc         // but they cannot start with digits
+\end{minted}
+
 \section{Literals}\label{section:reference:literals}
+
 \section{Variable bindings}\label{section:reference:variable_bindings}
 \subsection{Mutation}\label{section:reference:variable_bindings:mutation}
 \section{Arithmetic operators}\label{section:reference:operators}
