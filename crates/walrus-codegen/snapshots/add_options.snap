@@ -8,21 +8,21 @@ source_filename = "module"
 
 %Option = type { i8, { i32 } }
 
-define void @builtins.exit.wrapper(i8* %env, i32 %status) {
+define void @builtins.exit(i32 %status) {
   call void @exit(i32 %status)
   unreachable
 }
 
 declare void @exit(i32)
 
-define {} @builtins.putchar.wrapper(i8* %env, i32 %c) {
+define {} @builtins.putchar(i32 %c) {
   %1 = call i32 @putchar(i32 %c)
   ret {} zeroinitializer
 }
 
 declare i32 @putchar(i32)
 
-define %Option @add_options(i8* %add_options.env, %Option %add_options.params.0, %Option %add_options.params.1) {
+define %Option @add_options(%Option %add_options.params.0, %Option %add_options.params.1) {
 add_options.entry:
   %a.alloca = alloca %Option, align 8
   store %Option %add_options.params.0, %Option* %a.alloca, align 4
@@ -115,7 +115,7 @@ match.end:                                        ; preds = %match.case0.then, %
   ret %Option %match.phi
 }
 
-define %Option @main(i8* %main.env) {
+define %Option @main() {
 main.entry:
   %Option.alloca = alloca %Option, align 8
   %Option.discriminant.gep = getelementptr inbounds %Option, %Option* %Option.alloca, i32 0, i32 0
@@ -137,7 +137,7 @@ main.entry:
   store %Option %Option.load5, %Option* %b.alloca, align 4
   %a = load %Option, %Option* %a.alloca, align 4
   %b = load %Option, %Option* %b.alloca, align 4
-  %add_options.call = call %Option @add_options(i8* null, %Option %a, %Option %b)
+  %add_options.call = call %Option @add_options(%Option %a, %Option %b)
   ret %Option %add_options.call
 }
 

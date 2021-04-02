@@ -7,7 +7,7 @@ impl<'ctx> Compiler<'ctx> {
 
     pub fn value_type(&self, vars: &mut Vars<'ctx>, ty: &Type) -> BasicTypeEnum<'ctx> {
         match ty {
-            Type::Fn(func) => self.closure_type(vars, func),
+            Type::Fn(func) => self.closure_type(vars, func).into(),
             Type::Struct(id) => self.struct_type(vars, *id).into(),
             Type::Enum(id) => self.enum_type(vars, *id).into(),
             Type::Tuple(tys) => self.tuple_type(vars, tys).into(),
@@ -19,6 +19,21 @@ impl<'ctx> Compiler<'ctx> {
             Type::Primitive(PrimitiveType::Never) | Type::Infer(_) | Type::Unknown => {
                 unreachable!("This type should not exist at codegen: {:?}", ty)
             }
+        }
+    }
+
+    // type of toplevel or builtin functions - ie no env ptr needed
+    pub fn known_fn_type(&self, vars: &mut Vars<'ctx>, ty: &FnType) -> FunctionType<'ctx> {
+        let FnType { params, ret } = ty;
+        let params = params
+            .iter()
+            .map(|ty| self.value_type(vars, ty))
+            .collect::<Vec<_>>();
+
+        if ret.as_ref() == &Type::NEVER {
+            self.llvm.void_type().fn_type(&params, false)
+        } else {
+            self.value_type(vars, ret).fn_type(&params, false)
         }
     }
 
@@ -35,8 +50,8 @@ impl<'ctx> Compiler<'ctx> {
         }
     }
 
-    pub fn closure_type(&self, vars: &mut Vars<'ctx>, ty: &FnType) -> BasicTypeEnum<'ctx> {
-        let struct_type = self.llvm.struct_type(
+    pub fn closure_type(&self, vars: &mut Vars<'ctx>, ty: &FnType) -> StructType<'ctx> {
+        self.llvm.struct_type(
             &[
                 self.fn_type(vars, ty)
                     .ptr_type(AddressSpace::Generic)
@@ -44,8 +59,7 @@ impl<'ctx> Compiler<'ctx> {
                 self.void_ptr_type(),
             ],
             false,
-        );
-        struct_type.into()
+        )
     }
 
     pub fn tuple_type(&self, vars: &mut Vars<'ctx>, tys: &[Type]) -> StructType<'ctx> {

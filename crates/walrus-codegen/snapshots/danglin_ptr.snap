@@ -8,21 +8,21 @@ source_filename = "module"
 
 %List = type { i8, { i32, %List* } }
 
-define void @builtins.exit.wrapper(i8* %env, i32 %status) {
+define void @builtins.exit(i32 %status) {
   call void @exit(i32 %status)
   unreachable
 }
 
 declare void @exit(i32)
 
-define {} @builtins.putchar.wrapper(i8* %env, i32 %c) {
+define {} @builtins.putchar(i32 %c) {
   %1 = call i32 @putchar(i32 %c)
   ret {} zeroinitializer
 }
 
 declare i32 @putchar(i32)
 
-define %List @map(i8* %map.env, %List %map.params.0, { i32 (i8*, i32)*, i8* } %map.params.1) {
+define %List @map(%List %map.params.0, { i32 (i8*, i32)*, i8* } %map.params.1) {
 map.entry:
   %l.alloca = alloca %List, align 8
   store %List %map.params.0, %List* %l.alloca, align 8
@@ -94,7 +94,7 @@ match.case1.then:                                 ; preds = %"match.case1.List::
   store i32 %call, i32* %"List::Cons.head.gep", align 4
   %tail = load %List, %List* %tail.alloca, align 8
   %f2 = load { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %f.alloca, align 8
-  %map.call = call %List @map(i8* null, %List %tail, { i32 (i8*, i32)*, i8* } %f2)
+  %map.call = call %List @map(%List %tail, { i32 (i8*, i32)*, i8* } %f2)
   %"List::Cons.tail.gep" = getelementptr inbounds { i32, %List* }, { i32, %List* }* %List.payload.gep, i32 0, i32 1
   %malloccall = tail call i8* @malloc(i32 ptrtoint (%List* getelementptr (%List, %List* null, i32 1) to i32))
   %"List::Cons.tail.malloc" = bitcast i8* %malloccall to %List*
@@ -111,7 +111,7 @@ match.end:                                        ; preds = %match.case0.then, %
   ret %List %match.phi
 }
 
-define i32 @sum(i8* %sum.env, %List %sum.params.0) {
+define i32 @sum(%List %sum.params.0) {
 sum.entry:
   %l.alloca = alloca %List, align 8
   store %List %sum.params.0, %List* %l.alloca, align 8
@@ -165,7 +165,7 @@ match.case1.then:                                 ; preds = %"match.case1.List::
   store %List %"List::Cons.tail.load", %List* %tail.alloca, align 8
   %head = load i32, i32* %head.alloca, align 4
   %tail = load %List, %List* %tail.alloca, align 8
-  %sum.call = call i32 @sum(i8* null, %List %tail)
+  %sum.call = call i32 @sum(%List %tail)
   %0 = add i32 %head, %sum.call
   br label %match.end
 
@@ -177,7 +177,7 @@ match.end:                                        ; preds = %match.case0.then, %
   ret i32 %match.phi
 }
 
-define %List @get_list(i8* %get_list.env) {
+define %List @get_list() {
 get_list.entry:
   %List.alloca = alloca %List, align 8
   %List.discriminant.gep = getelementptr inbounds %List, %List* %List.alloca, i32 0, i32 0
@@ -238,9 +238,9 @@ get_list.entry:
   ret %List %l1
 }
 
-define i32 @main(i8* %main.env) {
+define i32 @main() {
 main.entry:
-  %get_list.call = call %List @get_list(i8* null)
+  %get_list.call = call %List @get_list()
   %l1.alloca = alloca %List, align 8
   store %List %get_list.call, %List* %l1.alloca, align 8
   %l1 = load %List, %List* %l1.alloca, align 8
@@ -253,11 +253,11 @@ main.entry:
   %env = bitcast {}* %env.malloc to i8*
   store i8* %env, i8** %closure.env, align 8
   %closure = load { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %closure.alloca, align 8
-  %map.call = call %List @map(i8* null, %List %l1, { i32 (i8*, i32)*, i8* } %closure)
+  %map.call = call %List @map(%List %l1, { i32 (i8*, i32)*, i8* } %closure)
   %l2.alloca = alloca %List, align 8
   store %List %map.call, %List* %l2.alloca, align 8
   %l2 = load %List, %List* %l2.alloca, align 8
-  %sum.call = call i32 @sum(i8* null, %List %l2)
+  %sum.call = call i32 @sum(%List %l2)
   %s.alloca = alloca i32, align 4
   store i32 %sum.call, i32* %s.alloca, align 4
   %s = load i32, i32* %s.alloca, align 4

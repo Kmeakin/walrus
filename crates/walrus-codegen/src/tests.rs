@@ -144,6 +144,34 @@ fn get_five() -> _ {5}
             5_i64,
         )
     }
+
+    #[test]
+    fn fn_value() {
+        test_codegen_and_run(
+            r#"
+fn main() -> _ { 
+    let f = get_five;
+    f()
+}
+
+fn get_five() -> _ {5}
+"#,
+            5_i32,
+        )
+    }
+
+    #[test]
+    fn builtin_fn_value() {
+        test_codegen_and_run(
+            r#"
+fn main() -> _ { 
+    let f = putchar;
+    f('a')
+}
+"#,
+            (),
+        )
+    }
 }
 
 mod return_ {

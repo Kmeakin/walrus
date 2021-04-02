@@ -87,7 +87,7 @@ impl<'ctx> Compiler<'ctx> {
         let mut vars = Vars::default();
 
         for (id, func) in this.hir.fn_defs.iter() {
-            let fn_type = this.fn_type(&mut vars, &this.types[id]);
+            let fn_type = this.known_fn_type(&mut vars, &this.types[id]);
             let name = this.hir[func.name].as_str();
             let llvm_fn = this.module.add_function(name, fn_type, None);
             vars.fns.insert(id, llvm_fn);
@@ -116,13 +116,7 @@ impl<'ctx> Compiler<'ctx> {
         self.builder.position_at_end(bb);
 
         llvm_fn
-            .get_nth_param(0)
-            .unwrap()
-            .set_name(&format!("{name}.env"));
-
-        llvm_fn
             .get_param_iter()
-            .skip(1)
             .zip(&fn_def.params)
             .enumerate()
             .for_each(|(idx, (llvm_param, hir_param))| {
@@ -255,38 +249,29 @@ impl<'ctx> Compiler<'ctx> {
         &self,
         vars: &mut Vars<'ctx>,
         fn_name: &str,
-        fn_value: FunctionValue,
+        fn_value: FunctionValue<'ctx>,
         fn_type: &FnType,
     ) -> BasicValueEnum {
         let code_ptr = fn_value.as_global_value().as_pointer_value();
-        let closure_alloca = self.builder.build_alloca(
-            self.closure_type(vars, fn_type),
-            &format!("{fn_name}.closure.alloca"),
+        let code_ptr = self.builder.build_bitcast(
+            code_ptr,
+            self.fn_type(vars, fn_type).ptr_type(AddressSpace::Generic),
+            &format!("{fn_name}.closure"),
         );
-
-        let code_gep = self
-            .builder
-            .build_struct_gep(closure_alloca, 0, &format!("{fn_name}.closure.code"))
-            .unwrap();
-        self.builder.build_store(code_gep, code_ptr);
-
-        let env_gep = self
-            .builder
-            .build_struct_gep(closure_alloca, 1, &format!("{fn_name}.closure.env"))
-            .unwrap();
-        let null_ptr = self.void_ptr_type().const_zero();
-        self.builder.build_store(env_gep, null_ptr);
-        self.builder.build_load(closure_alloca, fn_name)
+        let closure = self
+            .closure_type(vars, fn_type)
+            .const_named_struct(&[code_ptr.into(), self.codegen_null_ptr()]);
+        closure.into()
     }
 
     fn codegen_builtin(&self, vars: &mut Vars<'ctx>, builtin: Builtin) -> BasicValueEnum {
         match builtin {
             Builtin::Fn { name, ty } => {
-                let wrapper_fn = self
+                let fn_value = self
                     .module
-                    .get_function(&format!("builtins.{name}.wrapper"))
+                    .get_function(&format!("builtins.{name}"))
                     .unwrap();
-                self.codegen_fn_value(vars, name, wrapper_fn, &ty)
+                self.codegen_fn_value(vars, name, fn_value, &ty)
             }
             Builtin::Type { .. } => {
                 unreachable!("Attempt to codegen non-value builtin: {:#?}", builtin)
@@ -598,12 +583,36 @@ impl<'ctx> Compiler<'ctx> {
                         let fn_def = &self.hir[id];
                         let fn_name = &self.hir[fn_def.name].as_str();
                         let fn_value = vars[id];
-                        let args = &std::iter::once(Some(self.codegen_null_ptr()))
-                            .chain(args.iter().map(|arg| self.codegen_expr(vars, *arg)))
+                        let args = args
+                            .iter()
+                            .map(|arg| self.codegen_expr(vars, *arg))
                             .collect::<Option<Vec<_>>>()?;
                         match self
                             .builder
                             .build_call(fn_value, &args, &format!("{fn_name}.call"))
+                            .try_as_basic_value()
+                        {
+                            Left(value) => Some(value),
+                            Right(_) => {
+                                self.builder.build_unreachable();
+                                None
+                            }
+                        }
+                    }
+                }
+                Some(Denotation::Builtin(Builtin::Fn { name, ty })) => {
+                    return {
+                        let fn_value = self
+                            .module
+                            .get_function(&format!("builtins.{name}"))
+                            .unwrap();
+                        let args = args
+                            .iter()
+                            .map(|arg| self.codegen_expr(vars, *arg))
+                            .collect::<Option<Vec<_>>>()?;
+                        match self
+                            .builder
+                            .build_call(fn_value, &args, &format!("builtins.{name}.call"))
                             .try_as_basic_value()
                         {
                             Left(value) => Some(value),

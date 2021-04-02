@@ -1,0 +1,33 @@
+---
+source: crates/walrus-codegen/src/tests.rs
+expression: module
+
+---
+; ModuleID = 'module'
+source_filename = "module"
+
+define void @builtins.exit(i32 %status) {
+  call void @exit(i32 %status)
+  unreachable
+}
+
+declare void @exit(i32)
+
+define {} @builtins.putchar(i32 %c) {
+  %1 = call i32 @putchar(i32 %c)
+  ret {} zeroinitializer
+}
+
+declare i32 @putchar(i32)
+
+define {} @main() {
+main.entry:
+  %f.alloca = alloca { {} (i8*, i32)*, i8* }, align 8
+  store { {} (i8*, i32)*, i8* } { {} (i8*, i32)* bitcast ({} (i32)* @builtins.putchar to {} (i8*, i32)*), i8* null }, { {} (i8*, i32)*, i8* }* %f.alloca, align 8
+  %f = load { {} (i8*, i32)*, i8* }, { {} (i8*, i32)*, i8* }* %f.alloca, align 8
+  %closure.code = extractvalue { {} (i8*, i32)*, i8* } %f, 0
+  %closure.env = extractvalue { {} (i8*, i32)*, i8* } %f, 1
+  %call = call {} %closure.code(i8* %closure.env, i32 97)
+  ret {} %call
+}
+

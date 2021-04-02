@@ -22,8 +22,13 @@ declare i32 @putchar(i32)
 
 define i32 @main() {
 main.entry:
-  %get_five.call = call i32 @get_five()
-  ret i32 %get_five.call
+  %f.alloca = alloca { i32 (i8*)*, i8* }, align 8
+  store { i32 (i8*)*, i8* } { i32 (i8*)* bitcast (i32 ()* @get_five to i32 (i8*)*), i8* null }, { i32 (i8*)*, i8* }* %f.alloca, align 8
+  %f = load { i32 (i8*)*, i8* }, { i32 (i8*)*, i8* }* %f.alloca, align 8
+  %closure.code = extractvalue { i32 (i8*)*, i8* } %f, 0
+  %closure.env = extractvalue { i32 (i8*)*, i8* } %f, 1
+  %call = call i32 %closure.code(i8* %closure.env)
+  ret i32 %call
 }
 
 define i32 @get_five() {

@@ -8,21 +8,21 @@ source_filename = "module"
 
 %List = type { i8, { i32, %List* } }
 
-define void @builtins.exit.wrapper(i8* %env, i32 %status) {
+define void @builtins.exit(i32 %status) {
   call void @exit(i32 %status)
   unreachable
 }
 
 declare void @exit(i32)
 
-define {} @builtins.putchar.wrapper(i8* %env, i32 %c) {
+define {} @builtins.putchar(i32 %c) {
   %1 = call i32 @putchar(i32 %c)
   ret {} zeroinitializer
 }
 
 declare i32 @putchar(i32)
 
-define i32 @length(i8* %length.env, %List %length.params.0) {
+define i32 @length(%List %length.params.0) {
 length.entry:
   %l.alloca = alloca %List, align 8
   store %List %length.params.0, %List* %l.alloca, align 8
@@ -74,7 +74,7 @@ match.case1.then:                                 ; preds = %"match.case1.List::
   %tail.alloca = alloca %List, align 8
   store %List %"List::Cons.tail.load", %List* %tail.alloca, align 8
   %tail = load %List, %List* %tail.alloca, align 8
-  %length.call = call i32 @length(i8* null, %List %tail)
+  %length.call = call i32 @length(%List %tail)
   %0 = add i32 1, %length.call
   br label %match.end
 
@@ -86,7 +86,7 @@ match.end:                                        ; preds = %match.case0.then, %
   ret i32 %match.phi
 }
 
-define i32 @main(i8* %main.env) {
+define i32 @main() {
 main.entry:
   %List.alloca = alloca %List, align 8
   %List.discriminant.gep = getelementptr inbounds %List, %List* %List.alloca, i32 0, i32 0
@@ -120,7 +120,7 @@ main.entry:
   %l.alloca = alloca %List, align 8
   store %List %List.load12, %List* %l.alloca, align 8
   %l = load %List, %List* %l.alloca, align 8
-  %length.call = call i32 @length(i8* null, %List %l)
+  %length.call = call i32 @length(%List %l)
   ret i32 %length.call
 }
 
