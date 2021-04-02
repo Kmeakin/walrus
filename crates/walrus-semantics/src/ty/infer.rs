@@ -2,7 +2,7 @@
 
 use super::{unify::InferenceTable, Type, *};
 use crate::{
-    builtins::BuiltinKind,
+    builtins::Builtin,
     diagnostic::Diagnostic,
     hir,
     hir::*,
@@ -166,24 +166,24 @@ impl Ctx {
     fn resolve_var(&mut self, id: VarId, mode: VarMode) -> Type {
         let var = &self.hir[id];
         let denotation = self.scopes.lookup_var(id, var);
-        let ty = match (mode, denotation) {
-            (VarMode::Value, Some(Denotation::Builtin(b))) if b.kind() == BuiltinKind::Type => {
-                b.ty()
+        let ty = match (mode, &denotation) {
+            (VarMode::Value, Some(Denotation::Builtin(Builtin::Fn { ty, .. }))) => {
+                ty.clone().into()
             }
-            (VarMode::Value, Some(Denotation::Local(id))) => self.result[id].clone(),
-            (VarMode::Value, Some(Denotation::Fn(id))) => self.result[id].clone().into(),
+            (VarMode::Value, Some(Denotation::Local(id))) => self.result[*id].clone(),
+            (VarMode::Value, Some(Denotation::Fn(id))) => self.result[*id].clone().into(),
 
-            (VarMode::Type, Some(Denotation::Builtin(b))) if b.kind() == BuiltinKind::Type => {
-                b.ty()
+            (VarMode::Type, Some(Denotation::Builtin(Builtin::Type { ty, .. }))) => {
+                ty.clone().into()
             }
-            (VarMode::Type | VarMode::Struct, Some(Denotation::Struct(id))) => Type::Struct(id),
-            (VarMode::Type | VarMode::Enum, Some(Denotation::Enum(id))) => Type::Enum(id),
+            (VarMode::Type | VarMode::Struct, Some(Denotation::Struct(id))) => Type::Struct(*id),
+            (VarMode::Type | VarMode::Enum, Some(Denotation::Enum(id))) => Type::Enum(*id),
 
             _ => {
                 self.result.diagnostics.push(Diagnostic::UnboundVar {
                     var: id,
                     mode,
-                    denotation,
+                    denotation: denotation.clone(),
                 });
                 Type::Unknown
             }

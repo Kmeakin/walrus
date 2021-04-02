@@ -279,18 +279,14 @@ impl<'ctx> Compiler<'ctx> {
 
     fn codegen_builtin(&self, vars: &mut Vars<'ctx>, builtin: Builtin) -> BasicValueEnum {
         match builtin {
-            Builtin::Exit => {
-                let exit_wrapper_fn = self.module.get_function("builtins.exit.wrapper").unwrap();
-                self.codegen_fn_value(vars, "exit", exit_wrapper_fn, builtin.ty().as_fn().unwrap())
-            }
-            Builtin::PutChar => {
+            Builtin::Fn { name, ty } => {
                 let wrapper_fn = self
                     .module
-                    .get_function("builtins.putchar.wrapper")
+                    .get_function(&format!("builtins.{name}.wrapper"))
                     .unwrap();
-                self.codegen_fn_value(vars, "putchar", wrapper_fn, builtin.ty().as_fn().unwrap())
+                self.codegen_fn_value(vars, name, wrapper_fn, &ty)
             }
-            Builtin::Bool | Builtin::Int | Builtin::Float | Builtin::Char | Builtin::Never => {
+            Builtin::Type { .. } => {
                 unreachable!("Attempt to codegen non-value builtin: {:#?}", builtin)
             }
         }

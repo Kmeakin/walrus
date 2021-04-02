@@ -1,6 +1,6 @@
 ---
 source: crates/walrus-codegen/src/tests.rs
-expression: llvm_module.print_to_string().to_string()
+expression: module
 
 ---
 ; ModuleID = 'module'
@@ -13,114 +13,114 @@ define void @builtins.exit.wrapper(i8* %env, i32 %status) {
 
 declare void @exit(i32)
 
-define i32 @builtins.putchar.wrapper(i8* %env, i32 %c) {
+define {} @builtins.putchar.wrapper(i8* %env, i32 %c) {
   %1 = call i32 @putchar(i32 %c)
-  ret i32 %1
+  ret {} zeroinitializer
 }
 
 declare i32 @putchar(i32)
 
 define {} @main(i8* %main.env) {
 main.entry:
-  %putchar.closure.alloca = alloca { i32 (i8*, i32)*, i8* }, align 8
-  %putchar.closure.code = getelementptr inbounds { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %putchar.closure.alloca, i32 0, i32 0
-  store i32 (i8*, i32)* @builtins.putchar.wrapper, i32 (i8*, i32)** %putchar.closure.code, align 8
-  %putchar.closure.env = getelementptr inbounds { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %putchar.closure.alloca, i32 0, i32 1
+  %putchar.closure.alloca = alloca { {} (i8*, i32)*, i8* }, align 8
+  %putchar.closure.code = getelementptr inbounds { {} (i8*, i32)*, i8* }, { {} (i8*, i32)*, i8* }* %putchar.closure.alloca, i32 0, i32 0
+  store {} (i8*, i32)* @builtins.putchar.wrapper, {} (i8*, i32)** %putchar.closure.code, align 8
+  %putchar.closure.env = getelementptr inbounds { {} (i8*, i32)*, i8* }, { {} (i8*, i32)*, i8* }* %putchar.closure.alloca, i32 0, i32 1
   store i8* null, i8** %putchar.closure.env, align 8
-  %putchar = load { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %putchar.closure.alloca, align 8
-  %closure.code = extractvalue { i32 (i8*, i32)*, i8* } %putchar, 0
-  %closure.env = extractvalue { i32 (i8*, i32)*, i8* } %putchar, 1
-  %call = call i32 %closure.code(i8* %closure.env, i32 104)
-  %putchar.closure.alloca1 = alloca { i32 (i8*, i32)*, i8* }, align 8
-  %putchar.closure.code2 = getelementptr inbounds { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %putchar.closure.alloca1, i32 0, i32 0
-  store i32 (i8*, i32)* @builtins.putchar.wrapper, i32 (i8*, i32)** %putchar.closure.code2, align 8
-  %putchar.closure.env3 = getelementptr inbounds { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %putchar.closure.alloca1, i32 0, i32 1
+  %putchar = load { {} (i8*, i32)*, i8* }, { {} (i8*, i32)*, i8* }* %putchar.closure.alloca, align 8
+  %closure.code = extractvalue { {} (i8*, i32)*, i8* } %putchar, 0
+  %closure.env = extractvalue { {} (i8*, i32)*, i8* } %putchar, 1
+  %call = call {} %closure.code(i8* %closure.env, i32 104)
+  %putchar.closure.alloca1 = alloca { {} (i8*, i32)*, i8* }, align 8
+  %putchar.closure.code2 = getelementptr inbounds { {} (i8*, i32)*, i8* }, { {} (i8*, i32)*, i8* }* %putchar.closure.alloca1, i32 0, i32 0
+  store {} (i8*, i32)* @builtins.putchar.wrapper, {} (i8*, i32)** %putchar.closure.code2, align 8
+  %putchar.closure.env3 = getelementptr inbounds { {} (i8*, i32)*, i8* }, { {} (i8*, i32)*, i8* }* %putchar.closure.alloca1, i32 0, i32 1
   store i8* null, i8** %putchar.closure.env3, align 8
-  %putchar4 = load { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %putchar.closure.alloca1, align 8
-  %closure.code5 = extractvalue { i32 (i8*, i32)*, i8* } %putchar4, 0
-  %closure.env6 = extractvalue { i32 (i8*, i32)*, i8* } %putchar4, 1
-  %call7 = call i32 %closure.code5(i8* %closure.env6, i32 101)
-  %putchar.closure.alloca8 = alloca { i32 (i8*, i32)*, i8* }, align 8
-  %putchar.closure.code9 = getelementptr inbounds { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %putchar.closure.alloca8, i32 0, i32 0
-  store i32 (i8*, i32)* @builtins.putchar.wrapper, i32 (i8*, i32)** %putchar.closure.code9, align 8
-  %putchar.closure.env10 = getelementptr inbounds { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %putchar.closure.alloca8, i32 0, i32 1
+  %putchar4 = load { {} (i8*, i32)*, i8* }, { {} (i8*, i32)*, i8* }* %putchar.closure.alloca1, align 8
+  %closure.code5 = extractvalue { {} (i8*, i32)*, i8* } %putchar4, 0
+  %closure.env6 = extractvalue { {} (i8*, i32)*, i8* } %putchar4, 1
+  %call7 = call {} %closure.code5(i8* %closure.env6, i32 101)
+  %putchar.closure.alloca8 = alloca { {} (i8*, i32)*, i8* }, align 8
+  %putchar.closure.code9 = getelementptr inbounds { {} (i8*, i32)*, i8* }, { {} (i8*, i32)*, i8* }* %putchar.closure.alloca8, i32 0, i32 0
+  store {} (i8*, i32)* @builtins.putchar.wrapper, {} (i8*, i32)** %putchar.closure.code9, align 8
+  %putchar.closure.env10 = getelementptr inbounds { {} (i8*, i32)*, i8* }, { {} (i8*, i32)*, i8* }* %putchar.closure.alloca8, i32 0, i32 1
   store i8* null, i8** %putchar.closure.env10, align 8
-  %putchar11 = load { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %putchar.closure.alloca8, align 8
-  %closure.code12 = extractvalue { i32 (i8*, i32)*, i8* } %putchar11, 0
-  %closure.env13 = extractvalue { i32 (i8*, i32)*, i8* } %putchar11, 1
-  %call14 = call i32 %closure.code12(i8* %closure.env13, i32 108)
-  %putchar.closure.alloca15 = alloca { i32 (i8*, i32)*, i8* }, align 8
-  %putchar.closure.code16 = getelementptr inbounds { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %putchar.closure.alloca15, i32 0, i32 0
-  store i32 (i8*, i32)* @builtins.putchar.wrapper, i32 (i8*, i32)** %putchar.closure.code16, align 8
-  %putchar.closure.env17 = getelementptr inbounds { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %putchar.closure.alloca15, i32 0, i32 1
+  %putchar11 = load { {} (i8*, i32)*, i8* }, { {} (i8*, i32)*, i8* }* %putchar.closure.alloca8, align 8
+  %closure.code12 = extractvalue { {} (i8*, i32)*, i8* } %putchar11, 0
+  %closure.env13 = extractvalue { {} (i8*, i32)*, i8* } %putchar11, 1
+  %call14 = call {} %closure.code12(i8* %closure.env13, i32 108)
+  %putchar.closure.alloca15 = alloca { {} (i8*, i32)*, i8* }, align 8
+  %putchar.closure.code16 = getelementptr inbounds { {} (i8*, i32)*, i8* }, { {} (i8*, i32)*, i8* }* %putchar.closure.alloca15, i32 0, i32 0
+  store {} (i8*, i32)* @builtins.putchar.wrapper, {} (i8*, i32)** %putchar.closure.code16, align 8
+  %putchar.closure.env17 = getelementptr inbounds { {} (i8*, i32)*, i8* }, { {} (i8*, i32)*, i8* }* %putchar.closure.alloca15, i32 0, i32 1
   store i8* null, i8** %putchar.closure.env17, align 8
-  %putchar18 = load { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %putchar.closure.alloca15, align 8
-  %closure.code19 = extractvalue { i32 (i8*, i32)*, i8* } %putchar18, 0
-  %closure.env20 = extractvalue { i32 (i8*, i32)*, i8* } %putchar18, 1
-  %call21 = call i32 %closure.code19(i8* %closure.env20, i32 108)
-  %putchar.closure.alloca22 = alloca { i32 (i8*, i32)*, i8* }, align 8
-  %putchar.closure.code23 = getelementptr inbounds { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %putchar.closure.alloca22, i32 0, i32 0
-  store i32 (i8*, i32)* @builtins.putchar.wrapper, i32 (i8*, i32)** %putchar.closure.code23, align 8
-  %putchar.closure.env24 = getelementptr inbounds { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %putchar.closure.alloca22, i32 0, i32 1
+  %putchar18 = load { {} (i8*, i32)*, i8* }, { {} (i8*, i32)*, i8* }* %putchar.closure.alloca15, align 8
+  %closure.code19 = extractvalue { {} (i8*, i32)*, i8* } %putchar18, 0
+  %closure.env20 = extractvalue { {} (i8*, i32)*, i8* } %putchar18, 1
+  %call21 = call {} %closure.code19(i8* %closure.env20, i32 108)
+  %putchar.closure.alloca22 = alloca { {} (i8*, i32)*, i8* }, align 8
+  %putchar.closure.code23 = getelementptr inbounds { {} (i8*, i32)*, i8* }, { {} (i8*, i32)*, i8* }* %putchar.closure.alloca22, i32 0, i32 0
+  store {} (i8*, i32)* @builtins.putchar.wrapper, {} (i8*, i32)** %putchar.closure.code23, align 8
+  %putchar.closure.env24 = getelementptr inbounds { {} (i8*, i32)*, i8* }, { {} (i8*, i32)*, i8* }* %putchar.closure.alloca22, i32 0, i32 1
   store i8* null, i8** %putchar.closure.env24, align 8
-  %putchar25 = load { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %putchar.closure.alloca22, align 8
-  %closure.code26 = extractvalue { i32 (i8*, i32)*, i8* } %putchar25, 0
-  %closure.env27 = extractvalue { i32 (i8*, i32)*, i8* } %putchar25, 1
-  %call28 = call i32 %closure.code26(i8* %closure.env27, i32 111)
-  %putchar.closure.alloca29 = alloca { i32 (i8*, i32)*, i8* }, align 8
-  %putchar.closure.code30 = getelementptr inbounds { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %putchar.closure.alloca29, i32 0, i32 0
-  store i32 (i8*, i32)* @builtins.putchar.wrapper, i32 (i8*, i32)** %putchar.closure.code30, align 8
-  %putchar.closure.env31 = getelementptr inbounds { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %putchar.closure.alloca29, i32 0, i32 1
+  %putchar25 = load { {} (i8*, i32)*, i8* }, { {} (i8*, i32)*, i8* }* %putchar.closure.alloca22, align 8
+  %closure.code26 = extractvalue { {} (i8*, i32)*, i8* } %putchar25, 0
+  %closure.env27 = extractvalue { {} (i8*, i32)*, i8* } %putchar25, 1
+  %call28 = call {} %closure.code26(i8* %closure.env27, i32 111)
+  %putchar.closure.alloca29 = alloca { {} (i8*, i32)*, i8* }, align 8
+  %putchar.closure.code30 = getelementptr inbounds { {} (i8*, i32)*, i8* }, { {} (i8*, i32)*, i8* }* %putchar.closure.alloca29, i32 0, i32 0
+  store {} (i8*, i32)* @builtins.putchar.wrapper, {} (i8*, i32)** %putchar.closure.code30, align 8
+  %putchar.closure.env31 = getelementptr inbounds { {} (i8*, i32)*, i8* }, { {} (i8*, i32)*, i8* }* %putchar.closure.alloca29, i32 0, i32 1
   store i8* null, i8** %putchar.closure.env31, align 8
-  %putchar32 = load { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %putchar.closure.alloca29, align 8
-  %closure.code33 = extractvalue { i32 (i8*, i32)*, i8* } %putchar32, 0
-  %closure.env34 = extractvalue { i32 (i8*, i32)*, i8* } %putchar32, 1
-  %call35 = call i32 %closure.code33(i8* %closure.env34, i32 32)
-  %putchar.closure.alloca36 = alloca { i32 (i8*, i32)*, i8* }, align 8
-  %putchar.closure.code37 = getelementptr inbounds { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %putchar.closure.alloca36, i32 0, i32 0
-  store i32 (i8*, i32)* @builtins.putchar.wrapper, i32 (i8*, i32)** %putchar.closure.code37, align 8
-  %putchar.closure.env38 = getelementptr inbounds { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %putchar.closure.alloca36, i32 0, i32 1
+  %putchar32 = load { {} (i8*, i32)*, i8* }, { {} (i8*, i32)*, i8* }* %putchar.closure.alloca29, align 8
+  %closure.code33 = extractvalue { {} (i8*, i32)*, i8* } %putchar32, 0
+  %closure.env34 = extractvalue { {} (i8*, i32)*, i8* } %putchar32, 1
+  %call35 = call {} %closure.code33(i8* %closure.env34, i32 32)
+  %putchar.closure.alloca36 = alloca { {} (i8*, i32)*, i8* }, align 8
+  %putchar.closure.code37 = getelementptr inbounds { {} (i8*, i32)*, i8* }, { {} (i8*, i32)*, i8* }* %putchar.closure.alloca36, i32 0, i32 0
+  store {} (i8*, i32)* @builtins.putchar.wrapper, {} (i8*, i32)** %putchar.closure.code37, align 8
+  %putchar.closure.env38 = getelementptr inbounds { {} (i8*, i32)*, i8* }, { {} (i8*, i32)*, i8* }* %putchar.closure.alloca36, i32 0, i32 1
   store i8* null, i8** %putchar.closure.env38, align 8
-  %putchar39 = load { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %putchar.closure.alloca36, align 8
-  %closure.code40 = extractvalue { i32 (i8*, i32)*, i8* } %putchar39, 0
-  %closure.env41 = extractvalue { i32 (i8*, i32)*, i8* } %putchar39, 1
-  %call42 = call i32 %closure.code40(i8* %closure.env41, i32 119)
-  %putchar.closure.alloca43 = alloca { i32 (i8*, i32)*, i8* }, align 8
-  %putchar.closure.code44 = getelementptr inbounds { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %putchar.closure.alloca43, i32 0, i32 0
-  store i32 (i8*, i32)* @builtins.putchar.wrapper, i32 (i8*, i32)** %putchar.closure.code44, align 8
-  %putchar.closure.env45 = getelementptr inbounds { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %putchar.closure.alloca43, i32 0, i32 1
+  %putchar39 = load { {} (i8*, i32)*, i8* }, { {} (i8*, i32)*, i8* }* %putchar.closure.alloca36, align 8
+  %closure.code40 = extractvalue { {} (i8*, i32)*, i8* } %putchar39, 0
+  %closure.env41 = extractvalue { {} (i8*, i32)*, i8* } %putchar39, 1
+  %call42 = call {} %closure.code40(i8* %closure.env41, i32 119)
+  %putchar.closure.alloca43 = alloca { {} (i8*, i32)*, i8* }, align 8
+  %putchar.closure.code44 = getelementptr inbounds { {} (i8*, i32)*, i8* }, { {} (i8*, i32)*, i8* }* %putchar.closure.alloca43, i32 0, i32 0
+  store {} (i8*, i32)* @builtins.putchar.wrapper, {} (i8*, i32)** %putchar.closure.code44, align 8
+  %putchar.closure.env45 = getelementptr inbounds { {} (i8*, i32)*, i8* }, { {} (i8*, i32)*, i8* }* %putchar.closure.alloca43, i32 0, i32 1
   store i8* null, i8** %putchar.closure.env45, align 8
-  %putchar46 = load { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %putchar.closure.alloca43, align 8
-  %closure.code47 = extractvalue { i32 (i8*, i32)*, i8* } %putchar46, 0
-  %closure.env48 = extractvalue { i32 (i8*, i32)*, i8* } %putchar46, 1
-  %call49 = call i32 %closure.code47(i8* %closure.env48, i32 111)
-  %putchar.closure.alloca50 = alloca { i32 (i8*, i32)*, i8* }, align 8
-  %putchar.closure.code51 = getelementptr inbounds { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %putchar.closure.alloca50, i32 0, i32 0
-  store i32 (i8*, i32)* @builtins.putchar.wrapper, i32 (i8*, i32)** %putchar.closure.code51, align 8
-  %putchar.closure.env52 = getelementptr inbounds { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %putchar.closure.alloca50, i32 0, i32 1
+  %putchar46 = load { {} (i8*, i32)*, i8* }, { {} (i8*, i32)*, i8* }* %putchar.closure.alloca43, align 8
+  %closure.code47 = extractvalue { {} (i8*, i32)*, i8* } %putchar46, 0
+  %closure.env48 = extractvalue { {} (i8*, i32)*, i8* } %putchar46, 1
+  %call49 = call {} %closure.code47(i8* %closure.env48, i32 111)
+  %putchar.closure.alloca50 = alloca { {} (i8*, i32)*, i8* }, align 8
+  %putchar.closure.code51 = getelementptr inbounds { {} (i8*, i32)*, i8* }, { {} (i8*, i32)*, i8* }* %putchar.closure.alloca50, i32 0, i32 0
+  store {} (i8*, i32)* @builtins.putchar.wrapper, {} (i8*, i32)** %putchar.closure.code51, align 8
+  %putchar.closure.env52 = getelementptr inbounds { {} (i8*, i32)*, i8* }, { {} (i8*, i32)*, i8* }* %putchar.closure.alloca50, i32 0, i32 1
   store i8* null, i8** %putchar.closure.env52, align 8
-  %putchar53 = load { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %putchar.closure.alloca50, align 8
-  %closure.code54 = extractvalue { i32 (i8*, i32)*, i8* } %putchar53, 0
-  %closure.env55 = extractvalue { i32 (i8*, i32)*, i8* } %putchar53, 1
-  %call56 = call i32 %closure.code54(i8* %closure.env55, i32 114)
-  %putchar.closure.alloca57 = alloca { i32 (i8*, i32)*, i8* }, align 8
-  %putchar.closure.code58 = getelementptr inbounds { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %putchar.closure.alloca57, i32 0, i32 0
-  store i32 (i8*, i32)* @builtins.putchar.wrapper, i32 (i8*, i32)** %putchar.closure.code58, align 8
-  %putchar.closure.env59 = getelementptr inbounds { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %putchar.closure.alloca57, i32 0, i32 1
+  %putchar53 = load { {} (i8*, i32)*, i8* }, { {} (i8*, i32)*, i8* }* %putchar.closure.alloca50, align 8
+  %closure.code54 = extractvalue { {} (i8*, i32)*, i8* } %putchar53, 0
+  %closure.env55 = extractvalue { {} (i8*, i32)*, i8* } %putchar53, 1
+  %call56 = call {} %closure.code54(i8* %closure.env55, i32 114)
+  %putchar.closure.alloca57 = alloca { {} (i8*, i32)*, i8* }, align 8
+  %putchar.closure.code58 = getelementptr inbounds { {} (i8*, i32)*, i8* }, { {} (i8*, i32)*, i8* }* %putchar.closure.alloca57, i32 0, i32 0
+  store {} (i8*, i32)* @builtins.putchar.wrapper, {} (i8*, i32)** %putchar.closure.code58, align 8
+  %putchar.closure.env59 = getelementptr inbounds { {} (i8*, i32)*, i8* }, { {} (i8*, i32)*, i8* }* %putchar.closure.alloca57, i32 0, i32 1
   store i8* null, i8** %putchar.closure.env59, align 8
-  %putchar60 = load { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %putchar.closure.alloca57, align 8
-  %closure.code61 = extractvalue { i32 (i8*, i32)*, i8* } %putchar60, 0
-  %closure.env62 = extractvalue { i32 (i8*, i32)*, i8* } %putchar60, 1
-  %call63 = call i32 %closure.code61(i8* %closure.env62, i32 108)
-  %putchar.closure.alloca64 = alloca { i32 (i8*, i32)*, i8* }, align 8
-  %putchar.closure.code65 = getelementptr inbounds { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %putchar.closure.alloca64, i32 0, i32 0
-  store i32 (i8*, i32)* @builtins.putchar.wrapper, i32 (i8*, i32)** %putchar.closure.code65, align 8
-  %putchar.closure.env66 = getelementptr inbounds { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %putchar.closure.alloca64, i32 0, i32 1
+  %putchar60 = load { {} (i8*, i32)*, i8* }, { {} (i8*, i32)*, i8* }* %putchar.closure.alloca57, align 8
+  %closure.code61 = extractvalue { {} (i8*, i32)*, i8* } %putchar60, 0
+  %closure.env62 = extractvalue { {} (i8*, i32)*, i8* } %putchar60, 1
+  %call63 = call {} %closure.code61(i8* %closure.env62, i32 108)
+  %putchar.closure.alloca64 = alloca { {} (i8*, i32)*, i8* }, align 8
+  %putchar.closure.code65 = getelementptr inbounds { {} (i8*, i32)*, i8* }, { {} (i8*, i32)*, i8* }* %putchar.closure.alloca64, i32 0, i32 0
+  store {} (i8*, i32)* @builtins.putchar.wrapper, {} (i8*, i32)** %putchar.closure.code65, align 8
+  %putchar.closure.env66 = getelementptr inbounds { {} (i8*, i32)*, i8* }, { {} (i8*, i32)*, i8* }* %putchar.closure.alloca64, i32 0, i32 1
   store i8* null, i8** %putchar.closure.env66, align 8
-  %putchar67 = load { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %putchar.closure.alloca64, align 8
-  %closure.code68 = extractvalue { i32 (i8*, i32)*, i8* } %putchar67, 0
-  %closure.env69 = extractvalue { i32 (i8*, i32)*, i8* } %putchar67, 1
-  %call70 = call i32 %closure.code68(i8* %closure.env69, i32 100)
+  %putchar67 = load { {} (i8*, i32)*, i8* }, { {} (i8*, i32)*, i8* }* %putchar.closure.alloca64, align 8
+  %closure.code68 = extractvalue { {} (i8*, i32)*, i8* } %putchar67, 0
+  %closure.env69 = extractvalue { {} (i8*, i32)*, i8* } %putchar67, 1
+  %call70 = call {} %closure.code68(i8* %closure.env69, i32 100)
   ret {} zeroinitializer
 }
 

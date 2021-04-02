@@ -18,6 +18,16 @@ pub enum Type {
     Unknown,
 }
 
+impl From<PrimitiveType> for Type {
+    fn from(other: PrimitiveType) -> Self { Self::Primitive(other) }
+}
+impl From<FnType> for Type {
+    fn from(other: FnType) -> Self { Self::Fn(other) }
+}
+impl From<InferType> for Type {
+    fn from(other: InferType) -> Self { Self::Infer(other) }
+}
+
 impl Type {
     pub const fn is_integral(&self) -> bool {
         matches!(
@@ -71,6 +81,13 @@ pub struct FnType {
 }
 
 impl FnType {
+    pub fn new(params: &[Type], ret: Type) -> Self {
+        Self {
+            params: params.to_vec(),
+            ret: Box::new(ret),
+        }
+    }
+
     pub fn to_string(&self, hir: &HirData) -> String {
         let params = self
             .params
@@ -90,10 +107,6 @@ pub enum PrimitiveType {
     Float,
     Char,
     Never,
-}
-
-impl From<FnType> for Type {
-    fn from(func: FnType) -> Self { Self::Fn(func) }
 }
 
 impl Type {

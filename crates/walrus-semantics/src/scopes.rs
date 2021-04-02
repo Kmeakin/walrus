@@ -1,7 +1,7 @@
 use crate::{builtins::Builtin, diagnostic::Diagnostic, hir::*};
 use arena::{Arena, ArenaMap, Idx};
 use smol_str::SmolStr;
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Display};
 
 pub fn scopes(module: &Module) -> Scopes {
     let mut scopes = Scopes::new();
@@ -14,13 +14,25 @@ pub type Denotations = HashMap<SmolStr, Denotation>;
 type Vars = HashMap<SmolStr, VarId>;
 type LambdaDepth = u32;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Denotation {
     Local(VarId),
     Fn(FnDefId),
     Struct(StructDefId),
     Enum(EnumDefId),
     Builtin(Builtin),
+}
+
+impl Display for Denotation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Denotation::Local(_) => write!(f, "local variable"),
+            Denotation::Fn(_) => write!(f, "function"),
+            Denotation::Struct(_) => write!(f, "struct"),
+            Denotation::Enum(_) => write!(f, "enum"),
+            Denotation::Builtin(b) => write!(f, "{}", b),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -50,7 +62,7 @@ impl Scopes {
     fn lookup_in_scope(&self, scope: ScopeId, var: &Var) -> Option<Denotation> {
         self.scope_chain(scope)
             .find_map(|scope| self.scopes[scope].denotations.get(var.as_str()))
-            .copied()
+            .cloned()
             .or_else(|| Builtin::lookup(var).map(Denotation::Builtin))
     }
 

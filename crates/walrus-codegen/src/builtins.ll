@@ -7,7 +7,7 @@ define void @builtins.exit.wrapper(i8* %env, i32 %status) {
 
 declare i32 @putchar(i32)
 
-define i32 @builtins.putchar.wrapper(i8* %env, i32 %c) {
+define {} @builtins.putchar.wrapper(i8* %env, i32 %c) {
     %1 = call i32 @putchar(i32 %c)
-    ret i32 %1
+    ret {} {}
 }
