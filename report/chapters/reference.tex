@@ -6,6 +6,7 @@ local variables, functions, structs and enums, and fields.
 Identifiers may consist of any sequence of alphabetic characters, digits, and underscores,
 as long as the resulting identifier would not be a single underscore or a decimal integer.
 
+% TODO: unicode identifiers
 \begin{minted}{rust}
 abcXYZ
 hello_world // Identifiers can include underscores
@@ -16,7 +17,102 @@ the_number_123 // Identifiers can include digits
 123abc         // but they cannot start with digits
 \end{minted}
 
-\section{Literals}\label{section:reference:literals}
+\section{Literals}\label{section:reference:Primitive datatypes}
+Walrus has 4 primitive types (Bool, Int, Float, Char), with corresponding syntax
+for creating literal values of these types.
+
+\subsection{Bools}\label{section:reference:bools}
+The \rust{Bool} datatype represents the logical values true and false of Boolean algebra.
+Since there are only 2 possible values of this datatype, each \rust{Bool} value occupies
+one byte of memory.
+
+\begin{minted}{rust}
+true
+false
+\end{minted}
+
+\subsection{Ints}\label{section:reference:ints}
+The \rust{Int} datatype represents signed 32-bit integers:
+that is, integers between $-2^{31}$ ($-2,147,483,648$) and $2^{31}-1$ ($2,147,483,647$) inclusive.
+\rust{Int} literals may be given in either decimal, binary or hexadecimal notation.
+Underscores may be included in the \rust{Int} literals to enhance readability of long literals.
+
+\begin{minted}{rust}
+0b101                   // Binary integer literals
+123_456_789_0           // Decimal integer literals
+0x123_456_789_abc_def   // Hexadecimal integer literals
+\end{minted}
+
+
+Note that sign prefixes (\rust{+} or \rust{-}) are \textit{not} part of \rust{Int} literals:
+they are unary operators: hence the code \rust{-123} is actually lexed and parsed as
+a unary operator followed by a decimal integer literal.
+
+Walrus currently only has one integer type: this is in contrast to most other strongly
+typed languages, which have several different types representing integers of different
+signedness and bit-width\footnote{See the \cc{char}, \cc{short}, \cc{int}, \cc{long},
+    \cc{long long} hierarchy and \cc{signed}/\cc{unsigned} modifiers in C, \\
+    or the \rust{i8}/\rust{u8} upto \rust{i128}/\rust{u128} types in Rust}.There is no technical reason other integer types could not also be included in Walrus:
+they were simply ommitted for lack of time.
+
+\subsection{Floats}\label{section:reference:floats}
+The \rust{Float} datatype represents 32-bit floating point real numbers: to be precise,
+the binary32 format specified in IEEE-754-2008. This allows representing rational numbers
+between $-3.40282347 \times 10^{38}$ and $3.40282347 \times 10^{38}$, as well as positive and negative infinity, negative zero, and various NaN values.
+
+\rust{Float} literals are given in decimal notation, with a decimal point separating the
+integral and fractional parts of the number.
+Scientific notation (such as \rust{1.0e6} for one million) is not currently supported.
+
+\begin{minted}{rust}
+1_000_000.05 // Decimal float literals
+\end{minted}
+
+As with \rust{Int} literals, sign prefixes are treated as separate unary operators and not part of the
+\rust{Float} literal. Again, Walrus currently only has one floating point type, as opposed to the usual
+two for binary32 and binary64 supported by most languages.
+\footnote{See the \cc{float} and \cc{double} types in C,
+    or \rust{f32} and \rust{f64} types in Rust}
+
+\subsection{Chars}\label{section:reference:chars}
+To a first approximation, the \rust{Char} datatype represents single textual characters.
+However, unlike the \cc{char} datatype in C, which may represent a 7-bit ASCII value,
+a 16-bit UTF16 code-unit, or a 8-bit UTF8 code-unit depending on the platform,
+\rust{Char}s in Walrus take thier cue from Rust's \rust{char} datatype, which is capable of
+representing Unicode characters.
+
+Specifically, each \rust{Char} is a `Unicode scalar value'
+\footnote{See \url{https://www.unicode.org/glossary/#unicode_scalar_value}}:
+ie any Unicode codepoint\footnote{See \url{https://www.unicode.org/glossary/#code_point}} except for surrogates, which are an artifact of the UTF16 encoding.
+This corresponds to any integer value between $0$ and $D7FF_{16}$ or $E000_{16}$ and $10FFFF_{16}$
+inclusive.
+As a consequence, each \rust{Char} value occupies 4 bytes in memory, even if it is an ASCII character that could
+fit within one byte.
+
+\rust{Char} literals can be given either verbatim if they are easily typeable on the user's keyboard, or by
+specifying the exact Unicode scalar value in hexadecimal notation if more exotic characters are needed.
+A few commonly used non-graphic characters can also be given in the shorthand backslash-escape syntax
+inherited from C
+
+% TODO: unicode characters
+\begin{minted}{rust}
+'a'         // The first letter of the Latin alphabet
+'\u{1f9ad}' // The same seal emoji 
+'\n'        // A newline
+\end{minted}
+
+\begin{tabular}{ clc }
+    Character              & Description     & Unicode scalar value \\
+    \toprule
+    \verb$'\n'$ & newline         & $U+000A$             \\
+    \verb$'\r'$ & carraige return & $U+000D$             \\
+    \verb$'\t'$ & horizontal tab  & $U+0072$             \\
+    \verb$'\0'$ & null character  & $U+0000$             \\
+    \verb$'\''$ & single quote    & $U+0000$             \\
+    \verb$'\"'$ & double quote    & $U+0000$             \\
+    \verb$'\\'$ & backslash       & $U+005C$             \\
+    \bottomrule
+\end{tabular}
 
 \section{Variable bindings}\label{section:reference:variable_bindings}
 \subsection{Mutation}\label{section:reference:variable_bindings:mutation}

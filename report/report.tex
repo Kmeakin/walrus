@@ -4,6 +4,10 @@
 \usepackage{pslatex} % Use Postscript fonts
 \usepackage[outputdir=out]{minted}
 \usepackage[utf8]{inputenc}
+\usepackage{booktabs}
+
+\newmintinline[cc]{c}{}
+\newmintinline[rust]{rust}{}
 
 \title{The Walrus Programming Language}
 \author{Karl Meakin}
@@ -11,6 +15,7 @@
 \reportyear{2021}
 
 \abstractfile{chapters/abstract.tex}
+
 
 \begin{document}
 \dotitleandabstract
