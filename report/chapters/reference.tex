@@ -114,8 +114,51 @@ inherited from C
     \bottomrule
 \end{tabular}
 
-\section{Variable bindings}\label{section:reference:variable_bindings}
-\subsection{Mutation}\label{section:reference:variable_bindings:mutation}
+\section{Let bindings}\label{section:reference:let_bindings}
+Local variables are introduced with the \textbf{let-statement}:
+
+\begin{minted}{rust}
+let x = 5;
+\end{minted}
+
+Optional \textbf{type annotations} may be supplied, but most of the time
+Walrus' type inference is sophisticated enough to infer the type of the binding
+without needing an explicit annotation:
+\begin{minted}{rust}
+let x: Int = 5;
+\end{minted}
+
+Once defined, a variable is \textit{in-scope} and can be used in subsequent expressions
+(it is an error to attempt to refer to a local variable before it has been defined):
+\begin{minted}{rust}
+let x = 5;
+let y = 6;
+let z = x + y;
+\end{minted}
+
+Once defined, a variable can be \textbf{mutated} to replace the value the variable
+denotes:
+
+\begin{minted}{rust}
+let x = 5;
+x = x + 1;
+\end{minted}
+
+Note that Walrus requires a variable to be declared and initialized in the same statement.
+It is not possible to declare a variable as unitialized and then initalize it by mutating
+it later, as in C. This is to avoid the possibility of triggering undefined-behaviour by
+reading from a variable before it has been initalized:
+\begin{minted}{c}
+int x;
+printf("The value contained in x is: %d\n", x);
+\end{minted}
+
+Rust \textit{does} allow separating a variables definition and initialisation, by performing
+a dataflow analysis to check that every variable has been initialised in every possible
+path of control flow before it is first read from. This feature was left out of Walrus
+for lack of time.
+
+
 \section{Arithmetic operators}\label{section:reference:operators}
 \section{Functions}\label{section:reference:functions}
 \section{Closures}\label{section:reference:closures}
