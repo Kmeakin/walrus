@@ -379,6 +379,7 @@ impl Ctx {
             Int(IntLit::Hex(int)) => Lit::Int(self.lower_int(span, &int.text["0x".len()..], 16)),
             Float(FloatLit(float)) => Lit::Float(self.lower_float(span, &float.text)),
             Char(c) => Lit::Char(self.lower_char(span, c)),
+            String(_) => todo!(),
         }
     }
 

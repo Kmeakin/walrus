@@ -37,6 +37,7 @@ token_parser!(dec_int, DecInt);
 token_parser!(bin_int, BinInt);
 token_parser!(hex_int, HexInt);
 token_parser!(float, Float);
+token_parser!(string, String);
 
 token_parser!(simple_char, SimpleChar);
 token_parser!(escaped_char, EscapedChar);

@@ -69,6 +69,7 @@ token_with_text!(Float);
 token_with_text!(SimpleChar);
 token_with_text!(EscapedChar);
 token_with_text!(UnicodeChar);
+token_with_text!(String);
 
 token!(LParen);
 token!(RParen);
