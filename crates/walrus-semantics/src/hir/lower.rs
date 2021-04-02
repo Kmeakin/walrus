@@ -463,7 +463,9 @@ impl Ctx {
 
     fn lower_string(&mut self, syntax: &syntax::String) -> SmolStr {
         let mut s = String::new();
-        let mut chars = syntax.text.char_indices();
+        let text = &syntax.text;
+        let text = &text[1..text.len() - 1]; // trim start and end quote
+        let mut chars = text.char_indices();
         let span = syntax.span;
 
         while let Some((idx, c)) = chars.next() {

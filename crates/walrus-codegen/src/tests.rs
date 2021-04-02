@@ -66,6 +66,11 @@ mod literals {
 
     #[test]
     fn lit_char() { test_codegen_and_run(r#"fn main() -> _ { 'a' }"#, 'a') }
+
+    #[test]
+    fn lit_string() {
+        test_codegen_and_run(r#"fn main() -> _ { "hello world" }"#, "hello world".len())
+    }
 }
 
 mod tuples {

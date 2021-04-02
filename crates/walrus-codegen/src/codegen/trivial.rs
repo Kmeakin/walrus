@@ -1,4 +1,5 @@
 use super::*;
+use inkwell::values::FloatValue;
 
 impl<'ctx> Compiler<'ctx> {
     pub fn codegen_unit(&self) -> BasicValueEnum { self.llvm.const_struct(&[], false).into() }
@@ -13,14 +14,32 @@ impl<'ctx> Compiler<'ctx> {
             Lit::Int(val) => self.llvm.i32_type().const_int((*val).into(), false).into(),
             Lit::Float(val) => self.llvm.f32_type().const_float((*val).into()).into(),
             Lit::Char(val) => self.llvm.i32_type().const_int((*val).into(), false).into(),
-            _ => todo!(),
+            Lit::String(val) => {
+                let len = self.codegen_int(val.len() as _);
+                let bytes = self.builder.build_global_string_ptr(val, "string");
+                self.string_type()
+                    .const_named_struct(&[len.into(), bytes.as_pointer_value().into()])
+                    .into()
+            }
         }
     }
 
-    pub fn codegen_true(&self) -> IntValue<'ctx> {
-        self.llvm.bool_type().const_int(true as _, false)
+    fn codegen_bool(&self, val: bool) -> IntValue<'ctx> {
+        self.llvm.bool_type().const_int(val as _, false)
     }
-    pub fn codegen_false(&self) -> IntValue<'ctx> {
-        self.llvm.bool_type().const_int(false as _, false)
+
+    fn codegen_int(&self, val: u32) -> IntValue<'ctx> {
+        self.llvm.i32_type().const_int(val.into(), false)
     }
+
+    fn codegen_float(&self, val: f32) -> FloatValue<'ctx> {
+        self.llvm.f32_type().const_float(val.into())
+    }
+
+    fn codegen_char(&self, val: char) -> IntValue<'ctx> {
+        self.llvm.i32_type().const_int(val as _, false)
+    }
+
+    pub fn codegen_true(&self) -> IntValue<'ctx> { self.codegen_bool(true) }
+    pub fn codegen_false(&self) -> IntValue<'ctx> { self.codegen_bool(false) }
 }
