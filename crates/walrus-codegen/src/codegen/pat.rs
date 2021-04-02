@@ -130,8 +130,6 @@ impl<'ctx> Compiler<'ctx> {
         }
     }
 
-    fn codegen_true(&self) -> IntValue<'ctx> { self.llvm.bool_type().const_int(true as _, false) }
-    fn codegen_false(&self) -> IntValue<'ctx> { self.llvm.bool_type().const_int(false as _, false) }
     fn codegen_all(&self, bools: impl Iterator<Item = IntValue<'ctx>>) -> IntValue<'ctx> {
         bools.fold(self.codegen_true(), |acc, e| {
             self.builder.build_and(acc, e, "")
