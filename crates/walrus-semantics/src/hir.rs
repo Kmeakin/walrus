@@ -359,6 +359,19 @@ pub enum CmpBinop {
     GreaterEq,
 }
 
+impl CmpBinop {
+    pub const fn name(self) -> &'static str {
+        match self {
+            CmpBinop::Eq => "eq",
+            CmpBinop::NotEq => "not_eq",
+            CmpBinop::Less => "less",
+            CmpBinop::LessEq => "less_eq",
+            CmpBinop::Greater => "greater",
+            CmpBinop::GreaterEq => "greater_eq",
+        }
+    }
+}
+
 impl From<syntax::Unop> for Unop {
     fn from(op: syntax::Unop) -> Self {
         match op {

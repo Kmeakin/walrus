@@ -90,9 +90,9 @@ match.case0.then:                                 ; preds = %"match.case1.Option
   %Option.payload.gep15 = getelementptr inbounds %Option, %Option* %Option.alloca13, i32 0, i32 1
   %a16 = load i32, i32* %a.alloca8, align 4
   %b17 = load i32, i32* %b.alloca12, align 4
-  %2 = add i32 %a16, %b17
+  %Int.add = add i32 %a16, %b17
   %"Option::Some.x.gep" = getelementptr inbounds { i32 }, { i32 }* %Option.payload.gep15, i32 0, i32 0
-  store i32 %2, i32* %"Option::Some.x.gep", align 4
+  store i32 %Int.add, i32* %"Option::Some.x.gep", align 4
   %Option.load18 = load %Option, %Option* %Option.alloca13, align 4
   br label %match.end
 

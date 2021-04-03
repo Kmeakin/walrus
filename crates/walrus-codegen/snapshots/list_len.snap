@@ -75,14 +75,14 @@ match.case1.then:                                 ; preds = %"match.case1.List::
   store %List %"List::Cons.tail.load", %List* %tail.alloca, align 8
   %tail = load %List, %List* %tail.alloca, align 8
   %length.call = call i32 @length(%List %tail)
-  %0 = add i32 1, %length.call
+  %Int.add = add i32 1, %length.call
   br label %match.end
 
 match.fail:                                       ; preds = %"match.case1.List::Cons.end"
   unreachable
 
 match.end:                                        ; preds = %match.case0.then, %match.case1.then
-  %match.phi = phi i32 [ %0, %match.case1.then ], [ 0, %match.case0.then ]
+  %match.phi = phi i32 [ %Int.add, %match.case1.then ], [ 0, %match.case0.then ]
   ret i32 %match.phi
 }
 

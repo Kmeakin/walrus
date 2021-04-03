@@ -166,14 +166,14 @@ match.case1.then:                                 ; preds = %"match.case1.List::
   %head = load i32, i32* %head.alloca, align 4
   %tail = load %List, %List* %tail.alloca, align 8
   %sum.call = call i32 @sum(%List %tail)
-  %0 = add i32 %head, %sum.call
+  %Int.add = add i32 %head, %sum.call
   br label %match.end
 
 match.fail:                                       ; preds = %"match.case1.List::Cons.end"
   unreachable
 
 match.end:                                        ; preds = %match.case0.then, %match.case1.then
-  %match.phi = phi i32 [ %0, %match.case1.then ], [ 0, %match.case0.then ]
+  %match.phi = phi i32 [ %Int.add, %match.case1.then ], [ 0, %match.case0.then ]
   ret i32 %match.phi
 }
 
@@ -265,7 +265,7 @@ lambda.entry:
   store i32 %params.0, i32* %x.alloca, align 4
   %x = load i32, i32* %x.alloca, align 4
   %x2 = load i32, i32* %x.alloca, align 4
-  %0 = mul i32 %x, %x2
-  ret i32 %0
+  %Int.mul = mul i32 %x, %x2
+  ret i32 %Int.mul
 }
 

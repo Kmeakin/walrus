@@ -22,16 +22,13 @@ declare i32 @putchar(i32)
 
 define i1 @main() {
 main.entry:
-  br i1 true, label %"&&.then", label %"&&.else"
+  br i1 true, label %Bool.and.rhs, label %Bool.and.merge
 
-"&&.then":                                        ; preds = %main.entry
-  br label %"&&.end"
+Bool.and.rhs:                                     ; preds = %main.entry
+  br label %Bool.and.merge
 
-"&&.else":                                        ; preds = %main.entry
-  br label %"&&.end"
-
-"&&.end":                                         ; preds = %"&&.else", %"&&.then"
-  %"&&.merge" = phi i1 [ false, %"&&.then" ], [ true, %"&&.else" ]
-  ret i1 %"&&.merge"
+Bool.and.merge:                                   ; preds = %Bool.and.rhs, %main.entry
+  %Bool.and.merge1 = phi i1 [ true, %main.entry ], [ false, %Bool.and.rhs ]
+  ret i1 %Bool.and.merge1
 }
 

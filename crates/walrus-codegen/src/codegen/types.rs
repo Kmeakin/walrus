@@ -1,3 +1,5 @@
+use inkwell::types::FloatType;
+
 use super::*;
 
 impl<'ctx> Compiler<'ctx> {
@@ -11,17 +13,21 @@ impl<'ctx> Compiler<'ctx> {
             Type::Struct(id) => self.struct_type(vars, *id).into(),
             Type::Enum(id) => self.enum_type(vars, *id).into(),
             Type::Tuple(tys) => self.tuple_type(vars, tys).into(),
-            Type::Primitive(PrimitiveType::Bool) => self.llvm.bool_type().into(),
-            Type::Primitive(PrimitiveType::Int | PrimitiveType::Char) => {
-                self.llvm.i32_type().into()
-            }
+            Type::Primitive(PrimitiveType::Bool) => self.bool_type().into(),
+            Type::Primitive(PrimitiveType::Int) => self.int_type().into(),
+            Type::Primitive(PrimitiveType::Char) => self.char_type().into(),
             Type::Primitive(PrimitiveType::String) => self.string_type(vars).into(),
-            Type::Primitive(PrimitiveType::Float) => self.llvm.f32_type().into(),
+            Type::Primitive(PrimitiveType::Float) => self.float_type().into(),
             Type::Primitive(PrimitiveType::Never) | Type::Infer(_) | Type::Unknown => {
                 unreachable!("This type should not exist at codegen: {:?}", ty)
             }
         }
     }
+
+    pub fn bool_type(&self) -> IntType<'ctx> { self.llvm.bool_type() }
+    pub fn int_type(&self) -> IntType<'ctx> { self.llvm.i32_type() }
+    pub fn char_type(&self) -> IntType<'ctx> { self.llvm.i32_type() }
+    pub fn float_type(&self) -> FloatType<'ctx> { self.llvm.f32_type() }
 
     pub fn string_type(&self, vars: &mut Vars<'ctx>) -> StructType<'ctx> {
         match vars.string_type {

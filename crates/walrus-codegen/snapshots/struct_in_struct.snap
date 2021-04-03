@@ -51,8 +51,8 @@ main.entry:
   %Foo.bar2 = extractvalue %Foo %foo1, 0
   %Foo.bar.load3 = load %Bar, %Bar* %Foo.bar2, align 4
   %Bar.x = extractvalue %Bar %Foo.bar.load3, 0
-  %0 = sub i32 %Bar.y, %Bar.x
-  ret i32 %0
+  %Int.sub = sub i32 %Bar.y, %Bar.x
+  ret i32 %Int.sub
 }
 
 declare noalias i8* @malloc(i32)

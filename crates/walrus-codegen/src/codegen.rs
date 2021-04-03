@@ -27,6 +27,7 @@ use walrus_semantics::{
 };
 
 mod expr;
+mod operators;
 mod pat;
 mod trivial;
 mod types;
@@ -70,7 +71,8 @@ impl<'a> Index<FnDefId> for Vars<'a> {
     fn index(&self, id: FnDefId) -> &Self::Output { &self.fns[id] }
 }
 
-type Value<'ctx> = Option<BasicValueEnum<'ctx>>;
+type Value<'ctx> = BasicValueEnum<'ctx>;
+type OptValue<'ctx> = Option<Value<'ctx>>;
 
 impl<'ctx> Compiler<'ctx> {
     #[allow(clippy::useless_transmute)]

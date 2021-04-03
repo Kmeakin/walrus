@@ -11,7 +11,7 @@ impl<'ctx> Compiler<'ctx> {
         self.builder.build_store(alloca, val);
     }
 
-    pub fn codegen_expr(&'ctx self, vars: &mut Vars<'ctx>, id: ExprId) -> Value<'ctx> {
+    pub fn codegen_expr(&'ctx self, vars: &mut Vars<'ctx>, id: ExprId) -> OptValue<'ctx> {
         let expr = &self.hir[id];
         match expr {
             Expr::Lit(lit) => Some(self.codegen_lit(vars, lit)),
@@ -53,33 +53,6 @@ impl<'ctx> Compiler<'ctx> {
                     None => Some(self.codegen_unit()),
                 }
             }
-        }
-    }
-
-    fn codegen_lvalue(&self, vars: &mut Vars<'ctx>, id: ExprId) -> Option<PointerValue<'ctx>> {
-        let expr = &self.hir[id];
-        match expr {
-            Expr::Var(var_id) => {
-                let var = &self.hir[*var_id];
-                let denotation = self.scopes.lookup_var(*var_id, var);
-                match denotation {
-                    Some(Denotation::Local(id)) => Some(vars[id]),
-                    _ => unreachable!("Attempt to assign non-local variable: {:#?}", var),
-                }
-            }
-            Expr::Field { expr, field } => {
-                let struct_id = self.types[*expr].as_struct().unwrap();
-                let struct_alloca = self.codegen_lvalue(vars, *expr)?;
-
-                let value = match field {
-                    Field::Tuple(idx) => self.get_tuple_field_gep(struct_alloca, *idx as _),
-                    Field::Named(name) => {
-                        self.get_struct_field_gep(struct_id, struct_alloca, *name)
-                    }
-                };
-                Some(value)
-            }
-            _ => unreachable!("Attempt to assign non-lvalue: {:#?}", expr),
         }
     }
 
@@ -139,7 +112,7 @@ impl<'ctx> Compiler<'ctx> {
         vars: &mut Vars<'ctx>,
         expr: ExprId,
         exprs: &[ExprId],
-    ) -> Value<'ctx> {
+    ) -> OptValue<'ctx> {
         let ty = &self.types[expr];
         let value_type = self.value_type(vars, ty);
         let tuple_alloca = self.builder.build_alloca(value_type, "tuple.alloca");
@@ -156,7 +129,7 @@ impl<'ctx> Compiler<'ctx> {
         vars: &mut Vars<'ctx>,
         expr: ExprId,
         inits: &[FieldInit],
-    ) -> Value<'ctx> {
+    ) -> OptValue<'ctx> {
         let struct_id = self.types[expr].as_struct().unwrap();
         let struct_name = self.struct_name(struct_id);
         let struct_type = self.struct_type(vars, struct_id);
@@ -178,7 +151,7 @@ impl<'ctx> Compiler<'ctx> {
         expr: ExprId,
         variant: VarId,
         inits: &[FieldInit],
-    ) -> Value<'ctx> {
+    ) -> OptValue<'ctx> {
         let enum_id = self.types[expr].as_enum().unwrap();
         let enum_def = &self.hir[enum_id];
         let enum_name = self.enum_name(enum_id);
@@ -214,7 +187,12 @@ impl<'ctx> Compiler<'ctx> {
         )
     }
 
-    fn codegen_field(&'ctx self, vars: &mut Vars<'ctx>, expr: ExprId, field: Field) -> Value<'ctx> {
+    fn codegen_field(
+        &'ctx self,
+        vars: &mut Vars<'ctx>,
+        expr: ExprId,
+        field: Field,
+    ) -> OptValue<'ctx> {
         let struct_value = self.codegen_expr(vars, expr)?;
         let value = match field {
             Field::Tuple(idx) => self.get_tuple_field(struct_value, idx as usize),
@@ -232,7 +210,7 @@ impl<'ctx> Compiler<'ctx> {
         test: ExprId,
         then_branch: ExprId,
         else_branch: Option<ExprId>,
-    ) -> Value<'ctx> {
+    ) -> OptValue<'ctx> {
         let bb = self.builder.get_insert_block().unwrap();
         let end_bb = self.llvm.insert_basic_block_after(bb, "if.end");
         let else_bb = self.llvm.insert_basic_block_after(bb, "if.else");
@@ -281,7 +259,7 @@ impl<'ctx> Compiler<'ctx> {
         parent: ExprId,
         test: ExprId,
         cases: &[MatchCase],
-    ) -> Value<'ctx> {
+    ) -> OptValue<'ctx> {
         let test_value = self.codegen_expr(vars, test)?;
 
         let bb = self.builder.get_insert_block().unwrap();
@@ -337,7 +315,12 @@ impl<'ctx> Compiler<'ctx> {
         Some(phi.as_basic_value())
     }
 
-    fn codegen_loop(&'ctx self, vars: &mut Vars<'ctx>, expr: ExprId, body: ExprId) -> Value<'ctx> {
+    fn codegen_loop(
+        &'ctx self,
+        vars: &mut Vars<'ctx>,
+        expr: ExprId,
+        body: ExprId,
+    ) -> OptValue<'ctx> {
         let old_bb = self.builder.get_insert_block().unwrap();
         let exit_bb = self.llvm.insert_basic_block_after(old_bb, "loop.exit");
         let body_bb = self.llvm.insert_basic_block_after(old_bb, "loop.body");
@@ -393,7 +376,7 @@ impl<'ctx> Compiler<'ctx> {
         ret
     }
 
-    fn codegen_break(&'ctx self, vars: &mut Vars<'ctx>, expr: Option<ExprId>) -> Value<'ctx> {
+    fn codegen_break(&'ctx self, vars: &mut Vars<'ctx>, expr: Option<ExprId>) -> OptValue<'ctx> {
         let value = match expr {
             None => self.codegen_unit(),
             Some(expr) => self.codegen_expr(vars, expr)?,
@@ -411,7 +394,7 @@ impl<'ctx> Compiler<'ctx> {
         None
     }
 
-    fn codegen_continue(&self, vars: &mut Vars<'ctx>) -> Value {
+    fn codegen_continue(&self, vars: &mut Vars<'ctx>) -> OptValue {
         let Loop {
             body_bb,
             ref mut does_continue,
@@ -427,7 +410,7 @@ impl<'ctx> Compiler<'ctx> {
         vars: &mut Vars<'ctx>,
         func: ExprId,
         args: &[ExprId],
-    ) -> Value<'ctx> {
+    ) -> OptValue<'ctx> {
         let func_val = &self.hir[func];
         if let Expr::Var(var_id) = func_val {
             let var = &self.hir[*var_id];
@@ -633,188 +616,12 @@ impl<'ctx> Compiler<'ctx> {
         llvm_fn
     }
 
-    fn codegen_return(&'ctx self, vars: &mut Vars<'ctx>, expr: Option<ExprId>) -> Value<'ctx> {
+    fn codegen_return(&'ctx self, vars: &mut Vars<'ctx>, expr: Option<ExprId>) -> OptValue<'ctx> {
         let value = match expr {
             Some(expr) => self.codegen_expr(vars, expr)?,
             None => self.codegen_unit(),
         };
         self.builder.build_return(Some(&value));
         None
-    }
-
-    fn codegen_unop(&'ctx self, vars: &mut Vars<'ctx>, op: Unop, expr: ExprId) -> Value<'ctx> {
-        let ty = &self.types[expr];
-        let value = self.codegen_expr(vars, expr)?;
-        let value = match op {
-            Unop::Not if ty == &Type::BOOL => self
-                .builder
-                .build_int_compare(
-                    IntPredicate::EQ,
-                    value.into_int_value(),
-                    self.llvm.bool_type().const_zero(),
-                    "",
-                )
-                .into(),
-            Unop::Sub if ty == &Type::INT => self
-                .builder
-                .build_int_neg(value.into_int_value(), "")
-                .into(),
-
-            Unop::Sub if ty == &Type::FLOAT => self
-                .builder
-                .build_float_neg(value.into_float_value(), "")
-                .into(),
-
-            Unop::Add if ty == &Type::INT || ty == &Type::FLOAT => value,
-            _ => unreachable!("Attempt to codegen unop {} {:?}", op, ty),
-        };
-        Some(value)
-    }
-
-    fn codegen_binop(
-        &'ctx self,
-        vars: &mut Vars<'ctx>,
-        lhs: ExprId,
-        op: Binop,
-        rhs: ExprId,
-    ) -> Value<'ctx> {
-        match op {
-            Binop::Lazy(op) => self.codegen_lazy_binop(vars, lhs, op, rhs),
-            Binop::Arithmetic(op) => self.codegen_arithmetic_binop(vars, lhs, op, rhs),
-            Binop::Cmp(op) => self.codegen_cmp_binop(vars, lhs, op, rhs),
-            Binop::Assign => self.codegen_assign(vars, lhs, rhs),
-        }
-    }
-
-    fn codegen_lazy_binop(
-        &'ctx self,
-        vars: &mut Vars<'ctx>,
-        lhs: ExprId,
-        op: LazyBinop,
-        rhs: ExprId,
-    ) -> Value<'ctx> {
-        let bool_type = self.llvm.bool_type();
-        let bb = self.builder.get_insert_block().unwrap();
-        let end_bb = self.llvm.insert_basic_block_after(bb, &format!("{op}.end"));
-        let else_bb = self
-            .llvm
-            .insert_basic_block_after(bb, &format!("{op}.else"));
-        let then_bb = self
-            .llvm
-            .insert_basic_block_after(bb, &format!("{op}.then"));
-        let lhs_value = self.codegen_expr(vars, lhs)?;
-        self.builder
-            .build_conditional_branch(lhs_value.into_int_value(), then_bb, else_bb);
-
-        // then branch
-        self.builder.position_at_end(then_bb);
-        self.builder.build_unconditional_branch(end_bb);
-
-        // else branch
-        self.builder.position_at_end(else_bb);
-        let rhs_value = self.codegen_expr(vars, rhs)?;
-        self.builder.build_unconditional_branch(end_bb);
-
-        // merge the 2 branches
-        self.builder.position_at_end(end_bb);
-        let phi = self.builder.build_phi(bool_type, &format!("{op}.merge"));
-        match op {
-            LazyBinop::Or => phi.add_incoming(&[(&lhs_value, then_bb), (&rhs_value, else_bb)]),
-            LazyBinop::And => phi.add_incoming(&[(&rhs_value, then_bb), (&lhs_value, else_bb)]),
-        }
-        Some(phi.as_basic_value())
-    }
-
-    fn codegen_arithmetic_binop(
-        &'ctx self,
-        vars: &mut Vars<'ctx>,
-        lhs: ExprId,
-        op: ArithmeticBinop,
-        rhs: ExprId,
-    ) -> Value<'ctx> {
-        let lhs_value = self.codegen_expr(vars, lhs)?;
-        let rhs_value = self.codegen_expr(vars, rhs)?;
-
-        let lhs_ty = &self.types[lhs];
-        let rhs_ty = &self.types[rhs];
-
-        let ty = &self.types[lhs];
-
-        #[rustfmt::skip]
-        macro_rules! int_op {
-            ($op:ident) => {self.builder .$op(lhs_value.into_int_value(), rhs_value.into_int_value(), "") .into()};
-        }
-
-        #[rustfmt::skip]
-        macro_rules! float_op {
-            ($op:ident) => {self.builder.$op(lhs_value.into_float_value(), rhs_value.into_float_value(), "") .into()};
-        }
-
-        let value = match op {
-            ArithmeticBinop::Add if ty.is_int() => int_op!(build_int_add),
-            ArithmeticBinop::Sub if ty.is_int() => int_op!(build_int_sub),
-            ArithmeticBinop::Mul if ty.is_int() => int_op!(build_int_mul),
-            ArithmeticBinop::Div if ty.is_int() => int_op!(build_int_signed_div),
-
-            ArithmeticBinop::Add if ty.is_float() => float_op!(build_float_add),
-            ArithmeticBinop::Sub if ty.is_float() => float_op!(build_float_sub),
-            ArithmeticBinop::Mul if ty.is_float() => float_op!(build_float_mul),
-            ArithmeticBinop::Div if ty.is_float() => float_op!(build_float_div),
-
-            _ => unreachable!(format!("cannot perform binop {lhs_ty:?} {op} {rhs_ty:?}")),
-        };
-        Some(value)
-    }
-
-    fn codegen_cmp_binop(
-        &'ctx self,
-        vars: &mut Vars<'ctx>,
-        lhs: ExprId,
-        op: CmpBinop,
-        rhs: ExprId,
-    ) -> Value<'ctx> {
-        let lhs_value = self.codegen_expr(vars, lhs)?;
-        let rhs_value = self.codegen_expr(vars, rhs)?;
-
-        let lhs_ty = &self.types[lhs];
-        let rhs_ty = &self.types[rhs];
-
-        let ty = &self.types[lhs];
-
-        #[rustfmt::skip]
-        macro_rules! int_cmp {
-            ($op:expr) => {self.builder.build_int_compare($op,lhs_value.into_int_value(), rhs_value.into_int_value(), "") .into()};
-        }
-
-        #[rustfmt::skip]
-        macro_rules! float_cmp {
-            ($op:expr) => {self.builder.build_float_compare($op,lhs_value.into_float_value(), rhs_value.into_float_value(), "") .into()};
-        }
-
-        let value = match op {
-            CmpBinop::Eq if ty.is_integral() => int_cmp!(IntPredicate::EQ),
-            CmpBinop::NotEq if ty.is_integral() => int_cmp!(IntPredicate::NE),
-            CmpBinop::Less if ty.is_integral() => int_cmp!(IntPredicate::SLT),
-            CmpBinop::LessEq if ty.is_integral() => int_cmp!(IntPredicate::SLE),
-            CmpBinop::Greater if ty.is_integral() => int_cmp!(IntPredicate::SGT),
-            CmpBinop::GreaterEq if ty.is_integral() => int_cmp!(IntPredicate::SGE),
-
-            CmpBinop::Eq if ty.is_float() => float_cmp!(FloatPredicate::OEQ),
-            CmpBinop::NotEq if ty.is_float() => float_cmp!(FloatPredicate::ONE),
-            CmpBinop::Less if ty.is_float() => float_cmp!(FloatPredicate::OLT),
-            CmpBinop::LessEq if ty.is_float() => float_cmp!(FloatPredicate::OLE),
-            CmpBinop::Greater if ty.is_float() => float_cmp!(FloatPredicate::OGT),
-            CmpBinop::GreaterEq if ty.is_float() => float_cmp!(FloatPredicate::OGE),
-
-            _ => unreachable!(format!("cannot perform binop {lhs_ty:?} {op} {rhs_ty:?}")),
-        };
-        Some(value)
-    }
-
-    fn codegen_assign(&'ctx self, vars: &mut Vars<'ctx>, lhs: ExprId, rhs: ExprId) -> Value<'ctx> {
-        let lhs = self.codegen_lvalue(vars, lhs)?;
-        let rhs = self.codegen_expr(vars, rhs)?;
-        self.builder.build_store(lhs, rhs);
-        Some(self.codegen_unit())
     }
 }

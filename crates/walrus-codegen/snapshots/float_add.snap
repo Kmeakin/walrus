@@ -28,7 +28,7 @@ main.entry:
   store float 1.000000e+00, float* %y.alloca, align 4
   %x = load float, float* %x.alloca, align 4
   %y = load float, float* %y.alloca, align 4
-  %0 = fadd float %x, %y
-  ret float %0
+  %Float.add = fadd float %x, %y
+  ret float %Float.add
 }
 

@@ -38,7 +38,7 @@ main.entry:
   store i32 %Foo.x, i32* %x.alloca, align 4
   %y = load i32, i32* %y.alloca, align 4
   %x = load i32, i32* %x.alloca, align 4
-  %0 = sub i32 %y, %x
-  ret i32 %0
+  %Int.sub = sub i32 %y, %x
+  ret i32 %Int.sub
 }
 
