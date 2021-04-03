@@ -8,20 +8,6 @@ source_filename = "module"
 
 %List = type { i8, { i32, %List* } }
 
-define void @builtins.exit(i32 %status) {
-  call void @exit(i32 %status)
-  unreachable
-}
-
-declare void @exit(i32)
-
-define {} @builtins.putchar(i32 %c) {
-  %1 = call i32 @putchar(i32 %c)
-  ret {} zeroinitializer
-}
-
-declare i32 @putchar(i32)
-
 define i32 @length(%List %length.params.0) {
 length.entry:
   %l.alloca = alloca %List, align 8

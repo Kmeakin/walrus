@@ -170,8 +170,8 @@ fn get_five() -> _ {5}
         test_codegen_and_run(
             r#"
 fn main() -> _ { 
-    let f = putchar;
-    f('a')
+    let f = print;
+    f("a")
 }
 "#,
             (),
@@ -375,28 +375,6 @@ mod builtins {
 
     #[test]
     fn builtin_exit() { test_codegen("fn main() -> Int { exit(1) }") }
-
-    #[test]
-    fn builtin_putchar() {
-        test_codegen_and_run(
-            r#"
-fn main() -> () {
-    putchar('h');
-    putchar('e');
-    putchar('l');
-    putchar('l');
-    putchar('o');
-    putchar(' ');
-    putchar('w');
-    putchar('o');
-    putchar('r');
-    putchar('l');
-    putchar('d');
-}
-"#,
-            (),
-        )
-    }
 }
 
 mod loops {

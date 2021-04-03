@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -9,10 +10,16 @@ typedef uint8_t Byte;
 typedef uint32_t Char;
 typedef float Float;
 typedef bool Bool;
+typedef void Never;
+
 typedef struct {
   Int len;
   const Byte *const bytes;
 } String;
+
+typedef struct {
+} Unit;
+static_assert(sizeof(Unit) == 0, "Unit should occupy zero bytes");
 
 const Byte TRUE_BYTES[] = "true";
 const Byte FALSE_BYTES[] = "false";
@@ -20,13 +27,18 @@ const Byte FALSE_BYTES[] = "false";
 const String STRING_TRUE = (String){.len = 4, .bytes = TRUE_BYTES};
 const String STRING_FALSE = (String){.len = 5, .bytes = FALSE_BYTES};
 
-void builtin_exit(Int status) { exit(status); }
-void builtin_putchar(Char c) { putchar(c); }
+const Unit UNIT = (Unit){};
 
-void builtin_print(String s) { fwrite(s.bytes, sizeof(Byte), s.len, stdout); }
+Never builtin_exit(Int status) { exit(status); }
 
-void builtin_print_error(String s) {
+Unit builtin_print(String s) {
+  fwrite(s.bytes, sizeof(Byte), s.len, stdout);
+  return UNIT;
+}
+
+Unit builtin_print_error(String s) {
   fwrite(s.bytes, sizeof(Byte), s.len, stderr);
+  return UNIT;
 }
 
 Int builtin_string_length(String s) { return s.len; }

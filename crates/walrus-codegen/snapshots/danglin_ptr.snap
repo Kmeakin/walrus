@@ -8,20 +8,6 @@ source_filename = "module"
 
 %List = type { i8, { i32, %List* } }
 
-define void @builtins.exit(i32 %status) {
-  call void @exit(i32 %status)
-  unreachable
-}
-
-declare void @exit(i32)
-
-define {} @builtins.putchar(i32 %c) {
-  %1 = call i32 @putchar(i32 %c)
-  ret {} zeroinitializer
-}
-
-declare i32 @putchar(i32)
-
 define %List @map(%List %map.params.0, { i32 (i8*, i32)*, i8* } %map.params.1) {
 map.entry:
   %l.alloca = alloca %List, align 8
@@ -85,13 +71,13 @@ match.case1.then:                                 ; preds = %"match.case1.List::
   %List.discriminant.gep = getelementptr inbounds %List, %List* %List.alloca, i32 0, i32 0
   store i8 1, i8* %List.discriminant.gep, align 1
   %List.payload.gep = getelementptr inbounds %List, %List* %List.alloca, i32 0, i32 1
+  %head = load i32, i32* %head.alloca, align 4
   %f = load { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %f.alloca, align 8
   %closure.code = extractvalue { i32 (i8*, i32)*, i8* } %f, 0
   %closure.env = extractvalue { i32 (i8*, i32)*, i8* } %f, 1
-  %head = load i32, i32* %head.alloca, align 4
-  %call = call i32 %closure.code(i8* %closure.env, i32 %head)
+  %lambda.call = call i32 %closure.code(i8* %closure.env, i32 %head)
   %"List::Cons.head.gep" = getelementptr inbounds { i32, %List* }, { i32, %List* }* %List.payload.gep, i32 0, i32 0
-  store i32 %call, i32* %"List::Cons.head.gep", align 4
+  store i32 %lambda.call, i32* %"List::Cons.head.gep", align 4
   %tail = load %List, %List* %tail.alloca, align 8
   %f2 = load { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %f.alloca, align 8
   %map.call = call %List @map(%List %tail, { i32 (i8*, i32)*, i8* } %f2)

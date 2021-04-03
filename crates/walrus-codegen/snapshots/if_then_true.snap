@@ -6,20 +6,6 @@ expression: module
 ; ModuleID = 'module'
 source_filename = "module"
 
-define void @builtins.exit(i32 %status) {
-  call void @exit(i32 %status)
-  unreachable
-}
-
-declare void @exit(i32)
-
-define {} @builtins.putchar(i32 %c) {
-  %1 = call i32 @putchar(i32 %c)
-  ret {} zeroinitializer
-}
-
-declare i32 @putchar(i32)
-
 define {} @main() {
 main.entry:
   br i1 true, label %if.then, label %if.else

@@ -9,20 +9,6 @@ source_filename = "module"
 %Bar = type { i32, i32 }
 %Foo = type { %Bar* }
 
-define void @builtins.exit(i32 %status) {
-  call void @exit(i32 %status)
-  unreachable
-}
-
-declare void @exit(i32)
-
-define {} @builtins.putchar(i32 %c) {
-  %1 = call i32 @putchar(i32 %c)
-  ret {} zeroinitializer
-}
-
-declare i32 @putchar(i32)
-
 define i32 @main() {
 main.entry:
   %Bar.alloca = alloca %Bar, align 8

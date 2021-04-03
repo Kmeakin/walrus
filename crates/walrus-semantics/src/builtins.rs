@@ -71,10 +71,6 @@ impl Builtin {
                 ty: FnType::new(&[Type::INT], Type::NEVER),
             },
             Self::Fn {
-                name: "putchar",
-                ty: FnType::new(&[Type::CHAR], Type::UNIT),
-            },
-            Self::Fn {
                 name: "print",
                 ty: FnType::new(&[Type::STRING], Type::UNIT),
             },

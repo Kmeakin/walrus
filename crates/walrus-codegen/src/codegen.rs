@@ -7,7 +7,6 @@ pub use inkwell::context::Context;
 use inkwell::{
     basic_block::BasicBlock,
     builder::Builder,
-    memory_buffer::MemoryBuffer,
     module::Module,
     targets::TargetData,
     types::{AnyType, BasicType, BasicTypeEnum, FunctionType, IntType, StructType},
@@ -27,6 +26,7 @@ use walrus_semantics::{
 };
 
 mod expr;
+mod fns;
 mod operators;
 mod pat;
 mod trivial;
@@ -57,6 +57,7 @@ pub struct Loop<'ctx> {
 pub struct Vars<'a> {
     locals: ArenaMap<VarId, PointerValue<'a>>,
     fns: ArenaMap<FnDefId, FunctionValue<'a>>,
+    builtin_fns: HashMap<String, FunctionValue<'a>>,
     types: HashMap<Either<StructDefId, EnumDefId>, StructType<'a>>,
     string_type: Option<StructType<'a>>,
     current_loop: Option<Loop<'a>>,
@@ -79,15 +80,6 @@ impl<'ctx> Compiler<'ctx> {
     pub fn codegen_module(self) -> String {
         let this: &'static Compiler<'static> = unsafe { std::mem::transmute(&self) };
 
-        let builtins_source = include_str!("builtins.ll");
-        let builtins =
-            MemoryBuffer::create_from_memory_range_copy(builtins_source.as_bytes(), "builtins");
-        let builtins = this
-            .llvm
-            .create_module_from_ir(builtins)
-            .map_err(|e| eprintln!("{}", e.to_string()))
-            .unwrap();
-        this.module.link_in_module(builtins).unwrap();
         let mut vars = Vars::default();
 
         for (id, func) in this.hir.fn_defs.iter() {
