@@ -179,13 +179,14 @@ let y = 6;
 let z = x + y;
 \end{minted}
 
-Once defined, a variable can be \textbf{mutated} to replace the value the variable
-denotes:
-
+All local variables are immutable by default in Walrus. To mutate a variable, mutability
+must be explictly opted-into by modifying the variable with the \rust{mut} keyword:
 \begin{minted}{rust}
-let x = 5;
+let mut x = 5;
 x = x + 1;
 \end{minted}
+
+% TODO: what are the benefits of mutability by default?
 
 Note that Walrus requires a variable to be declared and initialized in the same statement.
 It is not possible to declare a variable as unitialized and then initalize it by mutating
