@@ -853,7 +853,7 @@ impl Ctx {
             self.check_assign_expr(lhs);
         }
 
-        let rhs_expectation = op.rhs_expectation(&lhs_type);
+        let rhs_expectation = self.rhs_expectation(op, &lhs_type);
         if lhs_type != Type::Unknown && rhs_expectation == Type::Unknown {
             self.result.diagnostics.push(Diagnostic::CannotApplyBinop {
                 expr: parent_expr,
@@ -930,6 +930,26 @@ impl Ctx {
             None => Type::UNIT,
         }
     }
+
+    fn rhs_expectation(&self, op: Binop, lhs_type: &Type) -> Type {
+        match op {
+            Binop::Lazy(LazyBinop::And | LazyBinop::Or) => Type::BOOL,
+            Binop::Assign => lhs_type.clone(),
+            Binop::Cmp(CmpBinop::Eq | CmpBinop::NotEq)
+                if lhs_type.is_eq(&self.hir, &self.result) =>
+            {
+                lhs_type.clone()
+            }
+            Binop::Cmp(
+                CmpBinop::Greater | CmpBinop::GreaterEq | CmpBinop::Less | CmpBinop::LessEq,
+            ) if lhs_type.is_ord(&self.hir, &self.result) => lhs_type.clone(),
+            Binop::Arithmetic(ArithmeticBinop::Add) if lhs_type == &Type::STRING => {
+                lhs_type.clone()
+            }
+            Binop::Arithmetic(_) if lhs_type.is_num() => lhs_type.clone(),
+            _ => Type::Unknown,
+        }
+    }
 }
 
 impl Lit {
@@ -954,7 +974,8 @@ impl Unop {
 
     fn return_type(self, lhs_type: &Type) -> Type {
         match self {
-            Self::Add | Self::Sub => lhs_type.clone(),
+            Self::Add | Self::Sub if lhs_type.is_num() => lhs_type.clone(),
+            Self::Add | Self::Sub => Type::Unknown,
             Self::Not => Type::BOOL,
         }
     }
@@ -964,13 +985,6 @@ impl Binop {
         match self {
             Self::Lazy(LazyBinop::And | LazyBinop::Or) => Type::BOOL,
             Self::Arithmetic(_) | Self::Cmp(_) | Self::Assign => Type::Unknown,
-        }
-    }
-
-    fn rhs_expectation(self, lhs_type: &Type) -> Type {
-        match self {
-            Self::Lazy(LazyBinop::And | LazyBinop::Or) => Type::BOOL,
-            Self::Arithmetic(_) | Self::Cmp(_) | Self::Assign => lhs_type.clone(),
         }
     }
 

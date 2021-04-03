@@ -36,8 +36,65 @@ impl Type {
         )
     }
 
-    pub const fn is_floating(&self) -> bool {
-        matches!(self, Type::Primitive(PrimitiveType::Float))
+    /// Can comparisons (==, !=) be performed on this type?
+    pub fn is_eq(&self, hir: &HirData, types: &InferenceResult) -> bool {
+        match self {
+            Type::Primitive(_) => true,
+            Type::Fn(_) => false,
+            Type::Struct(id) => {
+                let struct_def = &hir[*id];
+                struct_def
+                    .fields
+                    .iter()
+                    .all(|field| types[field.ty].is_eq(hir, types))
+            }
+            Type::Enum(id) => {
+                let enum_def = &hir[*id];
+                enum_def.variants.iter().all(|variant| {
+                    variant
+                        .fields
+                        .iter()
+                        .all(|field| types[field.ty].is_eq(hir, types))
+                })
+            }
+            Type::Tuple(tys) => tys.iter().all(|ty| ty.is_eq(hir, types)),
+            Type::Infer(_) | Type::Unknown => true,
+        }
+    }
+
+    /// Can ordering (<, <=, >, >=) be performed on this type?
+    pub fn is_ord(&self, hir: &HirData, types: &InferenceResult) -> bool {
+        match self {
+            Type::Primitive(_) => true,
+            Type::Fn(_) => false,
+            Type::Struct(id) => {
+                let struct_def = &hir[*id];
+                struct_def
+                    .fields
+                    .iter()
+                    .all(|field| types[field.ty].is_ord(hir, types))
+            }
+            Type::Enum(id) => {
+                let enum_def = &hir[*id];
+                enum_def.variants.iter().all(|variant| {
+                    variant
+                        .fields
+                        .iter()
+                        .all(|field| types[field.ty].is_ord(hir, types))
+                })
+            }
+            Type::Tuple(tys) => tys.iter().all(|ty| ty.is_ord(hir, types)),
+            Type::Infer(_) | Type::Unknown => true,
+        }
+    }
+
+    /// Can airthmetic (+,-,*,/) be performed on this type?
+    pub const fn is_num(&self) -> bool {
+        match self {
+            Type::Primitive(PrimitiveType::Int | PrimitiveType::Float) => true,
+            Type::Infer(_) | Type::Unknown => true,
+            _ => false,
+        }
     }
 
     pub const fn is_int(&self) -> bool { matches!(self, Type::Primitive(PrimitiveType::Int)) }

@@ -799,12 +799,12 @@ impl<'ctx> Compiler<'ctx> {
             CmpBinop::Greater if ty.is_integral() => int_cmp!(IntPredicate::SGT),
             CmpBinop::GreaterEq if ty.is_integral() => int_cmp!(IntPredicate::SGE),
 
-            CmpBinop::Eq if ty.is_floating() => float_cmp!(FloatPredicate::OEQ),
-            CmpBinop::NotEq if ty.is_floating() => float_cmp!(FloatPredicate::ONE),
-            CmpBinop::Less if ty.is_floating() => float_cmp!(FloatPredicate::OLT),
-            CmpBinop::LessEq if ty.is_floating() => float_cmp!(FloatPredicate::OLE),
-            CmpBinop::Greater if ty.is_floating() => float_cmp!(FloatPredicate::OGT),
-            CmpBinop::GreaterEq if ty.is_floating() => float_cmp!(FloatPredicate::OGE),
+            CmpBinop::Eq if ty.is_float() => float_cmp!(FloatPredicate::OEQ),
+            CmpBinop::NotEq if ty.is_float() => float_cmp!(FloatPredicate::ONE),
+            CmpBinop::Less if ty.is_float() => float_cmp!(FloatPredicate::OLT),
+            CmpBinop::LessEq if ty.is_float() => float_cmp!(FloatPredicate::OLE),
+            CmpBinop::Greater if ty.is_float() => float_cmp!(FloatPredicate::OGT),
+            CmpBinop::GreaterEq if ty.is_float() => float_cmp!(FloatPredicate::OGE),
 
             _ => unreachable!(format!("cannot perform binop {lhs_ty:?} {op} {rhs_ty:?}")),
         };
