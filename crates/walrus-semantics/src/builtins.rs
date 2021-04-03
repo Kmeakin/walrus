@@ -102,6 +102,10 @@ impl Builtin {
                 name: "char_to_string",
                 ty: FnType::new(&[Type::CHAR], Type::STRING),
             },
+            Self::Fn {
+                name: "string_append",
+                ty: FnType::new(&[Type::STRING, Type::STRING], Type::STRING),
+            },
         ]
     }
 }
