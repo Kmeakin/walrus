@@ -15,7 +15,7 @@ impl<'ctx> Compiler<'ctx> {
             Type::Primitive(PrimitiveType::Int | PrimitiveType::Char) => {
                 self.llvm.i32_type().into()
             }
-            Type::Primitive(PrimitiveType::String) => self.string_type().into(),
+            Type::Primitive(PrimitiveType::String) => self.string_type(vars).into(),
             Type::Primitive(PrimitiveType::Float) => self.llvm.f32_type().into(),
             Type::Primitive(PrimitiveType::Never) | Type::Infer(_) | Type::Unknown => {
                 unreachable!("This type should not exist at codegen: {:?}", ty)
@@ -23,14 +23,22 @@ impl<'ctx> Compiler<'ctx> {
         }
     }
 
-    pub fn string_type(&self) -> StructType<'ctx> {
-        self.llvm.struct_type(
-            &[
-                self.llvm.i32_type().into(),
-                self.llvm.i8_type().ptr_type(AddressSpace::Generic).into(),
-            ],
-            false,
-        )
+    pub fn string_type(&self, vars: &mut Vars<'ctx>) -> StructType<'ctx> {
+        match vars.string_type {
+            Some(ty) => ty,
+            None => {
+                let ty = self.llvm.opaque_struct_type("String");
+                ty.set_body(
+                    &[
+                        self.llvm.i32_type().into(),
+                        self.llvm.i8_type().ptr_type(AddressSpace::Generic).into(),
+                    ],
+                    false,
+                );
+                vars.string_type = Some(ty);
+                ty
+            }
+        }
     }
 
     // type of toplevel or builtin functions - ie no env ptr needed

@@ -14,7 +14,7 @@ impl<'ctx> Compiler<'ctx> {
     pub fn codegen_expr(&'ctx self, vars: &mut Vars<'ctx>, id: ExprId) -> Value<'ctx> {
         let expr = &self.hir[id];
         match expr {
-            Expr::Lit(lit) => Some(self.codegen_lit(lit)),
+            Expr::Lit(lit) => Some(self.codegen_lit(vars, lit)),
             Expr::Var(var) => Some(self.codegen_var(vars, *var)),
             Expr::Tuple(exprs) => self.codegen_tuple(vars, id, exprs),
             Expr::Struct { fields, .. } => self.codegen_struct(vars, id, fields),

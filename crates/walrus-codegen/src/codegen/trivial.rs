@@ -8,7 +8,7 @@ impl<'ctx> Compiler<'ctx> {
 
     pub fn codegen_undef(&self) -> BasicValueEnum { self.llvm.i8_type().get_undef().into() }
 
-    pub fn codegen_lit(&self, lit: &Lit) -> BasicValueEnum<'ctx> {
+    pub fn codegen_lit(&self, vars: &mut Vars<'ctx>, lit: &Lit) -> BasicValueEnum<'ctx> {
         match lit {
             Lit::Bool(b) => self.llvm.bool_type().const_int(*b as _, false).into(),
             Lit::Int(val) => self.llvm.i32_type().const_int((*val).into(), false).into(),
@@ -17,7 +17,7 @@ impl<'ctx> Compiler<'ctx> {
             Lit::String(val) => {
                 let len = self.codegen_int(val.len() as _);
                 let bytes = self.builder.build_global_string_ptr(val, "string");
-                self.string_type()
+                self.string_type(vars)
                     .const_named_struct(&[len.into(), bytes.as_pointer_value().into()])
                     .into()
             }

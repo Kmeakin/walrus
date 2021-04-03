@@ -6,6 +6,8 @@ expression: module
 ; ModuleID = 'module'
 source_filename = "module"
 
+%String = type { i32, i8* }
+
 @string = private unnamed_addr constant [12 x i8] c"hello world\00", align 1
 
 define void @builtins.exit(i32 %status) {
@@ -22,8 +24,8 @@ define {} @builtins.putchar(i32 %c) {
 
 declare i32 @putchar(i32)
 
-define { i32, i8* } @main() {
+define %String @main() {
 main.entry:
-  ret { i32, i8* } { i32 11, i8* getelementptr inbounds ([12 x i8], [12 x i8]* @string, i32 0, i32 0) }
+  ret %String { i32 11, i8* getelementptr inbounds ([12 x i8], [12 x i8]* @string, i32 0, i32 0) }
 }
 

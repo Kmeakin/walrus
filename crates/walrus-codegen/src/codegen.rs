@@ -57,6 +57,7 @@ pub struct Vars<'a> {
     locals: ArenaMap<VarId, PointerValue<'a>>,
     fns: ArenaMap<FnDefId, FunctionValue<'a>>,
     types: HashMap<Either<StructDefId, EnumDefId>, StructType<'a>>,
+    string_type: Option<StructType<'a>>,
     current_loop: Option<Loop<'a>>,
 }
 

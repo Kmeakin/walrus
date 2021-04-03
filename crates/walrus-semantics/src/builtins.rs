@@ -78,6 +78,30 @@ impl Builtin {
                 name: "print",
                 ty: FnType::new(&[Type::STRING], Type::UNIT),
             },
+            Self::Fn {
+                name: "print_error",
+                ty: FnType::new(&[Type::STRING], Type::UNIT),
+            },
+            Self::Fn {
+                name: "string_length",
+                ty: FnType::new(&[Type::STRING], Type::INT),
+            },
+            Self::Fn {
+                name: "bool_to_string",
+                ty: FnType::new(&[Type::BOOL], Type::STRING),
+            },
+            Self::Fn {
+                name: "int_to_string",
+                ty: FnType::new(&[Type::INT], Type::STRING),
+            },
+            Self::Fn {
+                name: "float_to_string",
+                ty: FnType::new(&[Type::FLOAT], Type::STRING),
+            },
+            Self::Fn {
+                name: "char_to_string",
+                ty: FnType::new(&[Type::CHAR], Type::STRING),
+            },
         ]
     }
 }
