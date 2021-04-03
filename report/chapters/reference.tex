@@ -202,10 +202,63 @@ a dataflow analysis to check that every variable has been initialised in every p
 path of control flow before it is first read from. This feature was left out of Walrus
 for lack of time.
 
-
 \section{Arithmetic operators}\label{section:reference:operators}
-\section{Functions}\label{section:reference:functions}
-\section{Closures}\label{section:reference:closures}
+Every programming language has certain operations that are so basic that they
+cannot implemented in the source language itself, and must be provided by the implementation.
+In Walrus, these are provided by operators and builtin functions
+(see section~\ref{section:reference:builtin_functions}).
+
+Unlike functions, operators have their own rules of \textit{precedence} and \textit{associativity},
+which determines the final parse tree produced by the parser. For example, the expression
+\rust{1 + 2 * 3 - 4}, allows the user to express in standard mathematical notation what would
+otherwise have to be written as \rust{mul(add(1, 2), sub(3, 4))}
+
+
+\begin{tabular}{ clc }
+    Operator                           & Associativity \\
+    \toprule
+    Unary \rust{-}, \rust{*}, \rust{!} & Left          \\
+    \rust{*}, \rust{/}                 & Left          \\
+    \rust{+}, \rust{-}                 & Left          \\
+    \rust{==}                          & Left          \\
+    \rust{and}                         & Left          \\
+    \rust{or}                          & Left          \\
+    \rust{=}                           & Right         \\
+    \bottomrule
+\end{tabular}
+
+
+Operators are also different from functions in that they are not truely \textit{first-class}.
+They cannot be stored in variables, or passed to functions. This makes them less flexible
+than operators in Haskell or ML, where a binary operator can be treated as a normal variable
+by enclosing it in parentheses: \textit{(+)}, allowing them to be passed around as any other
+function: \textit{foldr xs 0 (+)}.
+
+However, this lack of first-class treatment also allows Walrus' operators be to used
+as a source of \textit{ad-hoc polymorphism} (wherein the same name may refer to different implementations
+with different types) without requiring an extension of the type system. Since the set of operators
+is fixed, and operators can only be immediatly applied, never treated as values in themself, the correct
+implementation of operator can be chosen during type inference by inspecting its arguments.
+
+To treat operators as both truely first-class, and ad-hoc polymporphic, would require introducing
+a system of \textit{qualified polymorphism}, as in Haskell's \textit{type-classes} or Rust's \textit{traits},
+allowing the equality operator to be typed as \textit{(==) :: forall a. Eq a => a -> a -> bool}.
+
+To see what happens when a language attempts to have first-class operators without a system for expressing
+constrained polymorphism, look to OCaml: operators can be treated as first-class values, as in Haskell,
+but Ocaml's polymorphism is only \textit{parametric}: a polymporphic function must have a single
+implementation valid for any possible type, and it cannot perform any type-specific operations
+on its arguments. As a result, the operators \texttt{+}, \texttt{-}, \texttt{*}, \texttt{/}, operate
+only on integers, and separate operators \texttt{+.}, \texttt{-.}, \texttt{*.}, \texttt{/.} are required
+for performing the same operations on floats.
+
+Clearly a system of qualified polymorphism would be desirable to have in Walrus, however it's implementation is very complex, and so has been
+left out, with the current list of fixed operator implementations serving as a stop-gap solution.
+
+% TODO: table of operator types
+
+\section{Functions and closures}\label{section:reference:functions_and_closures}
+\section{Builtin functions}\label{section:reference:builtin_functions}
 \section{Control flow}\label{section:reference:control_flow}
 \section{Tuples}\label{section:reference:tuples}
 \section{Structs}\label{section:reference:structs}
