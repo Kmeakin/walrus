@@ -88,13 +88,14 @@ impl Type {
         }
     }
 
-    /// Can airthmetic (+,-,*,/) be performed on this type?
+    /// Can airthmetic (+, -, *, /) be performed on this type?
     pub const fn is_num(&self) -> bool {
-        match self {
-            Type::Primitive(PrimitiveType::Int | PrimitiveType::Float) => true,
-            Type::Infer(_) | Type::Unknown => true,
-            _ => false,
-        }
+        matches!(
+            self,
+            Type::Primitive(PrimitiveType::Int | PrimitiveType::Float)
+                | Type::Infer(_)
+                | Type::Unknown
+        )
     }
 
     pub const fn is_int(&self) -> bool { matches!(self, Type::Primitive(PrimitiveType::Int)) }
