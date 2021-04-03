@@ -16,6 +16,8 @@ impl<'ctx> Compiler<'ctx> {
             Lit::Char(val) => self.llvm.i32_type().const_int((*val).into(), false).into(),
             Lit::String(val) => {
                 let len = self.codegen_int(val.len() as _);
+
+                // TODO: this truncates the string at the first null byte
                 let bytes = self.builder.build_global_string_ptr(val, "string");
                 self.string_type(vars)
                     .const_named_struct(&[len.into(), bytes.as_pointer_value().into()])
