@@ -1,0 +1,25 @@
+enum List {
+    Nil {},
+    Cons {head: Int, tail: List}
+}
+ 
+fn map(l: List, f: (Int) -> Int) -> List {
+    match l {
+        List::Nil {} => List::Nil{},
+        List::Cons{head, tail} => List::Cons{head: f(head), tail: map(tail, f)}
+    }
+}
+
+fn sum(l: List) -> Int {
+    match l {
+        List::Nil {} => 0,
+        List::Cons{head, tail} => head + sum(tail),
+    }
+}
+
+fn main() -> _ {
+    let l1 = List::Cons{head: 4, tail: List::Cons{head: 3, tail: List::Cons{head: 2, tail: List::Cons{head: 1, tail: List::Nil {}}}}};
+    let l2 = map(l1, (x) => x * x);
+    let s = sum(l2);
+    s
+}
