@@ -1,0 +1,23 @@
+---
+source: crates/walrus-parser/src/grammar.rs
+expression: got
+
+---
+Ok(
+    (
+        [],
+        Var {
+            kw_mut: Some(
+                KwMut {
+                    span: 0..3,
+                },
+            ),
+            var: Var(
+                Ident {
+                    span: 4..5,
+                    text: "a",
+                },
+            ),
+        },
+    ),
+)

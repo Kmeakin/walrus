@@ -1,3 +1,5 @@
+use inkwell::types::FloatType;
+
 use super::*;
 
 impl<'ctx> Compiler<'ctx> {
@@ -7,18 +9,56 @@ impl<'ctx> Compiler<'ctx> {
 
     pub fn value_type(&self, vars: &mut Vars<'ctx>, ty: &Type) -> BasicTypeEnum<'ctx> {
         match ty {
-            Type::Fn(func) => self.closure_type(vars, func),
+            Type::Fn(func) => self.closure_type(vars, func).into(),
             Type::Struct(id) => self.struct_type(vars, *id).into(),
             Type::Enum(id) => self.enum_type(vars, *id).into(),
             Type::Tuple(tys) => self.tuple_type(vars, tys).into(),
-            Type::Primitive(PrimitiveType::Bool) => self.llvm.bool_type().into(),
-            Type::Primitive(PrimitiveType::Int | PrimitiveType::Char) => {
-                self.llvm.i32_type().into()
-            }
-            Type::Primitive(PrimitiveType::Float) => self.llvm.f32_type().into(),
+            Type::Primitive(PrimitiveType::Bool) => self.bool_type().into(),
+            Type::Primitive(PrimitiveType::Int) => self.int_type().into(),
+            Type::Primitive(PrimitiveType::Char) => self.char_type().into(),
+            Type::Primitive(PrimitiveType::String) => self.string_type(vars).into(),
+            Type::Primitive(PrimitiveType::Float) => self.float_type().into(),
             Type::Primitive(PrimitiveType::Never) | Type::Infer(_) | Type::Unknown => {
                 unreachable!("This type should not exist at codegen: {:?}", ty)
             }
+        }
+    }
+
+    pub fn bool_type(&self) -> IntType<'ctx> { self.llvm.bool_type() }
+    pub fn int_type(&self) -> IntType<'ctx> { self.llvm.i32_type() }
+    pub fn char_type(&self) -> IntType<'ctx> { self.llvm.i32_type() }
+    pub fn float_type(&self) -> FloatType<'ctx> { self.llvm.f32_type() }
+
+    pub fn string_type(&self, vars: &mut Vars<'ctx>) -> StructType<'ctx> {
+        match vars.string_type {
+            Some(ty) => ty,
+            None => {
+                let ty = self.llvm.opaque_struct_type("String");
+                ty.set_body(
+                    &[
+                        self.llvm.i32_type().into(),
+                        self.llvm.i8_type().ptr_type(AddressSpace::Generic).into(),
+                    ],
+                    false,
+                );
+                vars.string_type = Some(ty);
+                ty
+            }
+        }
+    }
+
+    // type of toplevel or builtin functions - ie no env ptr needed
+    pub fn known_fn_type(&self, vars: &mut Vars<'ctx>, ty: &FnType) -> FunctionType<'ctx> {
+        let FnType { params, ret } = ty;
+        let params = params
+            .iter()
+            .map(|ty| self.value_type(vars, ty))
+            .collect::<Vec<_>>();
+
+        if ret.as_ref() == &Type::NEVER {
+            self.llvm.void_type().fn_type(&params, false)
+        } else {
+            self.value_type(vars, ret).fn_type(&params, false)
         }
     }
 
@@ -35,8 +75,8 @@ impl<'ctx> Compiler<'ctx> {
         }
     }
 
-    pub fn closure_type(&self, vars: &mut Vars<'ctx>, ty: &FnType) -> BasicTypeEnum<'ctx> {
-        let struct_type = self.llvm.struct_type(
+    pub fn closure_type(&self, vars: &mut Vars<'ctx>, ty: &FnType) -> StructType<'ctx> {
+        self.llvm.struct_type(
             &[
                 self.fn_type(vars, ty)
                     .ptr_type(AddressSpace::Generic)
@@ -44,8 +84,7 @@ impl<'ctx> Compiler<'ctx> {
                 self.void_ptr_type(),
             ],
             false,
-        );
-        struct_type.into()
+        )
     }
 
     pub fn tuple_type(&self, vars: &mut Vars<'ctx>, tys: &[Type]) -> StructType<'ctx> {

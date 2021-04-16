@@ -1,0 +1,25 @@
+---
+source: crates/walrus-codegen/src/tests.rs
+expression: module
+
+---
+; ModuleID = 'module'
+source_filename = "module"
+
+%String = type { i32, i8* }
+
+@string = private unnamed_addr constant [2 x i8] c"a\00", align 1
+
+define {} @main() {
+main.entry:
+  %f.alloca = alloca { {} (i8*, %String)*, i8* }, align 8
+  store { {} (i8*, %String)*, i8* } { {} (i8*, %String)* bitcast ({} (%String)* @builtin_print to {} (i8*, %String)*), i8* null }, { {} (i8*, %String)*, i8* }* %f.alloca, align 8
+  %f = load { {} (i8*, %String)*, i8* }, { {} (i8*, %String)*, i8* }* %f.alloca, align 8
+  %closure.code = extractvalue { {} (i8*, %String)*, i8* } %f, 0
+  %closure.env = extractvalue { {} (i8*, %String)*, i8* } %f, 1
+  %lambda.call = call {} %closure.code(i8* %closure.env, %String { i32 1, i8* getelementptr inbounds ([2 x i8], [2 x i8]* @string, i32 0, i32 0) })
+  ret {} %lambda.call
+}
+
+declare {} @builtin_print(%String)
+

@@ -102,7 +102,7 @@ fn assign_expr(input: Input) -> IResult<Expr> {
 fn or_op(input: Input) -> IResult<Binop> { or_or.map(Binop::Or).parse(input) }
 fn or_expr(input: Input) -> IResult<Expr> {
     let (input, init) = and_expr.parse(input)?;
-    fold_many0(pair(or_op, add_expr), init, |lhs, (op, rhs)| {
+    fold_many0(pair(or_op, and_expr), init, |lhs, (op, rhs)| {
         Expr::Binary(BinaryExpr {
             lhs: box lhs,
             op,
@@ -114,7 +114,7 @@ fn or_expr(input: Input) -> IResult<Expr> {
 fn and_op(input: Input) -> IResult<Binop> { and_and.map(Binop::And).parse(input) }
 fn and_expr(input: Input) -> IResult<Expr> {
     let (input, init) = cmp_expr.parse(input)?;
-    fold_many0(pair(and_op, add_expr), init, |lhs, (op, rhs)| {
+    fold_many0(pair(and_op, cmp_expr), init, |lhs, (op, rhs)| {
         Expr::Binary(BinaryExpr {
             lhs: box lhs,
             op,

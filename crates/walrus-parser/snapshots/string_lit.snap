@@ -1,0 +1,16 @@
+---
+source: crates/walrus-parser/src/grammar.rs
+expression: got
+
+---
+Ok(
+    (
+        [],
+        String(
+            String {
+                span: 0..8,
+                text: "\"abcdef\"",
+            },
+        ),
+    ),
+)

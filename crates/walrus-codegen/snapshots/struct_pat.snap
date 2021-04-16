@@ -8,21 +8,7 @@ source_filename = "module"
 
 %Foo = type { i32, i32 }
 
-define void @builtins.exit.wrapper(i8* %env, i32 %status) {
-  call void @exit(i32 %status)
-  unreachable
-}
-
-declare void @exit(i32)
-
-define i32 @builtins.putchar.wrapper(i8* %env, i32 %c) {
-  %1 = call i32 @putchar(i32 %c)
-  ret i32 %1
-}
-
-declare i32 @putchar(i32)
-
-define i32 @main(i8* %main.env) {
+define i32 @main() {
 main.entry:
   %Foo.alloca = alloca %Foo, align 8
   %Foo.x.gep = getelementptr inbounds %Foo, %Foo* %Foo.alloca, i32 0, i32 0
@@ -38,7 +24,7 @@ main.entry:
   store i32 %Foo.x, i32* %x.alloca, align 4
   %y = load i32, i32* %y.alloca, align 4
   %x = load i32, i32* %x.alloca, align 4
-  %0 = sub i32 %y, %x
-  ret i32 %0
+  %Int.sub = sub i32 %y, %x
+  ret i32 %Int.sub
 }
 

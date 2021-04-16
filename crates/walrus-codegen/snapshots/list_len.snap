@@ -8,21 +8,7 @@ source_filename = "module"
 
 %List = type { i8, { i32, %List* } }
 
-define void @builtins.exit.wrapper(i8* %env, i32 %status) {
-  call void @exit(i32 %status)
-  unreachable
-}
-
-declare void @exit(i32)
-
-define i32 @builtins.putchar.wrapper(i8* %env, i32 %c) {
-  %1 = call i32 @putchar(i32 %c)
-  ret i32 %1
-}
-
-declare i32 @putchar(i32)
-
-define i32 @length(i8* %length.env, %List %length.params.0) {
+define i32 @length(%List %length.params.0) {
 length.entry:
   %l.alloca = alloca %List, align 8
   store %List %length.params.0, %List* %l.alloca, align 8
@@ -73,28 +59,20 @@ match.case1.then:                                 ; preds = %"match.case1.List::
   %"List::Cons.tail.load" = load %List, %List* %"List::Cons.tail", align 8
   %tail.alloca = alloca %List, align 8
   store %List %"List::Cons.tail.load", %List* %tail.alloca, align 8
-  %length.closure.alloca = alloca { i32 (i8*, %List)*, i8* }, align 8
-  %length.closure.code = getelementptr inbounds { i32 (i8*, %List)*, i8* }, { i32 (i8*, %List)*, i8* }* %length.closure.alloca, i32 0, i32 0
-  store i32 (i8*, %List)* @length, i32 (i8*, %List)** %length.closure.code, align 8
-  %length.closure.env = getelementptr inbounds { i32 (i8*, %List)*, i8* }, { i32 (i8*, %List)*, i8* }* %length.closure.alloca, i32 0, i32 1
-  store i8* null, i8** %length.closure.env, align 8
-  %length = load { i32 (i8*, %List)*, i8* }, { i32 (i8*, %List)*, i8* }* %length.closure.alloca, align 8
-  %closure.code = extractvalue { i32 (i8*, %List)*, i8* } %length, 0
-  %closure.env = extractvalue { i32 (i8*, %List)*, i8* } %length, 1
   %tail = load %List, %List* %tail.alloca, align 8
-  %call = call i32 %closure.code(i8* %closure.env, %List %tail)
-  %0 = add i32 1, %call
+  %length.call = call i32 @length(%List %tail)
+  %Int.add = add i32 1, %length.call
   br label %match.end
 
 match.fail:                                       ; preds = %"match.case1.List::Cons.end"
   unreachable
 
 match.end:                                        ; preds = %match.case0.then, %match.case1.then
-  %match.phi = phi i32 [ %0, %match.case1.then ], [ 0, %match.case0.then ]
+  %match.phi = phi i32 [ %Int.add, %match.case1.then ], [ 0, %match.case0.then ]
   ret i32 %match.phi
 }
 
-define i32 @main(i8* %main.env) {
+define i32 @main() {
 main.entry:
   %List.alloca = alloca %List, align 8
   %List.discriminant.gep = getelementptr inbounds %List, %List* %List.alloca, i32 0, i32 0
@@ -127,17 +105,9 @@ main.entry:
   %List.load12 = load %List, %List* %List.alloca, align 8
   %l.alloca = alloca %List, align 8
   store %List %List.load12, %List* %l.alloca, align 8
-  %length.closure.alloca = alloca { i32 (i8*, %List)*, i8* }, align 8
-  %length.closure.code = getelementptr inbounds { i32 (i8*, %List)*, i8* }, { i32 (i8*, %List)*, i8* }* %length.closure.alloca, i32 0, i32 0
-  store i32 (i8*, %List)* @length, i32 (i8*, %List)** %length.closure.code, align 8
-  %length.closure.env = getelementptr inbounds { i32 (i8*, %List)*, i8* }, { i32 (i8*, %List)*, i8* }* %length.closure.alloca, i32 0, i32 1
-  store i8* null, i8** %length.closure.env, align 8
-  %length = load { i32 (i8*, %List)*, i8* }, { i32 (i8*, %List)*, i8* }* %length.closure.alloca, align 8
-  %closure.code = extractvalue { i32 (i8*, %List)*, i8* } %length, 0
-  %closure.env = extractvalue { i32 (i8*, %List)*, i8* } %length, 1
   %l = load %List, %List* %l.alloca, align 8
-  %call = call i32 %closure.code(i8* %closure.env, %List %l)
-  ret i32 %call
+  %length.call = call i32 @length(%List %l)
+  ret i32 %length.call
 }
 
 declare noalias i8* @malloc(i32)

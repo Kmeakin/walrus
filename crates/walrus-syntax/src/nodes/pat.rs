@@ -3,7 +3,7 @@ use super::*;
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Pat {
     Lit(Lit),
-    Var(Var),
+    Var { kw_mut: Option<KwMut>, var: Var },
     Ignore(Underscore),
     Paren(Paren<Self>),
     Tuple(Tuple<Self>),
@@ -15,7 +15,10 @@ impl Pat {
     pub fn span(&self) -> Span {
         match self {
             Pat::Lit(lit) => lit.span(),
-            Pat::Var(var) => var.span(),
+            Pat::Var { kw_mut, var } => match kw_mut {
+                Some(kw_mut) => kw_mut.span.cover(var.span()),
+                None => var.span(),
+            },
             Pat::Ignore(pat) => pat.span,
             Pat::Paren(pat) => pat.span(),
             Pat::Tuple(pat) => pat.span(),

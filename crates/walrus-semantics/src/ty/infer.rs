@@ -2,7 +2,7 @@
 
 use super::{unify::InferenceTable, Type, *};
 use crate::{
-    builtins::BuiltinKind,
+    builtins::Builtin,
     diagnostic::Diagnostic,
     hir,
     hir::*,
@@ -166,24 +166,24 @@ impl Ctx {
     fn resolve_var(&mut self, id: VarId, mode: VarMode) -> Type {
         let var = &self.hir[id];
         let denotation = self.scopes.lookup_var(id, var);
-        let ty = match (mode, denotation) {
-            (VarMode::Value, Some(Denotation::Builtin(b))) if b.kind() == BuiltinKind::Type => {
-                b.ty()
+        let ty = match (mode, &denotation) {
+            (VarMode::Value, Some(Denotation::Builtin(Builtin::Fn { ty, .. }))) => {
+                ty.clone().into()
             }
-            (VarMode::Value, Some(Denotation::Local(id))) => self.result[id].clone(),
-            (VarMode::Value, Some(Denotation::Fn(id))) => self.result[id].clone().into(),
+            (VarMode::Value, Some(Denotation::Local(id))) => self.result[*id].clone(),
+            (VarMode::Value, Some(Denotation::Fn(id))) => self.result[*id].clone().into(),
 
-            (VarMode::Type, Some(Denotation::Builtin(b))) if b.kind() == BuiltinKind::Type => {
-                b.ty()
+            (VarMode::Type, Some(Denotation::Builtin(Builtin::Type { ty, .. }))) => {
+                ty.clone().into()
             }
-            (VarMode::Type | VarMode::Struct, Some(Denotation::Struct(id))) => Type::Struct(id),
-            (VarMode::Type | VarMode::Enum, Some(Denotation::Enum(id))) => Type::Enum(id),
+            (VarMode::Type | VarMode::Struct, Some(Denotation::Struct(id))) => Type::Struct(*id),
+            (VarMode::Type | VarMode::Enum, Some(Denotation::Enum(id))) => Type::Enum(*id),
 
             _ => {
                 self.result.diagnostics.push(Diagnostic::UnboundVar {
                     var: id,
                     mode,
-                    denotation,
+                    denotation: denotation.clone(),
                 });
                 Type::Unknown
             }
@@ -427,7 +427,7 @@ impl Ctx {
         let ty = match pat {
             Pat::Lit(lit) => lit.ty(),
             Pat::Ignore => expected.clone(),
-            Pat::Var(var) => {
+            Pat::Var { var, .. } => {
                 self.set_var_type(var, expected.clone());
                 expected.clone()
             }
@@ -791,6 +791,54 @@ impl Ctx {
         op.return_type(&lhs_type)
     }
 
+    fn check_assign_var(&mut self, var: VarId) {
+        let denotation = self.scopes.lookup_var(var, &self.hir[var]);
+        match denotation {
+            Some(Denotation::Local(def_idx)) => {
+                let def = &self.hir[def_idx];
+                if !def.is_mut {
+                    self.result.diagnostics.push(Diagnostic::NotMutable {
+                        def: def_idx,
+                        usage: var,
+                    });
+                }
+            }
+            Some(denotation) => self
+                .result
+                .diagnostics
+                .push(Diagnostic::NotLocal { var, denotation }),
+            None => {
+                self.result.diagnostics.push(Diagnostic::UnboundVar {
+                    var,
+                    mode: VarMode::Value,
+                    denotation,
+                });
+            }
+        }
+    }
+
+    fn check_assign_field(&mut self, base: ExprId) {
+        let base = self.hir[base].clone();
+        match base {
+            Expr::Var(var) => self.check_assign_var(var),
+            Expr::Field { expr, .. } => self.check_assign_field(expr),
+            _ => unreachable!("Already checked that the expr was an lvalue"),
+        }
+    }
+
+    fn check_assign_expr(&mut self, lhs: ExprId) {
+        let expr = &self.hir[lhs].clone();
+        if expr.is_lvalue(&self.hir) {
+            match expr {
+                Expr::Var(var) => self.check_assign_var(*var),
+                Expr::Field { expr, .. } => self.check_assign_field(*expr),
+                _ => unreachable!("Already checked that the expr was an lvalue"),
+            }
+        } else {
+            self.result.diagnostics.push(Diagnostic::NotLValue { lhs });
+        }
+    }
+
     fn infer_binop_expr(
         &mut self,
         parent_expr: ExprId,
@@ -798,15 +846,14 @@ impl Ctx {
         lhs: ExprId,
         rhs: ExprId,
     ) -> Type {
-        if let Binop::Assign = op {
-            if !self.hir[lhs].is_lvalue(&self.hir) {
-                self.result.diagnostics.push(Diagnostic::NotLValue { lhs });
-            }
-        }
-
         let lhs_expectation = op.lhs_expectation();
         let lhs_type = self.infer_expr(&lhs_expectation, lhs);
-        let rhs_expectation = op.rhs_expectation(&lhs_type);
+
+        if let Binop::Assign = op {
+            self.check_assign_expr(lhs);
+        }
+
+        let rhs_expectation = self.rhs_expectation(op, &lhs_type);
         if lhs_type != Type::Unknown && rhs_expectation == Type::Unknown {
             self.result.diagnostics.push(Diagnostic::CannotApplyBinop {
                 expr: parent_expr,
@@ -883,15 +930,36 @@ impl Ctx {
             None => Type::UNIT,
         }
     }
+
+    fn rhs_expectation(&self, op: Binop, lhs_type: &Type) -> Type {
+        match op {
+            Binop::Lazy(LazyBinop::And | LazyBinop::Or) => Type::BOOL,
+            Binop::Assign => lhs_type.clone(),
+            Binop::Cmp(CmpBinop::Eq | CmpBinop::NotEq)
+                if lhs_type.is_eq(&self.hir, &self.result) =>
+            {
+                lhs_type.clone()
+            }
+            Binop::Cmp(
+                CmpBinop::Greater | CmpBinop::GreaterEq | CmpBinop::Less | CmpBinop::LessEq,
+            ) if lhs_type.is_ord(&self.hir, &self.result) => lhs_type.clone(),
+            Binop::Arithmetic(ArithmeticBinop::Add) if lhs_type == &Type::STRING => {
+                lhs_type.clone()
+            }
+            Binop::Arithmetic(_) if lhs_type.is_num() => lhs_type.clone(),
+            _ => Type::Unknown,
+        }
+    }
 }
 
 impl Lit {
-    const fn ty(self) -> Type {
+    const fn ty(&self) -> Type {
         match self {
             Self::Bool(_) => Type::BOOL,
             Self::Int(_) => Type::INT,
             Self::Float(_) => Type::FLOAT,
             Self::Char(_) => Type::CHAR,
+            Self::String(_) => Type::STRING,
         }
     }
 }
@@ -906,7 +974,8 @@ impl Unop {
 
     fn return_type(self, lhs_type: &Type) -> Type {
         match self {
-            Self::Add | Self::Sub => lhs_type.clone(),
+            Self::Add | Self::Sub if lhs_type.is_num() => lhs_type.clone(),
+            Self::Add | Self::Sub => Type::Unknown,
             Self::Not => Type::BOOL,
         }
     }
@@ -916,13 +985,6 @@ impl Binop {
         match self {
             Self::Lazy(LazyBinop::And | LazyBinop::Or) => Type::BOOL,
             Self::Arithmetic(_) | Self::Cmp(_) | Self::Assign => Type::Unknown,
-        }
-    }
-
-    fn rhs_expectation(self, lhs_type: &Type) -> Type {
-        match self {
-            Self::Lazy(LazyBinop::And | LazyBinop::Or) => Type::BOOL,
-            Self::Arithmetic(_) | Self::Cmp(_) | Self::Assign => lhs_type.clone(),
         }
     }
 

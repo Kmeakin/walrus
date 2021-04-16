@@ -1,6 +1,7 @@
 ---
 source: crates/walrus-parser/src/grammar.rs
 expression: got
+
 ---
 Ok(
     (
@@ -10,14 +11,15 @@ Ok(
                 open: LParen {
                     span: 0..1,
                 },
-                inner: Var(
-                    Var(
+                inner: Var {
+                    kw_mut: None,
+                    var: Var(
                         Ident {
                             span: 1..2,
                             text: "x",
                         },
                     ),
-                ),
+                },
                 close: RParen {
                     span: 2..3,
                 },

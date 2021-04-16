@@ -1,6 +1,6 @@
 use super::*;
 use crate::diagnostic::LitError;
-use ordered_float::OrderedFloat;
+use std::convert::TryInto;
 use syntax::{EnumPat, Span, StructPat};
 
 pub fn lower(syntax: &syntax::SourceFile) -> Module {
@@ -75,7 +75,7 @@ impl Ctx {
 
 impl Ctx {
     fn lower_var(&mut self, syntax: syntax::Var) -> VarId {
-        let hir = Var(syntax.0.text.clone());
+        let hir = Var::from(syntax.clone());
         self.alloc_var(syntax, hir)
     }
 
@@ -178,7 +178,12 @@ impl Ctx {
     fn lower_pat(&mut self, syntax: &syntax::Pat) -> PatId {
         let hir = match syntax {
             syntax::Pat::Lit(lit) => Pat::Lit(self.lower_lit(lit)),
-            syntax::Pat::Var(var) => Pat::Var(self.lower_var(var.clone())),
+            syntax::Pat::Var { kw_mut, var } => {
+                let is_mut = kw_mut.is_some();
+                let hir = Var::new_with_mutability(var.0.text.clone(), is_mut);
+                let var = self.alloc_var(var.clone(), hir);
+                Pat::Var { var, is_mut }
+            }
             syntax::Pat::Ignore(_) => Pat::Ignore,
             syntax::Pat::Paren(pat) => return self.lower_pat(&pat.inner),
             syntax::Pat::Tuple(pats) => {
@@ -374,6 +379,7 @@ impl Ctx {
             Int(IntLit::Hex(int)) => Lit::Int(self.lower_int(span, &int.text["0x".len()..], 16)),
             Float(FloatLit(float)) => Lit::Float(self.lower_float(span, &float.text)),
             Char(c) => Lit::Char(self.lower_char(span, c)),
+            String(s) => Lit::String(self.lower_string(s)),
         }
     }
 
@@ -391,16 +397,16 @@ impl Ctx {
         }
     }
 
-    fn lower_float(&mut self, span: Span, text: &str) -> OrderedFloat<f32> {
+    fn lower_float(&mut self, span: Span, text: &str) -> f32 {
         let text = text.replace("_", "");
         match text.parse() {
-            Ok(x) => OrderedFloat(x),
+            Ok(x) => x,
             Err(err) => {
                 self.diagnostics.push(Diagnostic::BadLit {
                     err: LitError::Float(err),
                     span,
                 });
-                OrderedFloat(0.0)
+                0.0
             }
         }
     }
@@ -411,28 +417,16 @@ impl Ctx {
         match c {
             Simple(c) => c.text.chars().nth(1).unwrap(),
             Escaped(c) => {
+                let span_start: usize = span.start().into();
+                let span_end = span_start + 2;
+                let span = Span::new(span_start.try_into().unwrap(), span_end.try_into().unwrap());
                 let c = c.text.chars().nth(2).unwrap();
-                match c {
-                    'n' => '\n',
-                    'r' => '\r',
-                    't' => '\t',
-                    '\\' => '\\',
-                    '0' => '\0',
-                    '\'' => '\'',
-                    '"' => '"',
-                    _ => {
-                        self.diagnostics.push(Diagnostic::BadLit {
-                            err: LitError::EscapeChar(c),
-                            span,
-                        });
-                        '\0'
-                    }
-                }
+                self.lower_escaped_char(span, c)
             }
             Unicode(c) => {
                 let text = &c.text;
                 let len = text.len();
-                let digits = &text["'\\u".len()..len - "'".len()];
+                let digits = &text["'\\u{".len()..len - "}'".len()];
                 let val = self.lower_int(span, digits, 16);
                 match std::char::from_u32(val) {
                     Some(c) => c,
@@ -446,5 +440,46 @@ impl Ctx {
                 }
             }
         }
+    }
+
+    fn lower_escaped_char(&mut self, span: Span, c: char) -> char {
+        match c {
+            'n' => '\n',
+            'r' => '\r',
+            't' => '\t',
+            '\\' => '\\',
+            '0' => '\0',
+            '\'' => '\'',
+            '"' => '"',
+            _ => {
+                self.diagnostics.push(Diagnostic::BadLit {
+                    err: LitError::EscapeChar(c),
+                    span,
+                });
+                '\0'
+            }
+        }
+    }
+
+    fn lower_string(&mut self, syntax: &syntax::String) -> SmolStr {
+        let mut s = String::new();
+        let text = &syntax.text;
+        let text = &text[1..text.len() - 1]; // trim start and end quote
+        let mut chars = text.char_indices();
+        let span = syntax.span;
+
+        while let Some((idx, c)) = chars.next() {
+            if c == '\\' {
+                let span_start: usize = span.start().into();
+                let span_end = span_start + idx + 2;
+                let span = Span::new(span_start.try_into().unwrap(), span_end.try_into().unwrap());
+                let (_, c) = chars.next().unwrap();
+                s.push(self.lower_escaped_char(span, c));
+            } else {
+                s.push(c);
+            }
+        }
+
+        s.into()
     }
 }

@@ -1,6 +1,7 @@
 use crate::{builtins::Builtin, diagnostic::Diagnostic, hir::*};
 use arena::{Arena, ArenaMap, Idx};
-use std::collections::HashMap;
+use smol_str::SmolStr;
+use std::{collections::HashMap, fmt::Display};
 
 pub fn scopes(module: &Module) -> Scopes {
     let mut scopes = Scopes::new();
@@ -9,17 +10,29 @@ pub fn scopes(module: &Module) -> Scopes {
 }
 
 pub type ScopeId = Idx<Scope>;
-pub type Denotations = HashMap<Var, Denotation>;
-type Vars = HashMap<Var, VarId>;
+pub type Denotations = HashMap<SmolStr, Denotation>;
+type Vars = HashMap<SmolStr, VarId>;
 type LambdaDepth = u32;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Denotation {
     Local(VarId),
     Fn(FnDefId),
     Struct(StructDefId),
     Enum(EnumDefId),
     Builtin(Builtin),
+}
+
+impl Display for Denotation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Denotation::Local(_) => write!(f, "local variable"),
+            Denotation::Fn(_) => write!(f, "function"),
+            Denotation::Struct(_) => write!(f, "struct"),
+            Denotation::Enum(_) => write!(f, "enum"),
+            Denotation::Builtin(b) => write!(f, "{}", b),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -48,8 +61,8 @@ impl Scopes {
 
     fn lookup_in_scope(&self, scope: ScopeId, var: &Var) -> Option<Denotation> {
         self.scope_chain(scope)
-            .find_map(|scope| self.scopes[scope].denotations.get(var))
-            .copied()
+            .find_map(|scope| self.scopes[scope].denotations.get(var.as_str()))
+            .cloned()
             .or_else(|| Builtin::lookup(var).map(Denotation::Builtin))
     }
 
@@ -127,16 +140,18 @@ impl Scopes {
     ) {
         let var = hir[id].clone();
         if self.insert_var(hir, vars, id) {
-            self.scopes[self.scope].denotations.insert(var, denotation);
+            self.scopes[self.scope]
+                .denotations
+                .insert(var.into_string(), denotation);
         }
     }
 
     fn insert_var(&mut self, hir: &HirData, vars: &mut Vars, id: VarId) -> bool {
         self.set_scope_of_var(id, self.scope);
         let var = hir[id].clone();
-        match vars.get(&var) {
+        match vars.get(var.as_str()) {
             None => {
-                vars.insert(var, id);
+                vars.insert(var.into_string(), id);
                 true
             }
             Some(first) => {
@@ -218,7 +233,9 @@ impl Scopes {
         self.set_scope_of_pat(id, self.scope);
         let pat = &hir[id];
         match pat {
-            Pat::Var(var) => self.insert_denotation(hir, vars, *var, Denotation::Local(*var)),
+            Pat::Var { var, .. } => {
+                self.insert_denotation(hir, vars, *var, Denotation::Local(*var))
+            }
             Pat::Struct { name, fields, .. } | Pat::Enum { name, fields, .. } => {
                 self.set_scope_of_var(*name, self.scope);
                 let mut seen_fields = Vars::new();

@@ -1,7 +1,6 @@
 use crate::{diagnostic::Diagnostic, syntax};
 use arena::{Arena, ArenaMap, Idx};
 use derive_more::Display;
-use ordered_float::OrderedFloat;
 use smol_str::SmolStr;
 use std::{fmt, ops::Index};
 
@@ -19,25 +18,44 @@ pub type TypeId = Idx<Type>;
 pub type PatId = Idx<Pat>;
 
 #[derive(Clone, PartialEq, Eq, Hash)]
-pub struct Var(SmolStr);
+pub struct Var {
+    pub is_mut: bool,
+    var: SmolStr,
+}
 
 impl Var {
-    pub fn new(s: impl Into<SmolStr>) -> Self { Self(s.into()) }
-    pub fn as_str(&self) -> &str { &self.0 }
+    pub fn new(s: impl Into<SmolStr>) -> Self {
+        Self {
+            is_mut: false,
+            var: s.into(),
+        }
+    }
+    pub fn new_with_mutability(s: impl Into<SmolStr>, is_mut: bool) -> Self {
+        Self {
+            is_mut,
+            var: s.into(),
+        }
+    }
+
+    pub fn as_str(&self) -> &str { &self.var }
+    pub const fn as_string(&self) -> &SmolStr { &self.var }
+
+    #[allow(clippy::missing_const_for_fn)]
+    pub fn into_string(self) -> SmolStr { self.var }
 }
 
 impl fmt::Debug for Var {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "{:?}", self.0) }
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "{:?}", self.var) }
 }
 impl fmt::Display for Var {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "{}", self.0) }
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "{}", self.var) }
 }
 
 impl From<syntax::Var> for Var {
-    fn from(var: syntax::Var) -> Self { Self(var.0.text) }
+    fn from(var: syntax::Var) -> Self { Self::new(var.0.text) }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Module {
     pub decls: Vec<Decl>,
     pub hir: HirData,
@@ -45,7 +63,7 @@ pub struct Module {
     pub diagnostics: Vec<Diagnostic>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct HirData {
     pub vars: Arena<Var>,
     pub fn_defs: Arena<FnDef>,
@@ -205,7 +223,7 @@ pub struct Param {
     pub ty: Option<TypeId>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
     Lit(Lit),
     Var(VarId),
@@ -341,6 +359,19 @@ pub enum CmpBinop {
     GreaterEq,
 }
 
+impl CmpBinop {
+    pub const fn name(self) -> &'static str {
+        match self {
+            CmpBinop::Eq => "eq",
+            CmpBinop::NotEq => "not_eq",
+            CmpBinop::Less => "less",
+            CmpBinop::LessEq => "less_eq",
+            CmpBinop::Greater => "greater",
+            CmpBinop::GreaterEq => "greater_eq",
+        }
+    }
+}
+
 impl From<syntax::Unop> for Unop {
     fn from(op: syntax::Unop) -> Self {
         match op {
@@ -380,18 +411,22 @@ pub enum Stmt {
     Expr(ExprId),
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Lit {
     Bool(bool),
     Int(u32),
-    Float(OrderedFloat<f32>),
+    Float(f32),
     Char(char),
+    String(SmolStr),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Pat {
     Lit(Lit),
-    Var(VarId),
+    Var {
+        is_mut: bool,
+        var: VarId,
+    },
     Ignore,
     Tuple(Vec<PatId>),
     Struct {
@@ -408,7 +443,7 @@ pub enum Pat {
 impl Pat {
     pub fn is_infalliable(&self, hir: &HirData) -> bool {
         match self {
-            Self::Lit(_) | Self::Var(_) | Self::Ignore => true,
+            Self::Lit(_) | Self::Var { .. } | Self::Ignore => true,
             Self::Tuple(pats) => pats.iter().all(|pat| hir[*pat].is_infalliable(hir)),
             Self::Struct { fields, .. } => fields
                 .iter()

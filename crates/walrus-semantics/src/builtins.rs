@@ -1,99 +1,116 @@
-use crate::{hir::Var, ty::Type};
-use std::fmt;
+use crate::{
+    hir::Var,
+    ty::{FnType, PrimitiveType, Type},
+};
+use std::fmt::Display;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum BuiltinKind {
-    Type,
-    Value,
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Builtin {
+    Type {
+        name: &'static str,
+        ty: PrimitiveType,
+    },
+    Fn {
+        name: &'static str,
+        ty: FnType,
+    },
 }
 
-macro_rules! builtins {
-    (
-        $(
-            $id:ident {
-                name: $name:expr,
-                kind: $kind:expr,
-                ty: $ty:expr,
-            }
-        ),*
-    ) => {
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-        pub enum Builtin {
-            $($id),*
+impl Builtin {
+    pub fn lookup(var: &Var) -> Option<Self> {
+        Self::all()
+            .iter()
+            .find(|b| b.name() == var.as_str())
+            .cloned()
+    }
+
+    pub const fn name(&self) -> &str {
+        match self {
+            Builtin::Type { name, .. } | Builtin::Fn { name, .. } => name,
         }
+    }
 
-        impl Builtin {
-            pub const fn name(self) -> &'static str {
-                match self {
-                    $(Self::$id => $name),*
-                }
-            }
-
-            pub const fn kind(self) -> BuiltinKind {
-                match self {
-                    $(Self::$id => $kind),*
-                }
-            }
-
-            pub fn ty(self) -> Type {
-                match self {
-                    $(Self::$id => $ty),*
-                }
-            }
-
-            pub fn lookup(var: &Var) -> Option<Self>{
-                let builtin = match var.as_str() {
-                    $($name => Self::$id),*,
-                    _ => return None,
-                };
-                Some(builtin)
-            }
-
-            pub const fn all() -> &'static [Self] {
-                &[$(Self::$id),*]
-            }
+    pub fn ty(self) -> Type {
+        match self {
+            Self::Type { ty, .. } => ty.into(),
+            Self::Fn { ty, .. } => ty.into(),
         }
-    };
-}
+    }
 
-builtins! {
-    Bool {
-        name: "Bool",
-        kind: BuiltinKind::Type,
-        ty: Type::BOOL,
-    },
-    Int {
-        name: "Int",
-        kind: BuiltinKind::Type,
-        ty: Type::INT,
-    },
-    Float {
-        name: "Float",
-        kind: BuiltinKind::Type,
-        ty: Type::FLOAT,
-    },
-    Char {
-        name: "Char",
-        kind: BuiltinKind::Type,
-        ty: Type::CHAR,
-    },
-    Never {
-        name: "Never",
-        kind: BuiltinKind::Type,
-        ty: Type::NEVER,
-    },
-    Exit {
-        name: "exit",
-        kind: BuiltinKind::Value,
-        ty: Type::function(vec![Type::INT], Type::NEVER),
-    },
-    PutChar {
-        name: "putchar",
-        kind: BuiltinKind::Value,
-        ty: Type::function(vec![Type::CHAR], Type::CHAR),
+    pub const fn is_type(&self) -> bool { matches!(self, Self::Type { .. }) }
+    pub const fn is_value(&self) -> bool { matches!(self, Self::Fn { .. }) }
+
+    pub fn all() -> Vec<Self> {
+        vec![
+            Self::Type {
+                name: "Bool",
+                ty: PrimitiveType::Bool,
+            },
+            Self::Type {
+                name: "Int",
+                ty: PrimitiveType::Int,
+            },
+            Self::Type {
+                name: "Float",
+                ty: PrimitiveType::Float,
+            },
+            Self::Type {
+                name: "Char",
+                ty: PrimitiveType::Char,
+            },
+            Self::Type {
+                name: "String",
+                ty: PrimitiveType::String,
+            },
+            Self::Type {
+                name: "Never",
+                ty: PrimitiveType::Never,
+            },
+            Self::Fn {
+                name: "exit",
+                ty: FnType::new(&[Type::INT], Type::NEVER),
+            },
+            Self::Fn {
+                name: "print",
+                ty: FnType::new(&[Type::STRING], Type::UNIT),
+            },
+            Self::Fn {
+                name: "print_error",
+                ty: FnType::new(&[Type::STRING], Type::UNIT),
+            },
+            Self::Fn {
+                name: "string_length",
+                ty: FnType::new(&[Type::STRING], Type::INT),
+            },
+            Self::Fn {
+                name: "bool_to_string",
+                ty: FnType::new(&[Type::BOOL], Type::STRING),
+            },
+            Self::Fn {
+                name: "int_to_string",
+                ty: FnType::new(&[Type::INT], Type::STRING),
+            },
+            Self::Fn {
+                name: "float_to_string",
+                ty: FnType::new(&[Type::FLOAT], Type::STRING),
+            },
+            Self::Fn {
+                name: "char_to_string",
+                ty: FnType::new(&[Type::CHAR], Type::STRING),
+            },
+            Self::Fn {
+                name: "string_append",
+                ty: FnType::new(&[Type::STRING, Type::STRING], Type::STRING),
+            },
+        ]
     }
 }
 
-impl fmt::Display for Builtin {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "{}", self.name()) }
+impl Display for Builtin {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Builtin::Type { .. } => write!(f, "builtin type"),
+            Builtin::Fn { .. } => write!(f, "builtin function"),
+        }
+    }
 }

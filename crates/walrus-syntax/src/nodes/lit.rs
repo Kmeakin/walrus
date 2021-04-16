@@ -4,6 +4,7 @@ use super::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Lit {
+    String(String),
     Bool(BoolLit),
     Int(IntLit),
     Float(FloatLit),
@@ -13,6 +14,7 @@ pub enum Lit {
 impl Lit {
     pub const fn span(&self) -> Span {
         match self {
+            Lit::String(string) => string.span,
             Lit::Bool(bool) => bool.span(),
             Lit::Int(int) => int.span(),
             Lit::Float(float) => float.span(),

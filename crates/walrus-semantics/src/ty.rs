@@ -18,6 +18,16 @@ pub enum Type {
     Unknown,
 }
 
+impl From<PrimitiveType> for Type {
+    fn from(other: PrimitiveType) -> Self { Self::Primitive(other) }
+}
+impl From<FnType> for Type {
+    fn from(other: FnType) -> Self { Self::Fn(other) }
+}
+impl From<InferType> for Type {
+    fn from(other: InferType) -> Self { Self::Infer(other) }
+}
+
 impl Type {
     pub const fn is_integral(&self) -> bool {
         matches!(
@@ -26,8 +36,66 @@ impl Type {
         )
     }
 
-    pub const fn is_floating(&self) -> bool {
-        matches!(self, Type::Primitive(PrimitiveType::Float))
+    /// Can comparisons (==, !=) be performed on this type?
+    pub fn is_eq(&self, hir: &HirData, types: &InferenceResult) -> bool {
+        match self {
+            Type::Primitive(_) => true,
+            Type::Fn(_) => false,
+            Type::Struct(id) => {
+                let struct_def = &hir[*id];
+                struct_def
+                    .fields
+                    .iter()
+                    .all(|field| types[field.ty].is_eq(hir, types))
+            }
+            Type::Enum(id) => {
+                let enum_def = &hir[*id];
+                enum_def.variants.iter().all(|variant| {
+                    variant
+                        .fields
+                        .iter()
+                        .all(|field| types[field.ty].is_eq(hir, types))
+                })
+            }
+            Type::Tuple(tys) => tys.iter().all(|ty| ty.is_eq(hir, types)),
+            Type::Infer(_) | Type::Unknown => true,
+        }
+    }
+
+    /// Can ordering (<, <=, >, >=) be performed on this type?
+    pub fn is_ord(&self, hir: &HirData, types: &InferenceResult) -> bool {
+        match self {
+            Type::Primitive(_) => true,
+            Type::Fn(_) => false,
+            Type::Struct(id) => {
+                let struct_def = &hir[*id];
+                struct_def
+                    .fields
+                    .iter()
+                    .all(|field| types[field.ty].is_ord(hir, types))
+            }
+            Type::Enum(id) => {
+                let enum_def = &hir[*id];
+                enum_def.variants.iter().all(|variant| {
+                    variant
+                        .fields
+                        .iter()
+                        .all(|field| types[field.ty].is_ord(hir, types))
+                })
+            }
+            Type::Tuple(tys) => tys.iter().all(|ty| ty.is_ord(hir, types)),
+            Type::Infer(_) | Type::Unknown => true,
+        }
+    }
+
+    /// Can airthmetic (+, -, *, /) be performed on this type?
+    pub const fn is_num(&self) -> bool {
+        matches!(
+            self,
+            Type::Primitive(PrimitiveType::Int | PrimitiveType::Float)
+                | Type::Infer(_)
+                | Type::Unknown
+        )
     }
 
     pub const fn is_int(&self) -> bool { matches!(self, Type::Primitive(PrimitiveType::Int)) }
@@ -71,6 +139,13 @@ pub struct FnType {
 }
 
 impl FnType {
+    pub fn new(params: &[Type], ret: Type) -> Self {
+        Self {
+            params: params.to_vec(),
+            ret: Box::new(ret),
+        }
+    }
+
     pub fn to_string(&self, hir: &HirData) -> String {
         let params = self
             .params
@@ -89,11 +164,8 @@ pub enum PrimitiveType {
     Int,
     Float,
     Char,
+    String,
     Never,
-}
-
-impl From<FnType> for Type {
-    fn from(func: FnType) -> Self { Self::Fn(func) }
 }
 
 impl Type {
@@ -102,6 +174,7 @@ impl Type {
     pub const INT: Self = Self::Primitive(PrimitiveType::Int);
     pub const FLOAT: Self = Self::Primitive(PrimitiveType::Float);
     pub const CHAR: Self = Self::Primitive(PrimitiveType::Char);
+    pub const STRING: Self = Self::Primitive(PrimitiveType::String);
     pub const NEVER: Self = Self::Primitive(PrimitiveType::Never);
 
     pub fn function(params: Vec<Self>, ret: Self) -> Self {

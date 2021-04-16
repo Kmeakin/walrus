@@ -8,21 +8,7 @@ source_filename = "module"
 
 %Option = type { i8, { i32 } }
 
-define void @builtins.exit.wrapper(i8* %env, i32 %status) {
-  call void @exit(i32 %status)
-  unreachable
-}
-
-declare void @exit(i32)
-
-define i32 @builtins.putchar.wrapper(i8* %env, i32 %c) {
-  %1 = call i32 @putchar(i32 %c)
-  ret i32 %1
-}
-
-declare i32 @putchar(i32)
-
-define %Option @add_options(i8* %add_options.env, %Option %add_options.params.0, %Option %add_options.params.1) {
+define %Option @add_options(%Option %add_options.params.0, %Option %add_options.params.1) {
 add_options.entry:
   %a.alloca = alloca %Option, align 8
   store %Option %add_options.params.0, %Option* %a.alloca, align 4
@@ -90,9 +76,9 @@ match.case0.then:                                 ; preds = %"match.case1.Option
   %Option.payload.gep15 = getelementptr inbounds %Option, %Option* %Option.alloca13, i32 0, i32 1
   %a16 = load i32, i32* %a.alloca8, align 4
   %b17 = load i32, i32* %b.alloca12, align 4
-  %2 = add i32 %a16, %b17
+  %Int.add = add i32 %a16, %b17
   %"Option::Some.x.gep" = getelementptr inbounds { i32 }, { i32 }* %Option.payload.gep15, i32 0, i32 0
-  store i32 %2, i32* %"Option::Some.x.gep", align 4
+  store i32 %Int.add, i32* %"Option::Some.x.gep", align 4
   %Option.load18 = load %Option, %Option* %Option.alloca13, align 4
   br label %match.end
 
@@ -115,7 +101,7 @@ match.end:                                        ; preds = %match.case0.then, %
   ret %Option %match.phi
 }
 
-define %Option @main(i8* %main.env) {
+define %Option @main() {
 main.entry:
   %Option.alloca = alloca %Option, align 8
   %Option.discriminant.gep = getelementptr inbounds %Option, %Option* %Option.alloca, i32 0, i32 0
@@ -135,17 +121,9 @@ main.entry:
   %Option.load5 = load %Option, %Option* %Option.alloca1, align 4
   %b.alloca = alloca %Option, align 8
   store %Option %Option.load5, %Option* %b.alloca, align 4
-  %add_options.closure.alloca = alloca { %Option (i8*, %Option, %Option)*, i8* }, align 8
-  %add_options.closure.code = getelementptr inbounds { %Option (i8*, %Option, %Option)*, i8* }, { %Option (i8*, %Option, %Option)*, i8* }* %add_options.closure.alloca, i32 0, i32 0
-  store %Option (i8*, %Option, %Option)* @add_options, %Option (i8*, %Option, %Option)** %add_options.closure.code, align 8
-  %add_options.closure.env = getelementptr inbounds { %Option (i8*, %Option, %Option)*, i8* }, { %Option (i8*, %Option, %Option)*, i8* }* %add_options.closure.alloca, i32 0, i32 1
-  store i8* null, i8** %add_options.closure.env, align 8
-  %add_options = load { %Option (i8*, %Option, %Option)*, i8* }, { %Option (i8*, %Option, %Option)*, i8* }* %add_options.closure.alloca, align 8
-  %closure.code = extractvalue { %Option (i8*, %Option, %Option)*, i8* } %add_options, 0
-  %closure.env = extractvalue { %Option (i8*, %Option, %Option)*, i8* } %add_options, 1
   %a = load %Option, %Option* %a.alloca, align 4
   %b = load %Option, %Option* %b.alloca, align 4
-  %call = call %Option %closure.code(i8* %closure.env, %Option %a, %Option %b)
-  ret %Option %call
+  %add_options.call = call %Option @add_options(%Option %a, %Option %b)
+  ret %Option %add_options.call
 }
 
