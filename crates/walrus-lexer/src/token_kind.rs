@@ -62,6 +62,7 @@ pub enum TokenKind {
     #[token("-")] Minus,
     #[token("*")] Star,
     #[token("/")] Slash,
+    #[token("%")] Percent,
 
     #[token("!")] Bang,
     #[token("&&")] AndAnd,

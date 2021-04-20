@@ -89,6 +89,7 @@ pub enum Binop {
     Sub(Minus),
     Mul(Star),
     Div(Slash),
+    Rem(Percent),
     Assign(Eq),
     Eq(EqEq),
     NotEq(BangEq),

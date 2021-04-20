@@ -93,6 +93,7 @@ token!(Plus);
 token!(Minus);
 token!(Star);
 token!(Slash);
+token!(Percent);
 
 token!(Eq);
 token!(EqEq);

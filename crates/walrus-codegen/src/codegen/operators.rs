@@ -286,6 +286,7 @@ impl<'ctx> Compiler<'ctx> {
             ArithmeticBinop::Sub => self.builder.build_int_sub(lhs, rhs, "Int.sub"),
             ArithmeticBinop::Mul => self.builder.build_int_mul(lhs, rhs, "Int.mul"),
             ArithmeticBinop::Div => self.builder.build_int_signed_div(lhs, rhs, "Int.div"),
+            ArithmeticBinop::Rem => self.builder.build_int_signed_rem(lhs, rhs, "Int.rem"),
         }
     }
 
@@ -302,6 +303,7 @@ impl<'ctx> Compiler<'ctx> {
             ArithmeticBinop::Sub => self.builder.build_float_sub(lhs, rhs, "Float.sub"),
             ArithmeticBinop::Mul => self.builder.build_float_mul(lhs, rhs, "Float.mul"),
             ArithmeticBinop::Div => self.builder.build_float_div(lhs, rhs, "Float.div"),
+            ArithmeticBinop::Rem => self.builder.build_float_rem(lhs, rhs, "Float.rem"),
         }
     }
 }

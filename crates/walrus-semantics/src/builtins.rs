@@ -67,6 +67,10 @@ impl Builtin {
                 ty: PrimitiveType::Never,
             },
             Self::Fn {
+                name: "sqrt",
+                ty: FnType::new(&[Type::FLOAT], Type::FLOAT),
+            },
+            Self::Fn {
                 name: "exit",
                 ty: FnType::new(&[Type::INT], Type::NEVER),
             },

@@ -341,6 +341,8 @@ pub enum ArithmeticBinop {
     Mul,
     #[display(fmt = "/")]
     Div,
+    #[display(fmt = "%")]
+    Rem,
 }
 
 #[derive(Debug, Display, Copy, Clone, PartialEq, Eq, Hash)]
@@ -390,6 +392,7 @@ impl From<syntax::Binop> for Binop {
             syntax::Binop::Sub(_) => Self::Arithmetic(ArithmeticBinop::Sub),
             syntax::Binop::Mul(_) => Self::Arithmetic(ArithmeticBinop::Mul),
             syntax::Binop::Div(_) => Self::Arithmetic(ArithmeticBinop::Div),
+            syntax::Binop::Rem(_) => Self::Arithmetic(ArithmeticBinop::Rem),
             syntax::Binop::Assign(_) => Self::Assign,
             syntax::Binop::Eq(_) => Self::Cmp(CmpBinop::Eq),
             syntax::Binop::NotEq(_) => Self::Cmp(CmpBinop::NotEq),

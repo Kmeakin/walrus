@@ -65,6 +65,7 @@ token_parser!(plus, Plus);
 token_parser!(minus, Minus);
 token_parser!(star, Star);
 token_parser!(slash, Slash);
+token_parser!(percent, Percent);
 token_parser!(eq_eq, EqEq);
 token_parser!(bang_eq, BangEq);
 token_parser!(less, Less);

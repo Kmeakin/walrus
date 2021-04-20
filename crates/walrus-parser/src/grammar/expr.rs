@@ -162,6 +162,7 @@ fn add_expr(input: Input) -> IResult<Expr> {
 fn mul_op(input: Input) -> IResult<Binop> {
     (star.map(Binop::Mul))
         .or(slash.map(Binop::Div))
+        .or(percent.map(Binop::Rem))
         .parse(input)
 }
 fn mul_expr(input: Input) -> IResult<Expr> {
