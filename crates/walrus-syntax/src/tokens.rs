@@ -53,10 +53,10 @@ token!(KwEnum);
 token!(KwFalse);
 token!(KwFn);
 token!(KwIf);
-token!(KwImport);
 token!(KwLet);
 token!(KwLoop);
 token!(KwMatch);
+token!(KwMut);
 token!(KwReturn);
 token!(KwTrue);
 token!(KwStruct);
@@ -69,6 +69,7 @@ token_with_text!(Float);
 token_with_text!(SimpleChar);
 token_with_text!(EscapedChar);
 token_with_text!(UnicodeChar);
+token_with_text!(String);
 
 token!(LParen);
 token!(RParen);
@@ -92,6 +93,7 @@ token!(Plus);
 token!(Minus);
 token!(Star);
 token!(Slash);
+token!(Percent);
 
 token!(Eq);
 token!(EqEq);

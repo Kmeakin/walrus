@@ -1,40 +1,18 @@
 ---
 source: crates/walrus-codegen/src/tests.rs
-expression: llvm_module.print_to_string().to_string()
+expression: module
 
 ---
 ; ModuleID = 'module'
 source_filename = "module"
 
-define void @builtins.exit.wrapper(i8* %env, i32 %status) {
-  call void @exit(i32 %status)
-  unreachable
-}
-
-declare void @exit(i32)
-
-define i32 @builtins.putchar.wrapper(i8* %env, i32 %c) {
-  %1 = call i32 @putchar(i32 %c)
-  ret i32 %1
-}
-
-declare i32 @putchar(i32)
-
-define i32 @main(i8* %main.env) {
+define i32 @main() {
 main.entry:
-  %id.closure.alloca = alloca { i32 (i8*, i32)*, i8* }, align 8
-  %id.closure.code = getelementptr inbounds { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %id.closure.alloca, i32 0, i32 0
-  store i32 (i8*, i32)* @id, i32 (i8*, i32)** %id.closure.code, align 8
-  %id.closure.env = getelementptr inbounds { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %id.closure.alloca, i32 0, i32 1
-  store i8* null, i8** %id.closure.env, align 8
-  %id = load { i32 (i8*, i32)*, i8* }, { i32 (i8*, i32)*, i8* }* %id.closure.alloca, align 8
-  %closure.code = extractvalue { i32 (i8*, i32)*, i8* } %id, 0
-  %closure.env = extractvalue { i32 (i8*, i32)*, i8* } %id, 1
-  %call = call i32 %closure.code(i8* %closure.env, i32 5)
-  ret i32 %call
+  %id.call = call i32 @id(i32 5)
+  ret i32 %id.call
 }
 
-define i32 @id(i8* %id.env, i32 %id.params.0) {
+define i32 @id(i32 %id.params.0) {
 id.entry:
   %x.alloca = alloca i32, align 4
   store i32 %id.params.0, i32* %x.alloca, align 4

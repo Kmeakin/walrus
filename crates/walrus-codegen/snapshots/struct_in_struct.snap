@@ -9,21 +9,7 @@ source_filename = "module"
 %Bar = type { i32, i32 }
 %Foo = type { %Bar* }
 
-define void @builtins.exit.wrapper(i8* %env, i32 %status) {
-  call void @exit(i32 %status)
-  unreachable
-}
-
-declare void @exit(i32)
-
-define i32 @builtins.putchar.wrapper(i8* %env, i32 %c) {
-  %1 = call i32 @putchar(i32 %c)
-  ret i32 %1
-}
-
-declare i32 @putchar(i32)
-
-define i32 @main(i8* %main.env) {
+define i32 @main() {
 main.entry:
   %Bar.alloca = alloca %Bar, align 8
   %Bar.x.gep = getelementptr inbounds %Bar, %Bar* %Bar.alloca, i32 0, i32 0
@@ -51,8 +37,8 @@ main.entry:
   %Foo.bar2 = extractvalue %Foo %foo1, 0
   %Foo.bar.load3 = load %Bar, %Bar* %Foo.bar2, align 4
   %Bar.x = extractvalue %Bar %Foo.bar.load3, 0
-  %0 = sub i32 %Bar.y, %Bar.x
-  ret i32 %0
+  %Int.sub = sub i32 %Bar.y, %Bar.x
+  ret i32 %Int.sub
 }
 
 declare noalias i8* @malloc(i32)

@@ -1,0 +1,24 @@
+---
+source: crates/walrus-codegen/src/tests.rs
+expression: module
+
+---
+; ModuleID = 'module'
+source_filename = "module"
+
+define i32 @main() {
+main.entry:
+  %f.alloca = alloca { i32 (i8*)*, i8* }, align 8
+  store { i32 (i8*)*, i8* } { i32 (i8*)* bitcast (i32 ()* @get_five to i32 (i8*)*), i8* null }, { i32 (i8*)*, i8* }* %f.alloca, align 8
+  %f = load { i32 (i8*)*, i8* }, { i32 (i8*)*, i8* }* %f.alloca, align 8
+  %closure.code = extractvalue { i32 (i8*)*, i8* } %f, 0
+  %closure.env = extractvalue { i32 (i8*)*, i8* } %f, 1
+  %lambda.call = call i32 %closure.code(i8* %closure.env)
+  ret i32 %lambda.call
+}
+
+define i32 @get_five() {
+get_five.entry:
+  ret i32 5
+}
+

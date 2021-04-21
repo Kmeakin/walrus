@@ -9,10 +9,8 @@ use codespan_reporting::{
 use either::Either::*;
 use std::error::Error;
 use walrus_semantics::{
-    builtins::BuiltinKind,
     diagnostic::Diagnostic,
     hir::{Field, Module},
-    scopes::Denotation,
     ty::InferenceId,
 };
 
@@ -106,24 +104,13 @@ fn render_diagnostic(module: &Module, diag: &Diagnostic) -> CodespanDiagnostic<(
                     .with_message(format!("Unbound variable: `{name}`"))
                     .with_labels(vec![Label::primary((), syntax.span())
                         .with_message(format!("Name `{name} is not defined"))]),
-                Some(denotation) => {
-                    let det = match denotation {
-                        Denotation::Local(_) | Denotation::Fn(_) => "value",
-                        Denotation::Struct(_) => "struct",
-                        Denotation::Enum(_) => "enum",
-                        Denotation::Builtin(b) => match b.kind() {
-                            BuiltinKind::Type => "type",
-                            BuiltinKind::Value => "function",
-                        },
-                    };
-                    CodespanDiagnostic::error()
-                        .with_message(format!("No {mode} named {name} in scope"))
-                        .with_labels(vec![Label::primary((), syntax.span()).with_message(
-                            format!(
-                                "The name `{name}` is defined, but it is a {det}, not a {mode}"
-                            ),
-                        )])
-                }
+                Some(denotation) => CodespanDiagnostic::error()
+                    .with_message(format!("No {mode} named {name} in scope"))
+                    .with_labels(vec![Label::primary((), syntax.span()).with_message(
+                        format!(
+                            "The name `{name}` is defined, but it is a {denotation}, not a {mode}"
+                        ),
+                    )]),
             }
         }
         Diagnostic::TypeMismatch { id, expected, got } => {
@@ -224,6 +211,29 @@ fn render_diagnostic(module: &Module, diag: &Diagnostic) -> CodespanDiagnostic<(
                 .with_labels(vec![
                     Label::primary((), span).with_message("Can only assign to lvalue expressions")
                 ])
+        }
+        Diagnostic::NotMutable {
+            def: definition,
+            usage,
+        } => {
+            let def_syntax = &module.source[*definition];
+            let usage_syntax = &module.source[*usage];
+            CodespanDiagnostic::error()
+                .with_message("Assignment to immutable variable")
+                .with_labels(vec![
+                    Label::primary((), usage_syntax.span())
+                        .with_message("This variable was not bound with `mut`"),
+                    Label::secondary((), def_syntax.span())
+                        .with_message("The variable is bound here"),
+                ])
+        }
+        Diagnostic::NotLocal { var, denotation } => {
+            let syntax = &module.source[*var];
+            CodespanDiagnostic::error()
+                .with_message("Assignment to non-local variable")
+                .with_labels(vec![Label::primary((), syntax.span()).with_message(
+                    format!("This variable refers to a {denotation}, not a local variable",),
+                )])
         }
         Diagnostic::NoSuchField {
             parent,

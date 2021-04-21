@@ -5,7 +5,7 @@ impl<'ctx> Compiler<'ctx> {
         let pat = &self.hir[pat_id];
         match pat {
             Pat::Lit(_) | hir::Pat::Ignore => {}
-            hir::Pat::Var(var) => self.codegen_local_var(vars, *var, value),
+            hir::Pat::Var { var, .. } => self.codegen_local_var(vars, *var, value),
             hir::Pat::Tuple(pats) => pats.iter().enumerate().for_each(|(idx, id)| {
                 let val = self.get_tuple_field(value, idx);
                 self.codegen_pat(vars, *id, val)
@@ -45,8 +45,34 @@ impl<'ctx> Compiler<'ctx> {
         let pat = &self.hir[pat_id];
 
         match pat {
-            Pat::Lit(_) => todo!(),
-            Pat::Var(_) | Pat::Ignore => self.codegen_true(),
+            Pat::Lit(lit) => match lit {
+                Lit::Bool(b) => self.builder.build_int_compare(
+                    IntPredicate::EQ,
+                    test.into_int_value(),
+                    self.codegen_bool(*b),
+                    "Bool.eq",
+                ),
+                Lit::Int(i) => self.builder.build_int_compare(
+                    IntPredicate::EQ,
+                    test.into_int_value(),
+                    self.codegen_int(*i),
+                    "Int.eq",
+                ),
+                Lit::Char(c) => self.builder.build_int_compare(
+                    IntPredicate::EQ,
+                    test.into_int_value(),
+                    self.codegen_char(*c),
+                    "Char.eq",
+                ),
+                Lit::Float(f) => self.builder.build_float_compare(
+                    FloatPredicate::OEQ,
+                    test.into_float_value(),
+                    self.codegen_float(*f),
+                    "Float.eq",
+                ),
+                Lit::String(s) => todo!(),
+            },
+            Pat::Var { .. } | Pat::Ignore => self.codegen_true(),
             Pat::Tuple(pats) => self.codegen_all(pats.iter().enumerate().map(|(idx, pat)| {
                 let val = self.get_tuple_field(test, idx);
                 self.codegen_match_attempt(idx, val, *pat)
@@ -130,8 +156,6 @@ impl<'ctx> Compiler<'ctx> {
         }
     }
 
-    fn codegen_true(&self) -> IntValue<'ctx> { self.llvm.bool_type().const_int(true as _, false) }
-    fn codegen_false(&self) -> IntValue<'ctx> { self.llvm.bool_type().const_int(false as _, false) }
     fn codegen_all(&self, bools: impl Iterator<Item = IntValue<'ctx>>) -> IntValue<'ctx> {
         bools.fold(self.codegen_true(), |acc, e| {
             self.builder.build_and(acc, e, "")

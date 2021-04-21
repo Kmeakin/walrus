@@ -1,26 +1,12 @@
 ---
 source: crates/walrus-codegen/src/tests.rs
-expression: llvm_module.print_to_string().to_string()
+expression: module
 
 ---
 ; ModuleID = 'module'
 source_filename = "module"
 
-define void @builtins.exit.wrapper(i8* %env, i32 %status) {
-  call void @exit(i32 %status)
-  unreachable
-}
-
-declare void @exit(i32)
-
-define i32 @builtins.putchar.wrapper(i8* %env, i32 %c) {
-  %1 = call i32 @putchar(i32 %c)
-  ret i32 %1
-}
-
-declare i32 @putchar(i32)
-
-define float @main(i8* %main.env) {
+define float @main() {
 main.entry:
   %x.alloca = alloca float, align 4
   store float 1.000000e+00, float* %x.alloca, align 4
@@ -28,7 +14,7 @@ main.entry:
   store float 1.000000e+00, float* %y.alloca, align 4
   %x = load float, float* %x.alloca, align 4
   %y = load float, float* %y.alloca, align 4
-  %0 = fsub float %x, %y
-  ret float %0
+  %Float.sub = fsub float %x, %y
+  ret float %Float.sub
 }
 

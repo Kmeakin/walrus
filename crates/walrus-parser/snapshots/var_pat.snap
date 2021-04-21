@@ -1,17 +1,19 @@
 ---
 source: crates/walrus-parser/src/grammar.rs
 expression: got
+
 ---
 Ok(
     (
         [],
-        Var(
-            Var(
+        Var {
+            kw_mut: None,
+            var: Var(
                 Ident {
                     span: 0..1,
                     text: "a",
                 },
             ),
-        ),
+        },
     ),
 )

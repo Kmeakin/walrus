@@ -41,14 +41,15 @@ Ok(
                                         Colon {
                                             span: 11..12,
                                         },
-                                        Var(
-                                            Var(
+                                        Var {
+                                            kw_mut: None,
+                                            var: Var(
                                                 Ident {
                                                     span: 13..14,
                                                     text: "y",
                                                 },
                                             ),
-                                        ),
+                                        },
                                     ),
                                 ),
                             },

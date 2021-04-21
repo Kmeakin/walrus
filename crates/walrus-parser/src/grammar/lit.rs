@@ -19,6 +19,7 @@ pub fn lit(input: Input) -> IResult<Lit> {
         .or(int_lit.map(Lit::Int))
         .or(float_lit.map(Lit::Float))
         .or(char_lit.map(Lit::Char))
+        .or(string_lit.map(Lit::String))
         .parse(input)
 }
 fn bool_lit(input: Input) -> IResult<BoolLit> {
@@ -39,6 +40,7 @@ fn char_lit(input: Input) -> IResult<CharLit> {
         .or(unicode_char.map(CharLit::Unicode))
         .parse(input)
 }
+fn string_lit(input: Input) -> IResult<String> { string.parse(input) }
 
 #[cfg(test)]
 mod tests {
@@ -52,5 +54,6 @@ mod tests {
     test_parse!(float_lit, lit, "1234.56789");
     test_parse!(simple_char_lit, lit, "'a'");
     test_parse!(escaped_char_lit, lit, r"'\a'");
-    test_parse!(unicode_char_lit, lit, r"'\u0a'");
+    test_parse!(unicode_char_lit, lit, r"'\u{0a}'");
+    test_parse!(string_lit, lit, r#""abcdef""#);
 }

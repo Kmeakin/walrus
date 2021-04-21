@@ -1,4 +1,5 @@
 #![allow(clippy::use_self)] // Gives a false positive on the Logos proc-macro
+#![allow(clippy::non_ascii_literal)]
 
 use logos::Logos;
 
@@ -25,10 +26,10 @@ pub enum TokenKind {
     #[token("false")] KwFalse,
     #[token("fn")] KwFn,
     #[token("if")] KwIf,
-    #[token("import")] KwImport,
     #[token("let")] KwLet,
     #[token("loop")] KwLoop,
     #[token("match")] KwMatch,
+    #[token("mut")] KwMut,
     #[token("return")] KwReturn,
     #[token("struct")] KwStruct,
     #[token("true")] KwTrue,
@@ -40,7 +41,8 @@ pub enum TokenKind {
     #[regex(r"(?&DecDigit)(?&DecDigit_)*\.(?&DecDigit)(?&DecDigit_)*")] Float,
     #[regex(r"'[^']'")]                              SimpleChar,
     #[regex(r"'\\.'")]                               EscapedChar,
-    #[regex(r"'\\(u|U)(?&HexDigit)(?&HexDigit_)*'")] UnicodeChar,
+    #[regex(r"'\\(u|U)\{(?&HexDigit)(?&HexDigit_)*\}'")] UnicodeChar,
+    #[regex(r#""([^"]|\\")*""#)] String,
 
     #[token("(")] LParen,
     #[token(")")] RParen,
@@ -60,6 +62,7 @@ pub enum TokenKind {
     #[token("-")] Minus,
     #[token("*")] Star,
     #[token("/")] Slash,
+    #[token("%")] Percent,
 
     #[token("!")] Bang,
     #[token("&&")] AndAnd,
@@ -132,16 +135,19 @@ mod tests {
     );
     test_lex!(
         keywords,
-        r"break continue else enum false fn if import let loop match return struct true"
+        r"break continue else enum false fn if let loop match mut return struct true"
     );
     test_lex!(idents, "abc_DEF_123");
+    test_lex!(unicode_idents, "セイウチ");
     test_lex!(dec_int, "123_456_7890");
     test_lex!(bin_int, "0b101");
     test_lex!(hex_int, "0x1234_56789_abc_def");
     test_lex!(float, "123.456");
     test_lex!(simple_char, "'a'");
     test_lex!(escaped_char, r"'\n'");
-    test_lex!(unicode_char, r"'\u0a'");
+    test_lex!(unicode_char, r"'\u{0a}'");
+    test_lex!(simple_string, r#""hello world""#);
+    test_lex!(escaped_string, r#""he said \"hello world\"""#);
     test_lex!(symbols, "() {} . , ; : :: -> => _");
     test_lex!(operators, "+ - * / ! = == != < <= > >= || &&");
 }

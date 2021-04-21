@@ -22,6 +22,11 @@ where
     let scopes = walrus_semantics::scopes::scopes(&hir);
     let types = walrus_semantics::ty::infer(hir.clone(), scopes.clone());
 
+    dbg!(&syntax);
+    dbg!(&hir);
+    dbg!(&scopes);
+    dbg!(&types);
+
     let module = crate::codegen("module", hir.hir, scopes, types);
 
     let mut settings = insta::Settings::new();
@@ -61,6 +66,11 @@ mod literals {
 
     #[test]
     fn lit_char() { test_codegen_and_run(r#"fn main() -> _ { 'a' }"#, 'a') }
+
+    #[test]
+    fn lit_string() {
+        test_codegen_and_run(r#"fn main() -> _ { "hello world" }"#, "hello world".len())
+    }
 }
 
 mod tuples {
@@ -137,6 +147,35 @@ fn main() -> _ { get_five() }
 fn get_five() -> _ {5}
 "#,
             5_i64,
+        )
+    }
+
+    #[test]
+    fn fn_value() {
+        test_codegen_and_run(
+            r#"
+fn main() -> _ { 
+    let f = get_five;
+    f()
+}
+
+fn get_five() -> _ {5}
+"#,
+            5_i32,
+        )
+    }
+
+    #[test]
+    #[ignore]
+    fn builtin_fn_value() {
+        test_codegen_and_run(
+            r#"
+fn main() -> _ { 
+    let f = print;
+    f("a")
+}
+"#,
+            (),
         )
     }
 }
@@ -308,7 +347,7 @@ mod assign {
     fn assign_var() {
         test_codegen_and_run(
             r#"fn main() -> _ {
-        let x = 5;
+        let mut x = 5;
         x = 6;
         x
     }"#,
@@ -323,7 +362,7 @@ mod assign {
             struct S {x: Int}
 
             fn main() -> _ {
-                let s = S {x: 0};
+                let mut s = S {x: 0};
                 s.x = 1;
                 s.x
         }"#,
@@ -336,29 +375,8 @@ mod builtins {
     use super::*;
 
     #[test]
+    #[ignore]
     fn builtin_exit() { test_codegen("fn main() -> Int { exit(1) }") }
-
-    #[test]
-    fn builtin_putchar() {
-        test_codegen_and_run(
-            r#"
-fn main() -> () {
-    putchar('h');
-    putchar('e');
-    putchar('l');
-    putchar('l');
-    putchar('o');
-    putchar(' ');
-    putchar('w');
-    putchar('o');
-    putchar('r');
-    putchar('l');
-    putchar('d');
-}
-"#,
-            (),
-        )
-    }
 }
 
 mod loops {
@@ -664,7 +682,7 @@ fn main() -> _ {
     s
 }
         "#,
-            (4 * 4 + 3 * 3 + 2 * 2 + 1 * 1) as i32,
+            (4 * 4 + 3 * 3 + 2 * 2 + 1) as i32,
         )
     }
 
@@ -703,7 +721,7 @@ fn main() -> _ {
     s
 }
         "#,
-            (4 * 4 + 3 * 3 + 2 * 2 + 1 * 1) as i32,
+            (4 * 4 + 3 * 3 + 2 * 2 + 1) as i32,
         )
     }
 }
