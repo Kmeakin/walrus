@@ -250,7 +250,7 @@ impl<'ctx> Compiler<'ctx> {
 
             // test agaisnt the pattern
             self.builder.position_at_end(test_bb);
-            let matched = self.codegen_match_attempt(idx, test_value, case.pat);
+            let matched = self.codegen_match_attempt(vars, idx, test_value, case.pat);
             self.builder
                 .build_conditional_branch(matched, then_bb, next_bb);
 

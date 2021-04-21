@@ -37,7 +37,8 @@ impl<'ctx> Compiler<'ctx> {
     }
 
     pub fn codegen_match_attempt(
-        &self,
+        &'ctx self,
+        vars: &mut Vars<'ctx>,
         case_idx: usize,
         test: BasicValueEnum<'ctx>,
         pat_id: PatId,
@@ -70,12 +71,30 @@ impl<'ctx> Compiler<'ctx> {
                     self.codegen_float(*f),
                     "Float.eq",
                 ),
-                Lit::String(s) => todo!(),
+                Lit::String(s) => {
+                    let s = self.codegen_string(vars, s);
+                    let cmp = self
+                        .codegen_builtin_fn_call(
+                            vars,
+                            "string_cmp",
+                            &FnType {
+                                params: vec![Type::STRING, Type::STRING],
+                                ret: box Type::INT,
+                            },
+                            &[test, s],
+                        )
+                        .unwrap()
+                        .into_int_value();
+                    let zero = self.int_type().const_zero();
+                    self.builder
+                        .build_int_compare(IntPredicate::EQ, cmp, zero, "String.eq")
+                        .into()
+                }
             },
             Pat::Var { .. } | Pat::Ignore => self.codegen_true(),
             Pat::Tuple(pats) => self.codegen_all(pats.iter().enumerate().map(|(idx, pat)| {
                 let val = self.get_tuple_field(test, idx);
-                self.codegen_match_attempt(idx, val, *pat)
+                self.codegen_match_attempt(vars, idx, val, *pat)
             })),
             Pat::Struct { fields, .. } => {
                 let struct_id = self.types[pat_id].as_struct().unwrap();
@@ -83,7 +102,7 @@ impl<'ctx> Compiler<'ctx> {
                     None => self.codegen_true(),
                     Some(pat) => {
                         let val = self.get_struct_field(struct_id, test, field.name);
-                        self.codegen_match_attempt(case_idx, val, pat)
+                        self.codegen_match_attempt(vars, case_idx, val, pat)
                     }
                 }))
             }
@@ -130,7 +149,7 @@ impl<'ctx> Compiler<'ctx> {
                     None => self.codegen_true(),
                     Some(pat) => {
                         let val = self.get_variant_field(enum_id, &variant, payload, field.name);
-                        self.codegen_match_attempt(case_idx, val, pat)
+                        self.codegen_match_attempt(vars, case_idx, val, pat)
                     }
                 }));
                 self.builder.build_unconditional_branch(end_bb);
