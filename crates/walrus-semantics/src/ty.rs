@@ -39,52 +39,16 @@ impl Type {
     /// Can comparisons (==, !=) be performed on this type?
     pub fn is_eq(&self, hir: &HirData, types: &InferenceResult) -> bool {
         match self {
-            Type::Primitive(_) => true,
-            Type::Fn(_) => false,
-            Type::Struct(id) => {
-                let struct_def = &hir[*id];
-                struct_def
-                    .fields
-                    .iter()
-                    .all(|field| types[field.ty].is_eq(hir, types))
-            }
-            Type::Enum(id) => {
-                let enum_def = &hir[*id];
-                enum_def.variants.iter().all(|variant| {
-                    variant
-                        .fields
-                        .iter()
-                        .all(|field| types[field.ty].is_eq(hir, types))
-                })
-            }
-            Type::Tuple(tys) => tys.iter().all(|ty| ty.is_eq(hir, types)),
-            Type::Infer(_) | Type::Unknown => true,
+            Type::Primitive(_) | Type::Infer(_) | Type::Unknown => true,
+            _ => false,
         }
     }
 
     /// Can ordering (<, <=, >, >=) be performed on this type?
     pub fn is_ord(&self, hir: &HirData, types: &InferenceResult) -> bool {
         match self {
-            Type::Primitive(_) => true,
-            Type::Fn(_) => false,
-            Type::Struct(id) => {
-                let struct_def = &hir[*id];
-                struct_def
-                    .fields
-                    .iter()
-                    .all(|field| types[field.ty].is_ord(hir, types))
-            }
-            Type::Enum(id) => {
-                let enum_def = &hir[*id];
-                enum_def.variants.iter().all(|variant| {
-                    variant
-                        .fields
-                        .iter()
-                        .all(|field| types[field.ty].is_ord(hir, types))
-                })
-            }
-            Type::Tuple(tys) => tys.iter().all(|ty| ty.is_ord(hir, types)),
-            Type::Infer(_) | Type::Unknown => true,
+            Type::Primitive(_) | Type::Infer(_) | Type::Unknown => true,
+            _ => false,
         }
     }
 

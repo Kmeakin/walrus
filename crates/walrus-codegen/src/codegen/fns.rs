@@ -100,7 +100,7 @@ impl<'ctx> Compiler<'ctx> {
         self.build_call(fn_value, &args, fn_name)
     }
 
-    fn codegen_builtin_fn_call(
+    pub fn codegen_builtin_fn_call(
         &'ctx self,
         vars: &mut Vars<'ctx>,
         name: &str,

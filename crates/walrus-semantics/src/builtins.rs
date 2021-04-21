@@ -106,6 +106,10 @@ impl Builtin {
                 name: "string_append",
                 ty: FnType::new(&[Type::STRING, Type::STRING], Type::STRING),
             },
+            Self::Fn {
+                name: "string_cmp",
+                ty: FnType::new(&[Type::STRING, Type::STRING], Type::INT),
+            },
         ]
     }
 }

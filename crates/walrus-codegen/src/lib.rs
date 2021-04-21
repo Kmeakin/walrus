@@ -18,7 +18,7 @@
     dead_code,
     elided_lifetimes_in_paths
 )]
-#![feature(format_args_capture)]
+#![feature(format_args_capture, box_syntax)]
 
 mod codegen;
 mod free_vars;

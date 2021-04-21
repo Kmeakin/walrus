@@ -181,6 +181,31 @@ impl<'ctx> Compiler<'ctx> {
     ) -> OptValue<'ctx> {
         let lhs_type = &self.types[lhs];
         let rhs_type = &self.types[rhs];
+
+        if lhs_type == &Type::STRING {
+            let cmp = self
+                .codegen_builtin_fn_call(
+                    vars,
+                    "string_cmp",
+                    &FnType {
+                        params: vec![Type::STRING, Type::STRING],
+                        ret: box Type::INT,
+                    },
+                    &[lhs, rhs],
+                )?
+                .into_int_value();
+            let zero = self.int_type().const_zero();
+            let (op, name) = match op {
+                CmpBinop::Eq => (IntPredicate::EQ, "String.eq"),
+                CmpBinop::NotEq => (IntPredicate::NE, "String.not_eq"),
+                CmpBinop::Less => (IntPredicate::SLT, "String.less"),
+                CmpBinop::LessEq => (IntPredicate::SLE, "String.less_eq"),
+                CmpBinop::Greater => (IntPredicate::SGT, "String.greater"),
+                CmpBinop::GreaterEq => (IntPredicate::SGE, "String.greater_eq"),
+            };
+            return Some(self.builder.build_int_compare(op, cmp, zero, name).into());
+        }
+
         let lhs = self.codegen_expr(vars, lhs)?;
         let rhs = self.codegen_expr(vars, rhs)?;
         let value = match *lhs_type {
@@ -188,7 +213,6 @@ impl<'ctx> Compiler<'ctx> {
                 self.codegen_int_cmp(lhs_type, op, lhs, rhs).into()
             }
             Type::FLOAT => self.codegen_float_cmp(op, lhs, rhs).into(),
-            Type::STRING | Type::Tuple(_) | Type::Struct(_) | Type::Enum(_) => todo!(),
             _ => unreachable!(
                 "Cannot apply binop {} {} {}",
                 lhs_type.to_string(&self.hir),
@@ -257,12 +281,24 @@ impl<'ctx> Compiler<'ctx> {
     ) -> OptValue<'ctx> {
         let lhs_type = &self.types[lhs];
         let rhs_type = &self.types[rhs];
+
+        if lhs_type == &Type::STRING && op == ArithmeticBinop::Add {
+            return self.codegen_builtin_fn_call(
+                vars,
+                "string_append",
+                &FnType {
+                    params: vec![Type::STRING, Type::STRING],
+                    ret: box Type::STRING,
+                },
+                &[lhs, rhs],
+            );
+        }
+
         let lhs = self.codegen_expr(vars, lhs)?;
         let rhs = self.codegen_expr(vars, rhs)?;
         let value = match *lhs_type {
             Type::INT => self.codegen_int_arithmetic(op, lhs, rhs).into(),
             Type::FLOAT => self.codegen_float_arithmetic(op, lhs, rhs).into(),
-            Type::STRING if op == ArithmeticBinop::Add => todo!(),
             _ => unreachable!(
                 "Cannot apply binop {} {} {}",
                 lhs_type.to_string(&self.hir),
