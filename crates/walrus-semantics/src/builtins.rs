@@ -112,6 +112,10 @@ impl Builtin {
             },
         ]
     }
+
+    pub fn get_by_name(n: &str) -> Self {
+        Self::all().iter().find(|b| b.name() == n).cloned().unwrap()
+    }
 }
 
 impl Display for Builtin {

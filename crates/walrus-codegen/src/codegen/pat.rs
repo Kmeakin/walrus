@@ -45,7 +45,33 @@ impl<'ctx> Compiler<'ctx> {
         let pat = &self.hir[pat_id];
 
         match pat {
-            Pat::Lit(_) => todo!(),
+            Pat::Lit(lit) => match lit {
+                Lit::Bool(b) => self.builder.build_int_compare(
+                    IntPredicate::EQ,
+                    test.into_int_value(),
+                    self.codegen_bool(*b),
+                    "Bool.eq",
+                ),
+                Lit::Int(i) => self.builder.build_int_compare(
+                    IntPredicate::EQ,
+                    test.into_int_value(),
+                    self.codegen_int(*i),
+                    "Int.eq",
+                ),
+                Lit::Char(c) => self.builder.build_int_compare(
+                    IntPredicate::EQ,
+                    test.into_int_value(),
+                    self.codegen_char(*c),
+                    "Char.eq",
+                ),
+                Lit::Float(f) => self.builder.build_float_compare(
+                    FloatPredicate::OEQ,
+                    test.into_float_value(),
+                    self.codegen_float(*f),
+                    "Float.eq",
+                ),
+                Lit::String(s) => todo!(),
+            },
             Pat::Var { .. } | Pat::Ignore => self.codegen_true(),
             Pat::Tuple(pats) => self.codegen_all(pats.iter().enumerate().map(|(idx, pat)| {
                 let val = self.get_tuple_field(test, idx);
