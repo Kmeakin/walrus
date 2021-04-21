@@ -100,7 +100,7 @@ impl<'ctx> Compiler<'ctx> {
         let fn_def = &self.hir[fn_id];
         let fn_name = &self.hir[fn_def.name].as_str();
         let fn_value = vars[fn_id];
-        self.build_call(fn_value, &args, fn_name)
+        self.build_call(fn_value, args, fn_name)
     }
 
     pub fn codegen_builtin_fn_call(
@@ -111,7 +111,7 @@ impl<'ctx> Compiler<'ctx> {
         args: &[Value<'ctx>],
     ) -> OptValue<'ctx> {
         let fn_value = self.get_builtin_fn(vars, name, fn_type);
-        self.build_call(fn_value, &args, name)
+        self.build_call(fn_value, args, name)
     }
 
     fn codegen_lambda_call(

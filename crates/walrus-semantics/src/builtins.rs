@@ -113,6 +113,8 @@ impl Builtin {
         ]
     }
 
+    /// # Panics
+    /// panics if passed a name that does not exist
     pub fn get_by_name(n: &str) -> Self {
         Self::all().iter().find(|b| b.name() == n).cloned().unwrap()
     }

@@ -115,22 +115,13 @@ impl<'ctx> Compiler<'ctx> {
                     bb,
                     &format!("match.case{case_idx}.{enum_name}::{variant_name}.end"),
                 );
-                let else_bb = self.llvm.insert_basic_block_after(
-                    bb,
-                    &format!("match.case{case_idx}.{enum_name}::{variant_name}.else"),
-                );
                 let then_bb = self.llvm.insert_basic_block_after(
                     bb,
                     &format!("match.case{case_idx}.{enum_name}::{variant_name}.then"),
                 );
 
                 self.builder
-                    .build_conditional_branch(discriminant_matched, then_bb, else_bb);
-
-                // else branch
-                self.builder.position_at_end(else_bb);
-                let else_value = self.codegen_false();
-                self.builder.build_unconditional_branch(end_bb);
+                    .build_conditional_branch(discriminant_matched, then_bb, end_bb);
 
                 // then branch
                 self.builder.position_at_end(then_bb);
@@ -150,7 +141,7 @@ impl<'ctx> Compiler<'ctx> {
                     self.llvm.bool_type(),
                     &format!("match.case{case_idx}.{enum_name}::{variant_name}.phi"),
                 );
-                phi.add_incoming(&[(&then_value, then_bb), (&else_value, else_bb)]);
+                phi.add_incoming(&[(&then_value, then_bb), (&self.codegen_false(), bb)]);
                 phi.as_basic_value().into_int_value()
             }
         }

@@ -25,17 +25,14 @@ main.entry:
 match.case0.test:                                 ; preds = %main.entry
   %Option.discriminant2 = extractvalue %Option %opt, 0
   %"Option::None.cmp_discriminant" = icmp eq i8 %Option.discriminant2, 0
-  br i1 %"Option::None.cmp_discriminant", label %"match.case0.Option::None.then", label %"match.case0.Option::None.else"
+  br i1 %"Option::None.cmp_discriminant", label %"match.case0.Option::None.then", label %"match.case0.Option::None.end"
 
 "match.case0.Option::None.then":                  ; preds = %match.case0.test
   %Option.payload3 = extractvalue %Option %opt, 1
   br label %"match.case0.Option::None.end"
 
-"match.case0.Option::None.else":                  ; preds = %match.case0.test
-  br label %"match.case0.Option::None.end"
-
-"match.case0.Option::None.end":                   ; preds = %"match.case0.Option::None.then", %"match.case0.Option::None.else"
-  %"match.case0.Option::None.phi" = phi i1 [ true, %"match.case0.Option::None.then" ], [ false, %"match.case0.Option::None.else" ]
+"match.case0.Option::None.end":                   ; preds = %"match.case0.Option::None.then", %match.case0.test
+  %"match.case0.Option::None.phi" = phi i1 [ true, %"match.case0.Option::None.then" ], [ false, %match.case0.test ]
   br i1 %"match.case0.Option::None.phi", label %match.case0.then, label %match.case1.test
 
 match.case0.then:                                 ; preds = %"match.case0.Option::None.end"
@@ -45,17 +42,14 @@ match.case0.then:                                 ; preds = %"match.case0.Option
 match.case1.test:                                 ; preds = %"match.case0.Option::None.end"
   %Option.discriminant = extractvalue %Option %opt, 0
   %"Option::Some.cmp_discriminant" = icmp eq i8 %Option.discriminant, 1
-  br i1 %"Option::Some.cmp_discriminant", label %"match.case1.Option::Some.then", label %"match.case1.Option::Some.else"
+  br i1 %"Option::Some.cmp_discriminant", label %"match.case1.Option::Some.then", label %"match.case1.Option::Some.end"
 
 "match.case1.Option::Some.then":                  ; preds = %match.case1.test
   %Option.payload = extractvalue %Option %opt, 1
   br label %"match.case1.Option::Some.end"
 
-"match.case1.Option::Some.else":                  ; preds = %match.case1.test
-  br label %"match.case1.Option::Some.end"
-
-"match.case1.Option::Some.end":                   ; preds = %"match.case1.Option::Some.then", %"match.case1.Option::Some.else"
-  %"match.case1.Option::Some.phi" = phi i1 [ true, %"match.case1.Option::Some.then" ], [ false, %"match.case1.Option::Some.else" ]
+"match.case1.Option::Some.end":                   ; preds = %"match.case1.Option::Some.then", %match.case1.test
+  %"match.case1.Option::Some.phi" = phi i1 [ true, %"match.case1.Option::Some.then" ], [ false, %match.case1.test ]
   br i1 %"match.case1.Option::Some.phi", label %match.case1.then, label %match.fail
 
 match.case1.then:                                 ; preds = %"match.case1.Option::Some.end"

@@ -173,9 +173,7 @@ impl Ctx {
             (VarMode::Value, Some(Denotation::Local(id))) => self.result[*id].clone(),
             (VarMode::Value, Some(Denotation::Fn(id))) => self.result[*id].clone().into(),
 
-            (VarMode::Type, Some(Denotation::Builtin(Builtin::Type { ty, .. }))) => {
-                ty.clone().into()
-            }
+            (VarMode::Type, Some(Denotation::Builtin(Builtin::Type { ty, .. }))) => (*ty).into(),
             (VarMode::Type | VarMode::Struct, Some(Denotation::Struct(id))) => Type::Struct(*id),
             (VarMode::Type | VarMode::Enum, Some(Denotation::Enum(id))) => Type::Enum(*id),
 
@@ -853,7 +851,7 @@ impl Ctx {
             self.check_assign_expr(lhs);
         }
 
-        let rhs_expectation = self.rhs_expectation(op, &lhs_type);
+        let rhs_expectation = Self::rhs_expectation(op, &lhs_type);
         if lhs_type != Type::Unknown && rhs_expectation == Type::Unknown {
             self.result.diagnostics.push(Diagnostic::CannotApplyBinop {
                 expr: parent_expr,
@@ -931,18 +929,14 @@ impl Ctx {
         }
     }
 
-    fn rhs_expectation(&self, op: Binop, lhs_type: &Type) -> Type {
+    fn rhs_expectation(op: Binop, lhs_type: &Type) -> Type {
         match op {
             Binop::Lazy(LazyBinop::And | LazyBinop::Or) => Type::BOOL,
             Binop::Assign => lhs_type.clone(),
-            Binop::Cmp(CmpBinop::Eq | CmpBinop::NotEq)
-                if lhs_type.is_eq(&self.hir, &self.result) =>
-            {
-                lhs_type.clone()
-            }
+            Binop::Cmp(CmpBinop::Eq | CmpBinop::NotEq) if lhs_type.is_eq() => lhs_type.clone(),
             Binop::Cmp(
                 CmpBinop::Greater | CmpBinop::GreaterEq | CmpBinop::Less | CmpBinop::LessEq,
-            ) if lhs_type.is_ord(&self.hir, &self.result) => lhs_type.clone(),
+            ) if lhs_type.is_ord() => lhs_type.clone(),
             Binop::Arithmetic(ArithmeticBinop::Add) if lhs_type == &Type::STRING => {
                 lhs_type.clone()
             }

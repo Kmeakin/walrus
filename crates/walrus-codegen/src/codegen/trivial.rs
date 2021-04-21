@@ -42,12 +42,30 @@ impl<'ctx> Compiler<'ctx> {
         vars: &mut Vars<'ctx>,
         val: &smol_str::SmolStr,
     ) -> BasicValueEnum<'ctx> {
-        let len = self.codegen_int(val.len() as _);
+        let bytes_type = self.llvm.i8_type().array_type(val.len() as _);
+        let global_bytes =
+            self.module
+                .add_global(bytes_type, Some(AddressSpace::Generic), "String.lit");
+        let bytes = self.llvm.i8_type().const_array(
+            &val.as_bytes()
+                .iter()
+                .map(|byte| self.llvm.i8_type().const_int(*byte as _, false))
+                .collect::<Vec<_>>(),
+        );
 
-        // TODO: this truncates the string at the first null byte
-        let bytes = self.builder.build_global_string_ptr(val, "string");
+        assert!(bytes.is_const());
+        global_bytes.set_initializer(&bytes);
+
+        let global_bytes_ptr = global_bytes.as_pointer_value();
+        let global_bytes_ptr = self.builder.build_bitcast(
+            global_bytes_ptr,
+            self.llvm.i8_type().ptr_type(AddressSpace::Generic),
+            "",
+        );
+
+        let len = self.codegen_int(val.len() as _);
         self.string_type(vars)
-            .const_named_struct(&[len.into(), bytes.as_pointer_value().into()])
+            .const_named_struct(&[len.into(), global_bytes_ptr])
             .into()
     }
 }

@@ -18,17 +18,14 @@ length.entry:
 match.case0.test:                                 ; preds = %length.entry
   %List.discriminant3 = extractvalue %List %l, 0
   %"List::Nil.cmp_discriminant" = icmp eq i8 %List.discriminant3, 0
-  br i1 %"List::Nil.cmp_discriminant", label %"match.case0.List::Nil.then", label %"match.case0.List::Nil.else"
+  br i1 %"List::Nil.cmp_discriminant", label %"match.case0.List::Nil.then", label %"match.case0.List::Nil.end"
 
 "match.case0.List::Nil.then":                     ; preds = %match.case0.test
   %List.payload4 = extractvalue %List %l, 1
   br label %"match.case0.List::Nil.end"
 
-"match.case0.List::Nil.else":                     ; preds = %match.case0.test
-  br label %"match.case0.List::Nil.end"
-
-"match.case0.List::Nil.end":                      ; preds = %"match.case0.List::Nil.then", %"match.case0.List::Nil.else"
-  %"match.case0.List::Nil.phi" = phi i1 [ true, %"match.case0.List::Nil.then" ], [ false, %"match.case0.List::Nil.else" ]
+"match.case0.List::Nil.end":                      ; preds = %"match.case0.List::Nil.then", %match.case0.test
+  %"match.case0.List::Nil.phi" = phi i1 [ true, %"match.case0.List::Nil.then" ], [ false, %match.case0.test ]
   br i1 %"match.case0.List::Nil.phi", label %match.case0.then, label %match.case1.test
 
 match.case0.then:                                 ; preds = %"match.case0.List::Nil.end"
@@ -38,18 +35,15 @@ match.case0.then:                                 ; preds = %"match.case0.List::
 match.case1.test:                                 ; preds = %"match.case0.List::Nil.end"
   %List.discriminant = extractvalue %List %l, 0
   %"List::Cons.cmp_discriminant" = icmp eq i8 %List.discriminant, 1
-  br i1 %"List::Cons.cmp_discriminant", label %"match.case1.List::Cons.then", label %"match.case1.List::Cons.else"
+  br i1 %"List::Cons.cmp_discriminant", label %"match.case1.List::Cons.then", label %"match.case1.List::Cons.end"
 
 "match.case1.List::Cons.then":                    ; preds = %match.case1.test
   %List.payload = extractvalue %List %l, 1
   %"List::Cons.head" = extractvalue { i32, %List* } %List.payload, 0
   br label %"match.case1.List::Cons.end"
 
-"match.case1.List::Cons.else":                    ; preds = %match.case1.test
-  br label %"match.case1.List::Cons.end"
-
-"match.case1.List::Cons.end":                     ; preds = %"match.case1.List::Cons.then", %"match.case1.List::Cons.else"
-  %"match.case1.List::Cons.phi" = phi i1 [ true, %"match.case1.List::Cons.then" ], [ false, %"match.case1.List::Cons.else" ]
+"match.case1.List::Cons.end":                     ; preds = %"match.case1.List::Cons.then", %match.case1.test
+  %"match.case1.List::Cons.phi" = phi i1 [ true, %"match.case1.List::Cons.then" ], [ false, %match.case1.test ]
   br i1 %"match.case1.List::Cons.phi", label %match.case1.then, label %match.fail
 
 match.case1.then:                                 ; preds = %"match.case1.List::Cons.end"
