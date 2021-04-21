@@ -81,7 +81,11 @@ impl<'ctx> Compiler<'ctx> {
         }
     }
 
-    fn codegen_fn_args(&'ctx self, vars: &mut Vars<'ctx>, args: &[ExprId]) -> Option<Vec<Value>> {
+    pub fn codegen_fn_args(
+        &'ctx self,
+        vars: &mut Vars<'ctx>,
+        args: &[ExprId],
+    ) -> Option<Vec<Value>> {
         args.iter()
             .map(|arg| self.codegen_expr(vars, *arg))
             .collect::<Option<Vec<_>>>()
@@ -91,12 +95,11 @@ impl<'ctx> Compiler<'ctx> {
         &'ctx self,
         vars: &mut Vars<'ctx>,
         fn_id: FnDefId,
-        args: &[ExprId],
+        args: &[Value<'ctx>],
     ) -> OptValue<'ctx> {
         let fn_def = &self.hir[fn_id];
         let fn_name = &self.hir[fn_def.name].as_str();
         let fn_value = vars[fn_id];
-        let args = self.codegen_fn_args(vars, args)?;
         self.build_call(fn_value, &args, fn_name)
     }
 
@@ -105,10 +108,9 @@ impl<'ctx> Compiler<'ctx> {
         vars: &mut Vars<'ctx>,
         name: &str,
         fn_type: &FnType,
-        args: &[ExprId],
+        args: &[Value<'ctx>],
     ) -> OptValue<'ctx> {
         let fn_value = self.get_builtin_fn(vars, name, fn_type);
-        let args = self.codegen_fn_args(vars, args)?;
         self.build_call(fn_value, &args, name)
     }
 
@@ -116,10 +118,9 @@ impl<'ctx> Compiler<'ctx> {
         &'ctx self,
         vars: &mut Vars<'ctx>,
         func: ExprId,
-        args: &[ExprId],
+        args: &[Value<'ctx>],
     ) -> OptValue<'ctx> {
-        let mut args = self.codegen_fn_args(vars, args)?;
-
+        let mut args = args.to_vec();
         let closure_value = self.codegen_expr(vars, func)?.into_struct_value();
         let code_ptr = self
             .builder
@@ -138,7 +139,7 @@ impl<'ctx> Compiler<'ctx> {
         &'ctx self,
         vars: &mut Vars<'ctx>,
         func: ExprId,
-        args: &[ExprId],
+        args: &[Value<'ctx>],
     ) -> OptValue<'ctx> {
         let func_val = &self.hir[func];
         match func_val {

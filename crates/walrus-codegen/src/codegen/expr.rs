@@ -32,7 +32,10 @@ impl<'ctx> Compiler<'ctx> {
             Expr::Break(expr) => self.codegen_break(vars, *expr),
             Expr::Continue => self.codegen_continue(vars),
             Expr::Return(expr) => self.codegen_return(vars, *expr),
-            Expr::Call { func, args } => self.codegen_call(vars, *func, args),
+            Expr::Call { func, args } => {
+                let args = self.codegen_fn_args(vars, args)?;
+                self.codegen_call(vars, *func, &args)
+            }
             Expr::Lambda { params, expr } => Some(self.codegen_lambda(vars, id, params, *expr)),
             Expr::Unop { op, expr } => self.codegen_unop(vars, *op, *expr),
             Expr::Binop { lhs, op, rhs } => self.codegen_binop(vars, *lhs, *op, *rhs),

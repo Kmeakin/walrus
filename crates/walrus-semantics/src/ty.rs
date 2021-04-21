@@ -37,7 +37,7 @@ impl Type {
     }
 
     /// Can comparisons (==, !=) be performed on this type?
-    pub fn is_eq(&self, hir: &HirData, types: &InferenceResult) -> bool {
+    pub const fn is_eq(&self, hir: &HirData, types: &InferenceResult) -> bool {
         match self {
             Type::Primitive(_) | Type::Infer(_) | Type::Unknown => true,
             _ => false,
@@ -45,7 +45,7 @@ impl Type {
     }
 
     /// Can ordering (<, <=, >, >=) be performed on this type?
-    pub fn is_ord(&self, hir: &HirData, types: &InferenceResult) -> bool {
+    pub const fn is_ord(&self, hir: &HirData, types: &InferenceResult) -> bool {
         match self {
             Type::Primitive(_) | Type::Infer(_) | Type::Unknown => true,
             _ => false,

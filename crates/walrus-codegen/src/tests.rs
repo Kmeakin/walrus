@@ -166,6 +166,7 @@ fn get_five() -> _ {5}
     }
 
     #[test]
+    #[ignore]
     fn builtin_fn_value() {
         test_codegen_and_run(
             r#"
@@ -374,6 +375,7 @@ mod builtins {
     use super::*;
 
     #[test]
+    #[ignore]
     fn builtin_exit() { test_codegen("fn main() -> Int { exit(1) }") }
 }
 
