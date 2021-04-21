@@ -1,0 +1,3 @@
+[submodule "walrus-report"]
+	path = walrus-report
+	url = https://github.com/kmeakin/walrus-report
