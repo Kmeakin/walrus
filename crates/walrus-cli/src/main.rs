@@ -5,7 +5,7 @@ use codespan_reporting::{
     files::SimpleFile,
     term::{emit, termcolor::ColorChoice, Config},
 };
-use std::error::Error;
+use std::{error::Error, process::Command};
 
 mod diagnostics;
 
@@ -20,6 +20,10 @@ fn main() {
 }
 
 fn do_it() -> Result<(), Box<dyn Error>> {
+    let root = crate_root::root().unwrap();
+    let root = root.to_str().unwrap();
+    let builtins_path = format!("{root}/walrus_builtins.c");
+
     let matches = App::new("walrus")
         .version("1.0")
         .author("Karl Meakin")
@@ -61,7 +65,23 @@ fn do_it() -> Result<(), Box<dyn Error>> {
     let name = file.strip_suffix(".walrus").unwrap();
     let llvm_ir_path = format!("{name}.ll");
     let llvm_ir = walrus_codegen::codegen(name, hir.hir, scopes, types);
-    std::fs::write(llvm_ir_path, llvm_ir)?;
+    std::fs::write(&llvm_ir_path, llvm_ir)?;
+
+    let mut command = Command::new("clang");
+    command.args(&[
+        "-fcolor-diagnostics",
+        "-Wno-override-module",
+        "-o",
+        name,
+        &builtins_path,
+        &llvm_ir_path,
+    ]);
+    let output = command.output()?;
+
+    if !output.status.success() {
+        eprintln!("Failed running command: {:?}", command);
+        eprintln!("{}", String::from_utf8(output.stderr).unwrap());
+    }
 
     Ok(())
 }
