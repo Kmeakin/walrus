@@ -10,7 +10,7 @@ walrus-parser = { path = "../walrus-parser" }
 walrus-semantics = { path = "../walrus-semantics" }
 walrus-codegen = { path = "../walrus-codegen" }
 
-clap = "2.33.3"
+clap = { version = "3.0.0-beta.2", features=["color"] }
 codespan-reporting = "0.11.1"
 termcolor = "1.1.2"
 either = "1.6.1"
