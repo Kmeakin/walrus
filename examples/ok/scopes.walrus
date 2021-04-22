@@ -1,0 +1,11 @@
+fn f(s: S, x: Int) -> S {
+    let x = 5;
+    let x = 0;
+    {
+        let s = x;
+    }
+    s
+}
+
+struct S {x: Int}
+

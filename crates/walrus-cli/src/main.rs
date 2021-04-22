@@ -37,11 +37,16 @@ fn do_it() -> Result<(), Box<dyn Error>> {
             .long("color")
             .value_name("COLOR")
             .takes_value(true)
-            .possible_values(&["always", "never"]),
+            .possible_values(&["always", "never"])
+            .about("Emit colored diagnostics"),
         Arg::new("verbose")
             .short('v')
             .long("verbose")
             .about("Use verbose output"),
+        Arg::new("debug")
+            .short('d')
+            .long("debug")
+            .about("Dump debug information after each pass"), 
     ];
 
     let matches = App::new("walrus")
@@ -80,16 +85,31 @@ fn do_it() -> Result<(), Box<dyn Error>> {
     }
 
     let is_verbose = matches.is_present("verbose");
+    let is_debug = matches.is_present("debug");
     let is_color = !matches!(matches.value_of("color"), Some("never"));
 
     let src = std::fs::read_to_string(file)?;
-
     let file_db = SimpleFile::new(file, &src);
 
     let syntax = walrus_parser::parse(&src);
+    if is_debug {
+        dbg!(&syntax);
+    }
+
     let mut hir = walrus_semantics::hir::lower(&syntax);
+    if is_debug {
+        dbg!(&hir);
+    }
+
     let mut scopes = walrus_semantics::scopes::scopes(&hir);
+    if is_debug {
+        dbg!(&scopes);
+    }
+
     let mut types = walrus_semantics::ty::infer(hir.clone(), scopes.clone());
+    if is_debug {
+        dbg!(&types);
+    }
 
     let mut diagnostics = Vec::new();
     diagnostics.extend(std::mem::take(&mut hir.diagnostics));
