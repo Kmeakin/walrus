@@ -5,6 +5,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define MAKE_STRING(x) #x
+#define IGNORE(warning, body)                                                  \
+  _Pragma("clang diagnostic push");                                            \
+  _Pragma(MAKE_STRING(clang diagnostic ignored warning));                      \
+  body _Pragma("clang diagnostic pop");
+
 typedef int32_t Int;
 typedef uint8_t Byte;
 typedef uint32_t Char;
@@ -53,35 +59,35 @@ String builtin_bool_to_string(Bool b) {
 String builtin_int_to_string(Int x) {
   Int len = snprintf(NULL, 0, "%d", x);
   Byte *bytes = malloc(len);
-  snprintf(bytes, len, "%d", x);
+  IGNORE("-Wpointer-sign", { snprintf(bytes, len, "%d", x); });
   return (String){.len = len, .bytes = bytes};
 }
 String builtin_float_to_string(Float x) {
   Int len = snprintf(NULL, 0, "%f", x);
   Byte *bytes = malloc(len * sizeof(Byte));
-  snprintf(bytes, len, "%f", x);
+  IGNORE("-Wpointer-sign", { snprintf(bytes, len, "%f", x); });
   return (String){.len = len, .bytes = bytes};
 }
 // taken from
 // https://stackoverflow.com/questions/42012563/convert-unicode-code-points-to-utf-8-and-utf-32
 String builtin_char_to_string(Char c) {
   if (c <= 0x7F) {
-    char *bytes = malloc(1 * sizeof(Byte));
+    Byte *bytes = malloc(1 * sizeof(Byte));
     bytes[0] = (Byte)c;
     return (String){.len = 1, .bytes = bytes};
   } else if (c <= 0x7FF) {
-    char *bytes = malloc(2 * sizeof(Byte));
+    Byte *bytes = malloc(2 * sizeof(Byte));
     bytes[0] = 0xC0 | (c >> 6);   // 110xxxxx
     bytes[1] = 0x80 | (c & 0x3F); // 10xxxxxx
     return (String){.len = 2, .bytes = bytes};
   } else if (c <= 0xFFFF) {
-    char *bytes = malloc(3 * sizeof(Byte));
+    Byte *bytes = malloc(3 * sizeof(Byte));
     bytes[0] = 0xE0 | (c >> 12);         // 1110xxxx
     bytes[1] = 0x80 | ((c >> 6) & 0x3F); // 10xxxxxx
     bytes[2] = 0x80 | (c & 0x3F);        // 10xxxxxx
     return (String){.len = 3, .bytes = bytes};
   } else {
-    char *bytes = malloc(4 * sizeof(Byte));
+    Byte *bytes = malloc(4 * sizeof(Byte));
     bytes[0] = 0xF0 | (c >> 18);          // 11110xxx
     bytes[1] = 0x80 | ((c >> 12) & 0x3F); // 10xxxxxx
     bytes[2] = 0x80 | ((c >> 6) & 0x3F);  // 10xxxxxx
