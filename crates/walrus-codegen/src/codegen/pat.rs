@@ -36,6 +36,7 @@ impl<'ctx> Compiler<'ctx> {
         }
     }
 
+    #[allow(clippy::too_many_lines)]
     pub fn codegen_match_attempt(
         &'ctx self,
         vars: &mut Vars<'ctx>,
@@ -88,7 +89,6 @@ impl<'ctx> Compiler<'ctx> {
                     let zero = self.int_type().const_zero();
                     self.builder
                         .build_int_compare(IntPredicate::EQ, cmp, zero, "String.eq")
-                        .into()
                 }
             },
             Pat::Var { .. } | Pat::Ignore => self.codegen_true(),

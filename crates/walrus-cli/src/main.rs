@@ -80,10 +80,7 @@ fn do_it() -> Result<(), Box<dyn Error>> {
     }
 
     let is_verbose = matches.is_present("verbose");
-    let is_color = match matches.value_of("color") {
-        Some("never") => false,
-        _ => true,
-    };
+    let is_color = !matches!(matches.value_of("color"), Some("never"));
 
     let src = std::fs::read_to_string(file)?;
 

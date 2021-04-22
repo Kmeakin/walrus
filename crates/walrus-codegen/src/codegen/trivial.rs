@@ -49,7 +49,7 @@ impl<'ctx> Compiler<'ctx> {
         let bytes = self.llvm.i8_type().const_array(
             &val.as_bytes()
                 .iter()
-                .map(|byte| self.llvm.i8_type().const_int(*byte as _, false))
+                .map(|byte| self.llvm.i8_type().const_int(u64::from(*byte), false))
                 .collect::<Vec<_>>(),
         );
 
