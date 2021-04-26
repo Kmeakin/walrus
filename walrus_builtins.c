@@ -67,8 +67,8 @@ String builtin_bool_to_string(Bool b) {
 String builtin_int_to_string(Int x) {
   Int len = snprintf(NULL, 0, "%d", x);
   Byte *bytes = malloc(len);
-  IGNORE("-Wpointer-sign", { snprintf(bytes, len, "%d", x); });
-  return (String){.len = len, .bytes = bytes};
+  IGNORE("-Wpointer-sign", { snprintf(bytes, len + 1, "%d", x); });
+  return (String){.len = len + 1, .bytes = bytes};
 }
 String builtin_float_to_string(Float x) {
   Int len = snprintf(NULL, 0, "%f", x);
@@ -109,7 +109,7 @@ String builtin_string_append(String s1, String s2) {
   Byte *bytes = malloc(len * sizeof(Byte));
   memcpy(bytes, s1.bytes, s1.len * sizeof(Byte));
   memcpy(bytes + s1.len, s2.bytes, s2.len * sizeof(Byte));
-  return (String){.len = s1.len + s2.len, .bytes = bytes};
+  return (String){.len = len, .bytes = bytes};
 }
 
 Int builtin_string_cmp(String s1, String s2) {

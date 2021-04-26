@@ -7,7 +7,7 @@ fn main()  {
     let line = read_line();
 
     if line == password {
-    	print("The secret is : " + int_to_string(secret) + "\n");
+    	print("The secret is: " + int_to_string(secret) + "\n");
     } else {
         print_error("Incorrect password");
     }
