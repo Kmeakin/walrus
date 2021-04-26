@@ -39,6 +39,14 @@ fn do_it() -> Result<(), Box<dyn Error>> {
             .takes_value(true)
             .possible_values(&["always", "never"])
             .about("Emit colored diagnostics"),
+        Arg::new("opt")
+            .short('O')
+            .long("opt")
+            .value_name("OPT")
+            .takes_value(true)
+            .possible_values(&["0", "1", "2", "3"])
+            .default_value("0")
+            .about("Optimization level"),
         Arg::new("verbose")
             .short('v')
             .long("verbose")
@@ -89,6 +97,7 @@ fn do_it() -> Result<(), Box<dyn Error>> {
     let is_verbose = matches.is_present("verbose");
     let is_debug = matches.is_present("debug");
     let is_color = !matches!(matches.value_of("color"), Some("never"));
+    let opt_level = matches.value_of("opt").unwrap();
 
     let src = std::fs::read_to_string(file)?;
     let n_lines = src.lines().count();
@@ -154,7 +163,13 @@ fn do_it() -> Result<(), Box<dyn Error>> {
     if is_color {
         command.arg("-fcolor-diagnostics");
     }
-    command.args(&[&builtins_path, &llvm_ir_path, "-o", program_name]);
+    command.args(&[
+        &format!("-O{opt_level}"),
+        &builtins_path,
+        &llvm_ir_path,
+        "-o",
+        program_name,
+    ]);
     let output = command.output()?;
 
     if is_verbose {
