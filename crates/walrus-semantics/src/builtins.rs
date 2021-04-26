@@ -83,6 +83,10 @@ impl Builtin {
                 ty: FnType::new(&[Type::STRING], Type::UNIT),
             },
             Self::Fn {
+                name: "read_line",
+                ty: FnType::new(&[], Type::STRING),
+            },
+            Self::Fn {
                 name: "string_length",
                 ty: FnType::new(&[Type::STRING], Type::INT),
             },

@@ -47,6 +47,14 @@ Unit builtin_print_error(String s) {
   return UNIT;
 }
 
+String builtin_read_line() {
+  Byte *bytes = NULL;
+  size_t n = 0;
+  size_t len = getline(&bytes, &n, stdin);
+  String s = (String){.len = (Int)(len - 1), .bytes = bytes};
+  return s;
+}
+
 Int builtin_string_length(String s) { return s.len; }
 
 String builtin_bool_to_string(Bool b) {
@@ -102,4 +110,14 @@ String builtin_string_append(String s1, String s2) {
   memcpy(bytes, s1.bytes, s1.len * sizeof(Byte));
   memcpy(bytes + s1.len, s2.bytes, s2.len * sizeof(Byte));
   return (String){.len = s1.len + s2.len, .bytes = bytes};
+}
+
+Int builtin_string_cmp(String s1, String s2) {
+  Int len = (s1.len < s2.len) ? s1.len : s2.len;
+  Int cmp = memcmp(s1.bytes, s2.bytes, len);
+  if (cmp == 0) {
+    return s1.len - s2.len;
+  } else {
+    return cmp;
+  }
 }
