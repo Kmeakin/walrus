@@ -1,0 +1,74 @@
+---
+source: crates/walrus-parser/src/grammar.rs
+expression: got
+
+---
+Ok(
+    (
+        [],
+        Block(
+            Block {
+                lcurly: LCurly {
+                    span: 0..1,
+                },
+                stmts: [
+                    Let {
+                        kw_let: KwLet {
+                            span: 1..4,
+                        },
+                        pat: Var {
+                            kw_mut: None,
+                            var: Var(
+                                Ident {
+                                    span: 5..6,
+                                    text: "x",
+                                },
+                            ),
+                        },
+                        ascription: None,
+                        eq: Eq {
+                            span: 7..8,
+                        },
+                        expr: Lit(
+                            Int(
+                                Dec(
+                                    DecInt {
+                                        span: 9..10,
+                                        text: "5",
+                                    },
+                                ),
+                            ),
+                        ),
+                        semicolon: Semicolon {
+                            span: 10..11,
+                        },
+                    },
+                ],
+                expr: Some(
+                    Loop(
+                        LoopExpr {
+                            kw_loop: KwLoop {
+                                span: 12..16,
+                            },
+                            expr: Block(
+                                Block {
+                                    lcurly: LCurly {
+                                        span: 17..18,
+                                    },
+                                    stmts: [],
+                                    expr: None,
+                                    rcurly: RCurly {
+                                        span: 18..19,
+                                    },
+                                },
+                            ),
+                        },
+                    ),
+                ),
+                rcurly: RCurly {
+                    span: 19..20,
+                },
+            },
+        ),
+    ),
+)

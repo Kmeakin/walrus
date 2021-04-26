@@ -1,6 +1,7 @@
 ---
 source: crates/walrus-parser/src/grammar.rs
 expression: got
+
 ---
 Ok(
     (
@@ -65,30 +66,19 @@ Ok(
                         ),
                         semicolon: None,
                     },
-                    Expr {
-                        expr: Block(
-                            Block {
-                                lcurly: LCurly {
-                                    span: 20..21,
-                                },
-                                stmts: [],
-                                expr: None,
-                                rcurly: RCurly {
-                                    span: 21..22,
-                                },
-                            },
-                        ),
-                        semicolon: None,
-                    },
                 ],
                 expr: Some(
-                    Var(
-                        Var(
-                            Ident {
-                                span: 23..24,
-                                text: "x",
+                    Block(
+                        Block {
+                            lcurly: LCurly {
+                                span: 20..21,
                             },
-                        ),
+                            stmts: [],
+                            expr: None,
+                            rcurly: RCurly {
+                                span: 21..22,
+                            },
+                        },
                     ),
                 ),
                 rcurly: RCurly {

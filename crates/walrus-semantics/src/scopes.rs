@@ -268,9 +268,7 @@ impl Scopes {
         self.set_scope_of_expr(id, self.scope);
         let expr = &hir[id];
         match expr {
-            Expr::Block { stmts, expr } => {
-                self.in_child_scope(|this| this.block_scope(hir, stmts, *expr))
-            }
+            Expr::Block { stmts, expr } => self.block_scope(hir, stmts, *expr),
             Expr::Lambda { params, expr } => self.in_child_lambda_scope(|this| {
                 let mut vars = Vars::new();
                 for param in params {
@@ -295,7 +293,9 @@ impl Scopes {
                 for field in fields {
                     self.insert_var(hir, &mut seen_fields, field.name);
                     self.set_scope_of_var(field.name, self.scope);
-                    self.expr_scope(hir, field.val)
+                    if let Some(expr) = field.expr {
+                        self.expr_scope(hir, expr)
+                    }
                 }
             }
             expr => expr.walk_child_exprs(|id| self.expr_scope(hir, id)),

@@ -603,7 +603,7 @@ impl Ctx {
         let inits = match inits {
             Left(inits) => inits
                 .iter()
-                .map(|field| (field.name, Left(field.val)))
+                .map(|field| (field.name, Left(field.expr)))
                 .collect::<Vec<_>>(),
             Right(inits) => inits
                 .iter()
@@ -631,9 +631,9 @@ impl Ctx {
                 })
                 .unwrap_or(Type::Unknown);
             let ty = match init {
-                Left(expr) => self.infer_expr(&expected, *expr),
+                Left(Some(expr)) => self.infer_expr(&expected, *expr),
                 Right(Some(pat)) => self.infer_pat(&expected, *pat),
-                Right(None) => expected,
+                Left(None) | Right(None) => expected,
             };
             self.set_var_type(*name, ty);
         }

@@ -6,7 +6,11 @@ impl Expr {
             Self::Lit(_) | Self::Var(_) | Self::Continue => {}
             Self::Tuple(exprs) => exprs.iter().for_each(|expr| f(*expr)),
             Self::Struct { fields, .. } | Self::Enum { fields, .. } => {
-                fields.iter().for_each(|field| f(field.val))
+                fields.iter().for_each(|field| {
+                    if let Some(expr) = field.expr {
+                        f(expr)
+                    }
+                })
             }
             Self::Field { expr, .. }
             | Self::Unop { expr, .. }

@@ -295,9 +295,9 @@ impl Ctx {
                     .fields
                     .inner
                     .iter()
-                    .map(|field| FieldInit {
-                        name: self.lower_var(field.name.clone()),
-                        val: self.lower_expr(&field.val),
+                    .map(|init| FieldInit {
+                        name: self.lower_var(init.name.clone()),
+                        expr: init.expr.as_ref().map(|(_, expr)| self.lower_expr(&expr)),
                     })
                     .collect(),
             },
@@ -308,9 +308,9 @@ impl Ctx {
                     .fields
                     .inner
                     .iter()
-                    .map(|field| FieldInit {
-                        name: self.lower_var(field.name.clone()),
-                        val: self.lower_expr(&field.val),
+                    .map(|init| FieldInit {
+                        name: self.lower_var(init.name.clone()),
+                        expr: init.expr.as_ref().map(|(_, expr)| self.lower_expr(&expr)),
                     })
                     .collect(),
             },

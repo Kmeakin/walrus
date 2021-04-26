@@ -107,7 +107,10 @@ impl<'ctx> Compiler<'ctx> {
             .build_alloca(struct_type, &format!("{struct_name}.alloca"));
 
         for init in inits {
-            let value = self.codegen_expr(vars, init.val)?;
+            let value = match init.expr {
+                Some(expr) => self.codegen_expr(vars, expr)?,
+                None => todo!(),
+            };
             self.set_struct_field(vars, struct_id, struct_alloca, init.name, value);
         }
 
@@ -138,7 +141,11 @@ impl<'ctx> Compiler<'ctx> {
             // set the fields
             let payload_gep = self.get_enum_payload_gep(enum_id, enum_alloca);
             for init in inits {
-                let field_value = self.codegen_expr(vars, init.val)?;
+                let field_value = match init.expr {
+                    Some(expr) => self.codegen_expr(vars, expr)?,
+                    None => todo!(),
+                };
+
                 self.set_variant_field(
                     vars,
                     enum_id,

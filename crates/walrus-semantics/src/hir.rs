@@ -296,7 +296,7 @@ pub struct MatchCase {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct FieldInit {
     pub name: VarId,
-    pub val: ExprId,
+    pub expr: Option<ExprId>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]

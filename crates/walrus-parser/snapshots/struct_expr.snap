@@ -27,16 +27,20 @@ Ok(
                                         text: "x",
                                     },
                                 ),
-                                colon: Colon {
-                                    span: 6..7,
-                                },
-                                val: Lit(
-                                    Int(
-                                        Dec(
-                                            DecInt {
-                                                span: 8..9,
-                                                text: "1",
-                                            },
+                                expr: Some(
+                                    (
+                                        Colon {
+                                            span: 6..7,
+                                        },
+                                        Lit(
+                                            Int(
+                                                Dec(
+                                                    DecInt {
+                                                        span: 8..9,
+                                                        text: "1",
+                                                    },
+                                                ),
+                                            ),
                                         ),
                                     ),
                                 ),
@@ -54,16 +58,20 @@ Ok(
                                             text: "y",
                                         },
                                     ),
-                                    colon: Colon {
-                                        span: 12..13,
-                                    },
-                                    val: Lit(
-                                        Int(
-                                            Dec(
-                                                DecInt {
-                                                    span: 14..15,
-                                                    text: "2",
-                                                },
+                                    expr: Some(
+                                        (
+                                            Colon {
+                                                span: 12..13,
+                                            },
+                                            Lit(
+                                                Int(
+                                                    Dec(
+                                                        DecInt {
+                                                            span: 14..15,
+                                                            text: "2",
+                                                        },
+                                                    ),
+                                                ),
                                             ),
                                         ),
                                     ),

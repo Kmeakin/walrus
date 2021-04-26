@@ -167,8 +167,7 @@ impl EnumExpr {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct FieldInit {
     pub name: Var,
-    pub colon: Colon,
-    pub val: Expr,
+    pub expr: Option<(Colon, Expr)>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

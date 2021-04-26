@@ -39,9 +39,8 @@ fn struct_expr(input: Input) -> IResult<Expr> {
 }
 fn field_init(input: Input) -> IResult<FieldInit> {
     let (input, name) = var.parse(input)?;
-    let (input, colon) = colon.parse(input)?;
-    let (input, val) = expr.parse(input)?;
-    Ok((input, FieldInit { name, colon, val }))
+    let (input, expr) = (pair(colon, expr)).opt().parse(input)?;
+    Ok((input, FieldInit { name, expr }))
 }
 fn enum_expr(input: Input) -> IResult<Expr> {
     let (input, name) = var.parse(input)?;
@@ -306,14 +305,14 @@ pub fn block(input: Input) -> IResult<Block> {
     let (input, expr) = expr.opt().parse(input)?;
     let (input, rcurly) = rcurly.parse(input)?;
 
-    let (stmts, expr) = match (stmts.as_slice(), &expr) {
-        (
-            [Stmt::Expr {
+    let (stmts, expr) = match stmts.split_last() {
+        Some((
+            Stmt::Expr {
                 expr,
                 semicolon: None,
-            }],
-            None,
-        ) => (vec![], Some(expr.clone())),
+            },
+            stmts,
+        )) => (stmts.to_vec(), Some(expr.clone())),
         _ => (stmts, expr),
     };
     Ok((
@@ -408,6 +407,7 @@ mod tests {
     test_parse!(continue_expr, expr, r#"continue"#);
     test_parse!(block_expr, expr, r#"{x; y; z}"#);
     test_parse!(block_expr2, expr, r#"{if true {} loop {} {} x}"#);
+    test_parse!(block_expr3, expr, r#"{let x = 5; loop {}}"#);
     test_parse!(struct_expr, expr, r#"Foo {x: 1, y: 2}"#);
     test_parse!(enum_expr, expr, r#"Foo::Bar {x: 1, y: 2}"#);
     test_parse!(match_expr, expr, r#"match 5 {x => x}"#);
