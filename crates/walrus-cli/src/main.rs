@@ -46,7 +46,7 @@ fn do_it() -> Result<(), Box<dyn Error>> {
         Arg::new("debug")
             .short('d')
             .long("debug")
-            .about("Dump debug information after each pass"), 
+            .about("Dump debug information after each pass"),
     ];
 
     let matches = App::new("walrus")
@@ -83,12 +83,16 @@ fn do_it() -> Result<(), Box<dyn Error>> {
     if !file.ends_with(".walrus") {
         return Err("Input filename should have `.walrus` extension".into());
     }
+    let file = std::fs::canonicalize(file)?;
+    let file = file.to_str().unwrap();
 
     let is_verbose = matches.is_present("verbose");
     let is_debug = matches.is_present("debug");
     let is_color = !matches!(matches.value_of("color"), Some("never"));
 
     let src = std::fs::read_to_string(file)?;
+    let n_lines = src.lines().count();
+    let start_time = std::time::Instant::now();
     let file_db = SimpleFile::new(file, &src);
 
     let syntax = walrus_parser::parse(&src);
@@ -132,6 +136,11 @@ fn do_it() -> Result<(), Box<dyn Error>> {
         return Err(format!("Aborting compilation due to {n_errors} fatal errors").into());
     }
 
+    if is_verbose {
+        let end_time = std::time::Instant::now();
+        let time = end_time.duration_since(start_time);
+        println!("Checked {n_lines} lines in {time:?}");
+    }
     if stage < Stage::Build {
         return Ok(());
     }
@@ -145,13 +154,7 @@ fn do_it() -> Result<(), Box<dyn Error>> {
     if is_color {
         command.arg("-fcolor-diagnostics");
     }
-    command.args(&[
-        "-Wno-override-module",
-        "-o",
-        program_name,
-        &builtins_path,
-        &llvm_ir_path,
-    ]);
+    command.args(&[&builtins_path, &llvm_ir_path, "-o", program_name]);
     let output = command.output()?;
 
     if is_verbose {
@@ -161,6 +164,12 @@ fn do_it() -> Result<(), Box<dyn Error>> {
     if !output.status.success() {
         eprintln!("Failed running command: {:?}", command);
         eprintln!("{}", String::from_utf8(output.stderr).unwrap());
+    }
+
+    if is_verbose {
+        let end_time = std::time::Instant::now();
+        let time = end_time.duration_since(start_time);
+        println!("Compiled {n_lines} lines in {time:?}");
     }
 
     if stage < Stage::Run {
