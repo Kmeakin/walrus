@@ -310,7 +310,7 @@ impl Ctx {
                     .iter()
                     .map(|init| FieldInit {
                         name: self.lower_var(init.name.clone()),
-                        expr: init.expr.as_ref().map(|(_, expr)| self.lower_expr(&expr)),
+                        expr: init.expr.as_ref().map(|(_, expr)| self.lower_expr(expr)),
                     })
                     .collect(),
             },

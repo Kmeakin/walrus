@@ -6,7 +6,16 @@ impl<'ctx> Compiler<'ctx> {
 
     pub fn codegen_null_ptr(&self) -> BasicValueEnum { self.void_ptr_type().const_zero() }
 
-    pub fn codegen_undef(&self) -> BasicValueEnum { self.llvm.i8_type().get_undef().into() }
+    pub fn codegen_undef(&self, vars: &mut Vars<'ctx>, ty: &Type) -> BasicValueEnum {
+        match self.value_type(vars, ty) {
+            BasicTypeEnum::ArrayType(ty) => ty.get_undef().into(),
+            BasicTypeEnum::FloatType(ty) => ty.get_undef().into(),
+            BasicTypeEnum::IntType(ty) => ty.get_undef().into(),
+            BasicTypeEnum::PointerType(ty) => ty.get_undef().into(),
+            BasicTypeEnum::StructType(ty) => ty.get_undef().into(),
+            BasicTypeEnum::VectorType(ty) => ty.get_undef().into(),
+        }
+    }
 
     pub fn codegen_lit(&self, vars: &mut Vars<'ctx>, lit: &Lit) -> BasicValueEnum<'ctx> {
         match lit {

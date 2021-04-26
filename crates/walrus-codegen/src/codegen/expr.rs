@@ -200,7 +200,7 @@ impl<'ctx> Compiler<'ctx> {
         let then_value = match else_branch {
             Some(_) => self
                 .codegen_expr(vars, then_branch)
-                .unwrap_or_else(|| self.codegen_undef()),
+                .unwrap_or_else(|| self.codegen_undef(vars, &self.types[then_branch])),
             None => {
                 self.codegen_expr(vars, then_branch);
                 self.codegen_unit()
@@ -213,7 +213,7 @@ impl<'ctx> Compiler<'ctx> {
         let else_value = match else_branch {
             Some(else_branch) => self
                 .codegen_expr(vars, else_branch)
-                .unwrap_or_else(|| self.codegen_undef()),
+                .unwrap_or_else(|| self.codegen_undef(vars, &self.types[else_branch])),
             None => self.codegen_unit(),
         };
         self.builder.build_unconditional_branch(end_bb);
@@ -266,7 +266,7 @@ impl<'ctx> Compiler<'ctx> {
             self.codegen_pat(vars, case.pat, test_value);
             let val = self
                 .codegen_expr(vars, case.expr)
-                .unwrap_or_else(|| self.codegen_undef());
+                .unwrap_or_else(|| self.codegen_undef(vars, &self.types[case.expr]));
             let val: Box<dyn BasicValue> = Box::new(val);
             self.builder.build_unconditional_branch(end_bb);
 

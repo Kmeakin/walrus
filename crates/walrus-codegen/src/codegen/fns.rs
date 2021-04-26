@@ -74,10 +74,7 @@ impl<'ctx> Compiler<'ctx> {
             .try_as_basic_value();
         match call {
             Left(value) => Some(value),
-            Right(_) => {
-                self.builder.build_unreachable();
-                None
-            }
+            Right(_) => None,
         }
     }
 

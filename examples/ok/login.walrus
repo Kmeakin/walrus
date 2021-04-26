@@ -1,28 +1,14 @@
-fn main() {
-    let secret = login();
-    print("The secret is :" + int_to_string(secret) + "\n");
-}
-
-fn login() -> Int {
+fn main()  {
     let secret = 42;
     let max_length = 20;
     let password = "password";
 
-    loop {
-        print("password: ");
-        let line = read_line();
-        if line == "" {
-            print_error("Password cannot be empty\n");
-            continue;
-        }
-        if string_length(line) > max_length {
-            print_error("Password is too long\n");
-            continue;
-        }
-        if line != password {
-            print_error("Incorrect password\n");
-            continue;
-        }
-        break secret
+    print("Password: ");
+    let line = read_line();
+
+    if line == password {
+    	print("The secret is : " + int_to_string(secret) + "\n");
+    } else {
+        print_error("Incorrect password");
     }
 }
